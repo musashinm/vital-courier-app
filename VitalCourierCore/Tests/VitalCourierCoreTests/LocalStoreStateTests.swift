@@ -143,4 +143,16 @@ import Testing
         let staleCleared = try store.clearDirty(day: day("2026-09-27"), types: [.steps])
         #expect(staleCleared == false)
     }
+
+    @Test func clearingADayIsAllOrNothingWhenOneTypeWentStale() throws {
+        let store = try storeWithOneDirtyStepsDay()
+        try store.applyChanges(HealthChanges(added: [makeSample(type: .weight, start: "2026-09-27T12:00:00Z", value: .quantity(72))]), for: .weight, fallbackTimeZone: saoPaulo)
+        try store.saveDailyValue(DailyValue(value: 1), type: .steps, day: day("2026-09-27"))
+        // Weight stays stale (fresh = 0), steps is fresh.
+
+        let allCleared = try store.clearDirty(day: day("2026-09-27"), types: [.steps, .weight])
+
+        #expect(allCleared == false)
+        #expect(Set(try store.dirtyEntries().map(\.type)) == [.steps, .weight])
+    }
 }
