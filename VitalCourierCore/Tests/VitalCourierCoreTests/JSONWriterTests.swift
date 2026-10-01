@@ -25,6 +25,9 @@ import Testing
         #expect(samples[0]["uuid"] as? String == sample.uuid.uuidString)
         #expect(samples[0]["value"] as? Double == 72.4)
         #expect(samples[0]["source"] as? String == "Scale")
+        #expect(samples[0]["start"] as? String == "2026-09-27T09:00:00.000-03:00")
+        #expect(samples[0].keys.contains("device"))
+        #expect(samples[0]["device"] is NSNull)
         #expect(samples[0]["metadata"] as? [String: String] == [:])
     }
 
@@ -33,8 +36,8 @@ import Testing
         let file = try decode(JSONWriter.monthFile(type: .sleep, monthKey: "2026-09", samples: [sample], timeZone: saoPaulo, generatedAt: date("2026-09-30T15:00:00Z")))
         let entry = try #require((file["samples"] as? [[String: Any]])?.first)
 
-        #expect(entry["start"] as? String == "2026-09-27T02:00:00+01:00")
-        #expect(entry["end"] as? String == "2026-09-27T03:00:00+01:00")
+        #expect(entry["start"] as? String == "2026-09-27T02:00:00.000+01:00")
+        #expect(entry["end"] as? String == "2026-09-27T03:00:00.000+01:00")
         #expect(entry["value"] as? String == "asleepREM")
     }
 
@@ -47,6 +50,16 @@ import Testing
         #expect(first == second)
         let uuids = try #require(try decode(first)["samples"] as? [[String: Any]]).compactMap { $0["uuid"] as? String }
         #expect(uuids == [earlier.uuid.uuidString, later.uuid.uuidString])
+    }
+
+    @Test func sampleTimesKeepFractionalSeconds() throws {
+        let sample = makeSample(start: "2026-09-27T12:00:00Z", zone: "America/Sao_Paulo")
+        var fractional = sample
+        fractional.start = sample.start.addingTimeInterval(0.25)
+        let file = try decode(JSONWriter.monthFile(type: .steps, monthKey: "2026-09", samples: [fractional], timeZone: saoPaulo, generatedAt: date("2026-09-30T15:00:00Z")))
+        let entry = try #require((file["samples"] as? [[String: Any]])?.first)
+
+        #expect(entry["start"] as? String == "2026-09-27T09:00:00.250-03:00")
     }
 
     @Test func rejectsABadMonthKey() {

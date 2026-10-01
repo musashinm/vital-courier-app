@@ -30,6 +30,21 @@ public enum JSONWriter {
         let source: String
         let device: String?
         let metadata: [String: String]
+
+        enum CodingKeys: String, CodingKey {
+            case uuid, start, end, value, source, device, metadata
+        }
+
+        func encode(to encoder: any Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(uuid, forKey: .uuid)
+            try container.encode(start, forKey: .start)
+            try container.encode(end, forKey: .end)
+            try container.encode(value, forKey: .value)
+            try container.encode(source, forKey: .source)
+            try container.encode(device, forKey: .device)
+            try container.encode(metadata, forKey: .metadata)
+        }
     }
 
     public static func monthFile(type: HealthType, monthKey: String, samples: [HealthSample], timeZone: TimeZone, generatedAt: Date) throws -> Data {
@@ -49,8 +64,8 @@ public enum JSONWriter {
                 let sampleZone = DayAssigner.zone(for: sample, fallback: timeZone)
                 return SampleEntry(
                     uuid: sample.uuid.uuidString,
-                    start: iso8601(sample.start, in: sampleZone),
-                    end: iso8601(sample.end, in: sampleZone),
+                    start: iso8601(sample.start, in: sampleZone, fractionalSeconds: true),
+                    end: iso8601(sample.end, in: sampleZone, fractionalSeconds: true),
                     value: sample.value,
                     source: sample.source,
                     device: sample.device,
@@ -63,10 +78,10 @@ public enum JSONWriter {
         return try encoder.encode(file)
     }
 
-    static func iso8601(_ date: Date, in timeZone: TimeZone) -> String {
+    static func iso8601(_ date: Date, in timeZone: TimeZone, fractionalSeconds: Bool = false) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.timeZone = timeZone
-        formatter.formatOptions = [.withInternetDateTime]
+        formatter.formatOptions = fractionalSeconds ? [.withInternetDateTime, .withFractionalSeconds] : [.withInternetDateTime]
         return formatter.string(from: date)
     }
 }
