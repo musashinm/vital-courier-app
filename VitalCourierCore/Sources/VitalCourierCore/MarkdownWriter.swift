@@ -70,8 +70,10 @@ public enum MarkdownWriter {
             case "\n": escaped += "\\n"
             case "\r": escaped += "\\r"
             case "\t": escaped += "\\t"
-            case "\u{0}"..."\u{1F}", "\u{7F}":
+            case "\u{0}"..."\u{1F}", "\u{7F}"..."\u{9F}":
                 escaped += "\\x" + String(format: "%02X", locale: posixLocale, scalar.value)
+            case "\u{FEFF}", "\u{FFFE}", "\u{FFFF}":
+                escaped += "\\u" + String(format: "%04X", locale: posixLocale, scalar.value)
             default: escaped.unicodeScalars.append(scalar)
             }
         }
