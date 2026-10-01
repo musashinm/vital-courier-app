@@ -214,9 +214,10 @@ import Testing
 
     @Test func aCancelledRunReadsNothingAndLeavesMarks() async throws {
         let store = try LocalStore.inMemory()
-        try store.applyChanges(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
         let log = EventLog()
         let health = FakeHealthSource(log: log)
+        await health.queue(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")], newAnchor: Data([7])), for: .steps)
+        await health.setStatistic(8412, for: .steps, day: day("2026-09-27"))
         let runner = makeRunner(store: store, health: health)
         let gate = AsyncStream<Void>.makeStream()
         let task = Task { () -> RunOutcome in
@@ -229,7 +230,9 @@ import Testing
 
         #expect(outcome.errors.isEmpty)
         #expect(log.all.isEmpty)
-        #expect(try store.dirtyEntries().count == 1)
+        #expect(try store.anchor(for: .steps) == nil)
+        #expect(try store.samples(type: .steps, month: "2026-09").isEmpty)
+        #expect(try store.dirtyEntries().isEmpty)
     }
 
     @Test func triggerOptionsMatchTheSpec() {
