@@ -41,4 +41,22 @@ import Testing
             if case ExportFolderError.bookmarkUnresolvable = error { true } else { false }
         }
     }
+
+    @Test func pathsLeavingTheFolderAreRejected() throws {
+        let parent = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: parent) }
+        let folder = parent.appendingPathComponent("picked")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let destination = BookmarkedFolder(bookmarkData: try BookmarkedFolder.makeBookmark(forPickedFolder: folder))
+
+        for path in ["Vital Courier/../escape.md", "../escape.md", "/escape.md", "", "a//b.md", "./a.md"] {
+            #expect {
+                try destination.write(Data("x".utf8), to: path)
+            } throws: { error in
+                if case ExportFolderError.writeFailed = error { true } else { false }
+            }
+        }
+        #expect(!FileManager.default.fileExists(atPath: parent.appendingPathComponent("escape.md").path))
+        #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path).isEmpty)
+    }
 }

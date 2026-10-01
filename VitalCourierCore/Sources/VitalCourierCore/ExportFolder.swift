@@ -33,7 +33,7 @@ public final class BookmarkedFolder: ExportDestination {
         var isStale = false
         let url: URL
         do {
-            url = try URL(resolvingBookmarkData: bookmark.withLock { $0 }, options: [], relativeTo: nil, bookmarkDataIsStale: &isStale)
+            url = try URL(resolvingBookmarkData: bookmark.withLock { $0 }, options: [.withoutImplicitStartAccessing], relativeTo: nil, bookmarkDataIsStale: &isStale)
         } catch {
             throw ExportFolderError.bookmarkUnresolvable(error.localizedDescription)
         }
@@ -52,6 +52,7 @@ public final class BookmarkedFolder: ExportDestination {
 
     /// Writes atomically through `NSFileCoordinator`, creating intermediate folders.
     public func write(_ data: Data, to relativePath: String) throws {
+        try Self.validate(relativePath: relativePath)
         let folder = try resolvedURL()
         let isAccessing = folder.startAccessingSecurityScopedResource()
         defer { if isAccessing { folder.stopAccessingSecurityScopedResource() } }
@@ -71,6 +72,23 @@ public final class BookmarkedFolder: ExportDestination {
         }
         if let failure = coordinationError ?? writeError {
             throw ExportFolderError.writeFailed(path: relativePath, reason: failure.localizedDescription)
+        }
+    }
+
+    /// Rejects paths that could leave the picked folder: empty, absolute, or with an empty, `.` or `..` component.
+    private static func validate(relativePath: String) throws {
+        let reason: String?
+        if relativePath.isEmpty {
+            reason = "path is empty"
+        } else if relativePath.hasPrefix("/") {
+            reason = "path must be relative"
+        } else if relativePath.split(separator: "/", omittingEmptySubsequences: false).contains(where: { $0.isEmpty || $0 == "." || $0 == ".." }) {
+            reason = "path has an empty, \".\" or \"..\" component"
+        } else {
+            reason = nil
+        }
+        if let reason {
+            throw ExportFolderError.writeFailed(path: relativePath, reason: reason)
         }
     }
 }
