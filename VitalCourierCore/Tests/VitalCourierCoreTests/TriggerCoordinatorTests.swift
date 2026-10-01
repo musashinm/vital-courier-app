@@ -13,28 +13,41 @@ func waitUntil(_ condition: @escaping @Sendable () async -> Bool) async throws {
     throw CancellationError()
 }
 
+/// Fake runner whose runs (numbered from 1) can be held before or after they call `onReadCommitted`.
 actor GatedRunner: ExportRunning {
     private(set) var calls: [(trigger: Trigger, options: RunOptions)] = []
-    private var gate: CheckedContinuation<Void, Never>?
-    private var holdNextRun: Bool
+    private var gates: [Int: CheckedContinuation<Void, Never>] = [:]
+    private let holdBeforeReadCommit: Set<Int>
+    private let holdAfterReadCommit: Set<Int>
 
-    init(holdFirstRun: Bool) { holdNextRun = holdFirstRun }
+    init(holdFirstRun: Bool) {
+        holdBeforeReadCommit = []
+        holdAfterReadCommit = holdFirstRun ? [1] : []
+    }
+
+    init(holdBeforeReadCommit: Set<Int> = [], holdAfterReadCommit: Set<Int> = []) {
+        self.holdBeforeReadCommit = holdBeforeReadCommit
+        self.holdAfterReadCommit = holdAfterReadCommit
+    }
 
     var callCount: Int { calls.count }
 
     func run(trigger: Trigger, options: RunOptions, onReadCommitted: @escaping @Sendable () -> Void) async -> RunOutcome {
         calls.append((trigger, options))
-        onReadCommitted()
-        if holdNextRun {
-            holdNextRun = false
-            await withCheckedContinuation { gate = $0 }
+        let runNumber = calls.count
+        if holdBeforeReadCommit.contains(runNumber) {
+            await withCheckedContinuation { gates[runNumber] = $0 }
         }
-        return RunOutcome(readOutcome: .read, daysWritten: calls.count, daysFailed: 0, daysPending: 0, errors: [])
+        onReadCommitted()
+        if holdAfterReadCommit.contains(runNumber) {
+            await withCheckedContinuation { gates[runNumber] = $0 }
+        }
+        return RunOutcome(readOutcome: .read, daysWritten: runNumber, daysFailed: 0, daysPending: 0, errors: [])
     }
 
-    func release() {
-        gate?.resume()
-        gate = nil
+    func release(run runNumber: Int = 1) {
+        gates[runNumber]?.resume()
+        gates[runNumber] = nil
     }
 }
 
@@ -96,5 +109,56 @@ final class Counter: Sendable {
         _ = await rebuild.value
 
         #expect(await runner.calls[1].options == RunOptions(read: true, verify: .allDates, markAllDirty: true))
+    }
+
+    @Test func requestsDuringTheFollowUpFormAThirdRun() async throws {
+        let runner = GatedRunner(holdAfterReadCommit: [1, 2])
+        let coordinator = TriggerCoordinator(runner: runner)
+        let callbacks = Counter()
+
+        let first = Task { await coordinator.request(.appIntent) }
+        try await waitUntil { await runner.callCount == 1 }
+        let secondBatch = (0..<2).map { _ in
+            Task { await coordinator.request(.observerWake) { callbacks.increment() } }
+        }
+        try await waitUntil { await coordinator.pendingRequestCount == 2 }
+        await runner.release(run: 1)
+        try await waitUntil { await runner.callCount == 2 }
+        let thirdCallbacks = Counter()
+        let third = Task { await coordinator.request(.observerWake) { thirdCallbacks.increment() } }
+        try await waitUntil { await coordinator.pendingRequestCount == 1 }
+        await runner.release(run: 2)
+        try await waitUntil { await runner.callCount == 3 }
+        await runner.release(run: 3)
+
+        _ = await first.value
+        for follower in secondBatch { #expect(await follower.value.daysWritten == 2) }
+        #expect(await third.value.daysWritten == 3)
+        #expect(await runner.callCount == 3)
+        #expect(callbacks.value == 2)
+        #expect(thirdCallbacks.value == 1)
+        #expect(await coordinator.pendingRequestCount == 0)
+    }
+
+    @Test func followerCallbacksWaitForTheFollowUpReadCommit() async throws {
+        let runner = GatedRunner(holdBeforeReadCommit: [2], holdAfterReadCommit: [1])
+        let coordinator = TriggerCoordinator(runner: runner)
+        let callbacks = Counter()
+
+        let first = Task { await coordinator.request(.appIntent) }
+        try await waitUntil { await runner.callCount == 1 }
+        let followers = (0..<2).map { _ in
+            Task { await coordinator.request(.observerWake) { callbacks.increment() } }
+        }
+        try await waitUntil { await coordinator.pendingRequestCount == 2 }
+        #expect(callbacks.value == 0)
+        await runner.release(run: 1)
+        try await waitUntil { await runner.callCount == 2 }
+        #expect(callbacks.value == 0)
+        await runner.release(run: 2)
+
+        _ = await first.value
+        for follower in followers { _ = await follower.value }
+        #expect(callbacks.value == 2)
     }
 }
