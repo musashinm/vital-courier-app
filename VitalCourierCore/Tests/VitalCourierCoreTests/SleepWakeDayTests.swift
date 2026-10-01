@@ -146,4 +146,29 @@ import Testing
 
         #expect(try isDirty(store, day("2026-09-24")))
     }
+
+    @Test func aChainLongerThanTwoWeeksStillReachesTheFarWakeDayAndCountsEverySegment() async throws {
+        let store = try LocalStore.inMemory()
+        let start = date("2026-09-01T00:00:00Z")
+        let formatter = ISO8601DateFormatter()
+        // Three hours asleep, three awake, for sixteen days: 64 segments in one cluster that wakes on Sep 16.
+        let chain = (0..<64).map { index -> HealthSample in
+            let segmentStart = start.addingTimeInterval(Double(index) * 6 * 3600)
+            return makeSample(type: .sleep, start: formatter.string(from: segmentStart), end: formatter.string(from: segmentStart.addingTimeInterval(3 * 3600)), value: .category("asleepCore"), source: "Watch", device: "Apple Watch", zone: "UTC")
+        }
+        let farWakeDay = day("2026-09-16")
+        try store.applyChanges(HealthChanges(added: chain), for: .sleep, fallbackTimeZone: utc)
+        try clearAllMarks(store)
+
+        try store.applyChanges(HealthChanges(deletedUUIDs: [chain[0].uuid]), for: .sleep, fallbackTimeZone: utc)
+        #expect(try isDirty(store, farWakeDay))
+
+        let health = FakeHealthSource()
+        let fixedNow = now
+        let runner = ExportRunner(store: store, health: health, destination: { nil }, now: { fixedNow }, timeZone: { utc })
+        _ = await runner.run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        let night = try #require(try store.dailyValues(day: farWakeDay)[.sleep])
+        #expect(night.value == 63 * 3)
+    }
 }

@@ -196,16 +196,11 @@ public final class LocalStore: Sendable {
         }
     }
 
-    /// Cap on how far the search for whole nights reaches beyond the changed sample, in each direction. It only bounds the loop: a chain of asleep segments with gaps under four hours has no natural end in the spec, and a corrupt or synthetic store must not make every write scan the table.
-    static let sleepSearchCap: TimeInterval = 14 * 24 * 60 * 60
-
-    /// Every stored sleep sample in whole nights around `from...to`: the range is widened by the night gap and then again around whatever that finds, until it stops growing or hits the cap.
+    /// Every stored sleep sample in whole nights around `from...to`: the range is widened by the night gap and then again around whatever that finds, until it stops growing. It ends on its own: the range only widens when a stored asleep sample reaches past it, and the store holds finitely many samples. There is deliberately no cap, because a capped search would return a truncated night as if it were complete.
     static func sleepSamples(_ db: Database, from seedStart: Date, to seedEnd: Date) throws -> [HealthSample] {
         let gap = SleepAggregator.nightGap
-        let earliestReach = seedStart.addingTimeInterval(-sleepSearchCap)
-        let latestReach = seedEnd.addingTimeInterval(sleepSearchCap)
-        var lower = max(seedStart.addingTimeInterval(-gap), earliestReach)
-        var upper = min(seedEnd.addingTimeInterval(gap), latestReach)
+        var lower = seedStart.addingTimeInterval(-gap)
+        var upper = seedEnd.addingTimeInterval(gap)
         while true {
             let samples = try Row.fetchAll(
                 db,
@@ -213,11 +208,11 @@ public final class LocalStore: Sendable {
                 arguments: [HealthType.sleep.rawValue, upper.timeIntervalSince1970, lower.timeIntervalSince1970]
             ).map(Self.sample(from:))
             let asleep = samples.filter(SleepAggregator.isAsleep)
-            let widenedLower = max(min(lower, (asleep.map(\.start).min() ?? lower).addingTimeInterval(-gap)), earliestReach)
-            let widenedUpper = min(max(upper, (asleep.map(\.end).max() ?? upper).addingTimeInterval(gap)), latestReach)
-            if widenedLower >= lower && widenedUpper <= upper { return samples }
-            lower = min(lower, widenedLower)
-            upper = max(upper, widenedUpper)
+            let widenedLower = asleep.map(\.start).min().map { min(lower, $0.addingTimeInterval(-gap)) } ?? lower
+            let widenedUpper = asleep.map(\.end).max().map { max(upper, $0.addingTimeInterval(gap)) } ?? upper
+            if widenedLower == lower && widenedUpper == upper { return samples }
+            lower = widenedLower
+            upper = widenedUpper
         }
     }
 
