@@ -35,9 +35,9 @@ public enum SampleValue: Sendable, Equatable {
 extension SampleValue: Codable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
-        if let number = try? container.decode(Double.self) {
-            self = .quantity(number)
-        } else {
+        do {
+            self = .quantity(try container.decode(Double.self))
+        } catch DecodingError.typeMismatch {
             self = .category(try container.decode(String.self))
         }
     }
