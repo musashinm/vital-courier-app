@@ -132,4 +132,15 @@ import Testing
 
         #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
     }
+
+    @Test func clearingADayReportsWhetherEveryMarkWasCleared() throws {
+        let store = try storeWithOneDirtyStepsDay()
+        try store.saveDailyValue(DailyValue(value: 1), type: .steps, day: day("2026-09-27"))
+        let allCleared = try store.clearDirty(day: day("2026-09-27"), types: [.steps])
+        #expect(allCleared == true)
+
+        try store.applyChanges(HealthChanges(added: [makeSample(start: "2026-09-27T13:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+        let staleCleared = try store.clearDirty(day: day("2026-09-27"), types: [.steps])
+        #expect(staleCleared == false)
+    }
 }

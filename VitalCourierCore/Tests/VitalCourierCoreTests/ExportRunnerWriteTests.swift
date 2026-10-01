@@ -181,8 +181,13 @@ import Testing
             }
         }
 
-        _ = await readableRunWithOneStepsSample(store: store, destination: destination)
+        // The note is still written with the values read before the late sample; its mark stays, so the next run rewrites it.
+        let outcome = await readableRunWithOneStepsSample(store: store, destination: destination)
 
+        #expect(outcome.daysWritten == 0)
+        #expect(outcome.daysPending == 1)
+        #expect(outcome.daysFailed == 0)
+        #expect(outcome.errors.isEmpty)
         #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
     }
 }

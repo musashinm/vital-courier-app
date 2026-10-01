@@ -233,8 +233,12 @@ public final class ExportRunner: Sendable {
                 continue
             }
             do {
-                try store.clearDirty(day: day, types: dayEntries.map(\.type))
-                written += 1
+                // A mark that went stale again mid-run stays dirty: the day is pending, not written.
+                if try store.clearDirty(day: day, types: dayEntries.map(\.type)) {
+                    written += 1
+                } else {
+                    pending += 1
+                }
             } catch {
                 failed += 1
                 errors.append("clear \(day): \(error)")
