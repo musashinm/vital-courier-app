@@ -53,7 +53,10 @@ extension LocalStore {
             } else {
                 try db.execute(sql: "DELETE FROM dailyValue WHERE type = ? AND day = ?", arguments: [type.rawValue, day.description])
             }
-            try db.execute(sql: "UPDATE dirty SET fresh = 1 WHERE type = ? AND day = ?", arguments: [type.rawValue, day.description])
+            try db.execute(
+                sql: "INSERT INTO dirty (type, day, fresh) VALUES (?, ?, 1) ON CONFLICT(type, day) DO UPDATE SET fresh = 1",
+                arguments: [type.rawValue, day.description]
+            )
         }
     }
 
@@ -130,7 +133,7 @@ extension LocalStore {
 
     public func recentRuns(limit: Int) throws -> [RunRecord] {
         try dbQueue.read { db in
-            try Row.fetchAll(db, sql: "SELECT * FROM runRecord ORDER BY id DESC LIMIT ?", arguments: [limit]).map { row in
+            try Row.fetchAll(db, sql: "SELECT * FROM runRecord ORDER BY startedAt DESC, id DESC LIMIT ?", arguments: [limit]).map { row in
                 let errorsText: String = row["errors"]
                 let startedAt: Double = row["startedAt"]
                 return RunRecord(

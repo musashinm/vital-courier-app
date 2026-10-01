@@ -99,4 +99,25 @@ import Testing
         #expect(try store.sleepSourcePreference() == "Oura")
         #expect(try store.recentRuns(limit: 10).count == 1)
     }
+
+    @Test func savingADailyValueOnACleanStoreCreatesAFreshMark() throws {
+        let store = try LocalStore.inMemory()
+        try store.saveDailyValue(DailyValue(value: 3), type: .steps, day: day("2026-09-27"))
+        try store.saveDailyValue(nil, type: .weight, day: day("2026-09-27"))
+
+        #expect(try store.dirtyEntries() == [
+            DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: true),
+            DirtyEntry(type: .weight, day: day("2026-09-27"), fresh: true),
+        ])
+    }
+
+    @Test func ordersRunHistoryByStartTimeNotInsertionOrder() throws {
+        let store = try LocalStore.inMemory()
+        let newerStart = RunRecord(startedAt: date("2026-09-27T11:00:00Z"), trigger: "appIntent", readOutcome: "read", daysWritten: 0, daysFailed: 0, daysPending: 0, errors: [])
+        let olderStart = RunRecord(startedAt: date("2026-09-27T10:00:00Z"), trigger: "appOpen", readOutcome: "read", daysWritten: 0, daysFailed: 0, daysPending: 0, errors: [])
+        try store.appendRun(newerStart)
+        try store.appendRun(olderStart)
+
+        #expect(try store.recentRuns(limit: 10) == [newerStart, olderStart])
+    }
 }
