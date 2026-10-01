@@ -129,6 +129,8 @@ public final class LocalStore: Sendable {
         metadataEncoder.outputFormatting = [.sortedKeys]
         try dbQueue.write { db in
             for sample in changes.added {
+                // A sleep sample can merge nights, so the wake days of its nights are collected before and after the write.
+                let beforeNights = try Self.sleepNights(db, around: sample.uuid, fallbackTimeZone: fallbackTimeZone)
                 let zone = DayAssigner.zone(for: sample, fallback: fallbackTimeZone)
                 let sampleDay = DayKey(date: sample.start, timeZone: zone)
                 let metadata = String(decoding: try metadataEncoder.encode(sample.metadata), as: UTF8.self)
@@ -157,10 +159,18 @@ public final class LocalStore: Sendable {
                         zone.identifier, sampleDay.description, sampleDay.monthKey,
                     ])
                 try Self.markTouched(db, uuid: sample.uuid, fallbackTimeZone: fallbackTimeZone)
+                if sample.type == .sleep {
+                    let afterNights = try Self.sleepNights(db, around: sample.uuid, seeds: beforeNights.members, window: beforeNights.window, fallbackTimeZone: fallbackTimeZone)
+                    try Self.markDirty(db, type: HealthType.sleep.rawValue, days: beforeNights.wakeDays.union(afterNights.wakeDays))
+                }
             }
             for uuid in changes.deletedUUIDs {
+                let beforeNights = try Self.sleepNights(db, around: uuid, fallbackTimeZone: fallbackTimeZone)
                 try Self.markTouched(db, uuid: uuid, fallbackTimeZone: fallbackTimeZone)
                 try db.execute(sql: "DELETE FROM sample WHERE uuid = ?", arguments: [uuid.uuidString])
+                // The deletion can split a night, so the pieces' wake days are dirtied too.
+                let afterNights = try Self.sleepNights(db, around: uuid, seeds: beforeNights.members, window: beforeNights.window, fallbackTimeZone: fallbackTimeZone)
+                try Self.markDirty(db, type: HealthType.sleep.rawValue, days: beforeNights.wakeDays.union(afterNights.wakeDays))
             }
             if let anchor = changes.newAnchor {
                 try db.execute(
@@ -188,6 +198,45 @@ public final class LocalStore: Sendable {
             let wakeDay = DayKey(date: Date(timeIntervalSince1970: endTime), timeZone: zone)
             try markDirty(db, type: typeRaw, day: wakeDay.description)
         }
+    }
+
+    /// Wake days of the nights that contain `seeds` (plus the sample `uuid` itself, when stored), computed over the stored sleep samples from the day before the sample starts to the day after it ends. Empty when the UUID is not a stored sleep sample, unless `window` says where to look.
+    static func sleepNights(
+        _ db: Database,
+        around uuid: UUID,
+        seeds: Set<UUID> = [],
+        window: ClosedRange<DayKey>? = nil,
+        fallbackTimeZone: TimeZone
+    ) throws -> (wakeDays: Set<DayKey>, members: Set<UUID>, window: ClosedRange<DayKey>?) {
+        var searchWindow = window
+        if let row = try Row.fetchOne(
+            db,
+            sql: "SELECT type, startTime, endTime, zone FROM sample WHERE uuid = ?",
+            arguments: [uuid.uuidString]
+        ) {
+            let typeRaw: String = row["type"]
+            guard typeRaw == HealthType.sleep.rawValue else { return ([], [], window) }
+            let zoneIdentifier: String = row["zone"]
+            let zone = TimeZone(identifier: zoneIdentifier) ?? fallbackTimeZone
+            let startTime: Double = row["startTime"]
+            let endTime: Double = row["endTime"]
+            let first = DayKey(date: Date(timeIntervalSince1970: startTime), timeZone: zone).adding(days: -1)
+            let last = DayKey(date: Date(timeIntervalSince1970: endTime), timeZone: zone).adding(days: 1)
+            let own = first...last
+            searchWindow = searchWindow.map { min($0.lowerBound, own.lowerBound)...max($0.upperBound, own.upperBound) } ?? own
+        }
+        guard let searchWindow else { return ([], [], nil) }
+        let samples = try Row.fetchAll(
+            db,
+            sql: "SELECT * FROM sample WHERE type = ? AND day >= ? AND day <= ? ORDER BY startTime, uuid",
+            arguments: [HealthType.sleep.rawValue, searchWindow.lowerBound.description, searchWindow.upperBound.description]
+        ).map(Self.sample(from:))
+        let affected = SleepAggregator.affectedNights(in: samples, containing: seeds.union([uuid]), fallback: fallbackTimeZone)
+        return (affected.wakeDays, affected.members, searchWindow)
+    }
+
+    static func markDirty(_ db: Database, type: String, days: Set<DayKey>) throws {
+        for day in days { try markDirty(db, type: type, day: day.description) }
     }
 
     static func markDirty(_ db: Database, type: String, day: String) throws {

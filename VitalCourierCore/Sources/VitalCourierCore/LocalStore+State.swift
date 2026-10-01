@@ -74,6 +74,13 @@ extension LocalStore {
         }
     }
 
+    /// Marks an existing dirty entry not fresh, for a day whose daily-values query failed. Does nothing when there is no entry.
+    public func markNotFresh(type: HealthType, day: DayKey) throws {
+        try dbQueue.write { db in
+            try db.execute(sql: "UPDATE dirty SET fresh = 0 WHERE type = ? AND day = ?", arguments: [type.rawValue, day.description])
+        }
+    }
+
     public func clearDirty(type: HealthType, day: DayKey) throws {
         try dbQueue.write { db in
             try db.execute(sql: "DELETE FROM dirty WHERE type = ? AND day = ?", arguments: [type.rawValue, day.description])
@@ -103,7 +110,17 @@ extension LocalStore {
                 INSERT INTO dirty (type, day, fresh) SELECT DISTINCT type, day, 0 FROM sample WHERE true
                 ON CONFLICT(type, day) DO UPDATE SET fresh = 0
                 """)
+            try Self.markEverySleepWakeDayDirty(db)
         }
+    }
+
+    /// Dirties the wake day of every stored sleep night, whichever source wins it. The stored-day marks of `markAllDirty` miss a night whose samples all start on the previous day.
+    static func markEverySleepWakeDayDirty(_ db: Database) throws {
+        let samples = try Row.fetchAll(db, sql: "SELECT * FROM sample WHERE type = ?", arguments: [HealthType.sleep.rawValue]).map(Self.sample(from:))
+        // Every stored sample carries its own zone, so the fallback is never used.
+        let seeds = Set(samples.map(\.uuid))
+        let nights = SleepAggregator.affectedNights(in: samples, containing: seeds, fallback: TimeZone(identifier: "UTC")!)
+        try markDirty(db, type: HealthType.sleep.rawValue, days: nights.wakeDays)
     }
 
     public func sleepSourcePreference() throws -> String? {
@@ -114,6 +131,8 @@ extension LocalStore {
 
     public func setSleepSourcePreference(_ source: String?) throws {
         try dbQueue.write { db in
+            let current = try String.fetchOne(db, sql: "SELECT settingValue FROM setting WHERE settingKey = ?", arguments: [Self.sleepSourceSettingKey])
+            guard current != source else { return }
             if let source {
                 try db.execute(
                     sql: "INSERT INTO setting (settingKey, settingValue) VALUES (?, ?) ON CONFLICT(settingKey) DO UPDATE SET settingValue = excluded.settingValue",
@@ -122,6 +141,8 @@ extension LocalStore {
             } else {
                 try db.execute(sql: "DELETE FROM setting WHERE settingKey = ?", arguments: [Self.sleepSourceSettingKey])
             }
+            // The choice decides which source's totals each night's note shows.
+            try Self.markEverySleepWakeDayDirty(db)
         }
     }
 

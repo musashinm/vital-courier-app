@@ -39,6 +39,23 @@ public enum SleepAggregator {
         return candidatesByDay.mapValues { pick(from: $0, preferredSource: preferredSource) }
     }
 
+    /// Wake days of every night (per source, no source preference) that contains one of `seeds`, plus the UUIDs of all samples in those nights. Used to find which notes a changed sample can affect.
+    static func affectedNights(in samples: [HealthSample], containing seeds: Set<UUID>, fallback: TimeZone) -> (wakeDays: Set<DayKey>, members: Set<UUID>) {
+        var wakeDays: Set<DayKey> = []
+        var members: Set<UUID> = []
+        let asleepSamples = samples.filter { sample in
+            if case .category(let stage) = sample.value { asleepValues.contains(stage) } else { false }
+        }
+        for sourceSamples in Dictionary(grouping: asleepSamples, by: \.source).values {
+            for cluster in clusters(of: sourceSamples) where cluster.contains(where: { seeds.contains($0.uuid) }) {
+                let lastSample = cluster.max { $0.end < $1.end }!
+                wakeDays.insert(DayAssigner.wakeDay(for: lastSample, fallback: fallback))
+                members.formUnion(cluster.map(\.uuid))
+            }
+        }
+        return (wakeDays, members)
+    }
+
     static func clusters(of samples: [HealthSample]) -> [[HealthSample]] {
         let ordered = samples.sorted { ($0.start, $0.uuid.uuidString) < ($1.start, $1.uuid.uuidString) }
         var result: [[HealthSample]] = []
