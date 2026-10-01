@@ -169,6 +169,69 @@ import Testing
         #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
     }
 
+    @Test func aFreshDirtyEntryGetsItsValueRefreshed() async throws {
+        let store = try LocalStore.inMemory()
+        try store.applyChanges(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+        try store.saveDailyValue(DailyValue(value: 10), type: .steps, day: day("2026-09-27"))
+        #expect(try store.dirtyEntries().first?.fresh == true)
+        let health = FakeHealthSource()
+        await health.setStatistic(99, for: .steps, day: day("2026-09-27"))
+
+        _ = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        #expect(try store.dailyValues(day: day("2026-09-27"))[.steps] == DailyValue(value: 99))
+    }
+
+    @Test func rebuildVerifyRemovesTheEarliestLocalSampleHealthKitDeleted() async throws {
+        let store = try LocalStore.inMemory()
+        let gone = makeSample(start: "2026-01-05T12:00:00Z")
+        let kept = makeSample(start: "2026-03-05T12:00:00Z")
+        try store.applyChanges(HealthChanges(added: [gone, kept]), for: .steps, fallbackTimeZone: saoPaulo)
+        try store.clearDirty(type: .steps, day: day("2026-01-05"))
+        try store.clearDirty(type: .steps, day: day("2026-03-05"))
+        let health = FakeHealthSource()
+        await health.setSamples([kept], for: .steps)
+        await health.setEarliest(kept.start)
+
+        _ = await makeRunner(store: store, health: health).run(trigger: .rebuildAll, options: RunOptions(read: true, verify: .allDates, markAllDirty: false)) {}
+
+        #expect(try store.samples(type: .steps, month: "2026-01").isEmpty)
+        #expect(try store.samples(type: .steps, month: "2026-03").map(\.uuid) == [kept.uuid])
+        #expect(try store.dirtyEntries().map(\.day).contains(day("2026-01-05")))
+    }
+
+    @Test func rebuildVerifyClearsLocalSamplesWhenHealthKitIsEmpty() async throws {
+        let store = try LocalStore.inMemory()
+        try store.applyChanges(HealthChanges(added: [makeSample(start: "2026-02-05T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+        try store.clearDirty(type: .steps, day: day("2026-02-05"))
+        let health = FakeHealthSource()
+
+        _ = await makeRunner(store: store, health: health).run(trigger: .rebuildAll, options: RunOptions(read: true, verify: .allDates, markAllDirty: false)) {}
+
+        #expect(try store.samples(type: .steps, month: "2026-02").isEmpty)
+        #expect(try store.dirtyEntries().map(\.day) == [day("2026-02-05")])
+    }
+
+    @Test func aCancelledRunReadsNothingAndLeavesMarks() async throws {
+        let store = try LocalStore.inMemory()
+        try store.applyChanges(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+        let log = EventLog()
+        let health = FakeHealthSource(log: log)
+        let runner = makeRunner(store: store, health: health)
+        let gate = AsyncStream<Void>.makeStream()
+        let task = Task { () -> RunOutcome in
+            for await _ in gate.stream {}
+            return await runner.run(trigger: .appOpen, options: .forTrigger(.appOpen)) {}
+        }
+        task.cancel()
+        gate.continuation.finish()
+        let outcome = await task.value
+
+        #expect(outcome.errors.isEmpty)
+        #expect(log.all.isEmpty)
+        #expect(try store.dirtyEntries().count == 1)
+    }
+
     @Test func triggerOptionsMatchTheSpec() {
         #expect(RunOptions.forTrigger(.observerWake) == RunOptions(read: true, verify: .none, markAllDirty: false))
         #expect(RunOptions.forTrigger(.appOpen) == RunOptions(read: true, verify: .last30Days, markAllDirty: false))

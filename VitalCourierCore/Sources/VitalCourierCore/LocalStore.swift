@@ -244,6 +244,13 @@ public final class LocalStore: Sendable {
         }
     }
 
+    /// Start of the earliest stored sample across all types; nil when the store has none.
+    func earliestSampleStart() throws -> Date? {
+        try dbQueue.read { db in
+            try Double.fetchOne(db, sql: "SELECT MIN(startTime) FROM sample").map { Date(timeIntervalSince1970: $0) }
+        }
+    }
+
     static func sample(from row: Row) throws -> HealthSample {
         let uuidText: String = row["uuid"]
         let typeRaw: String = row["type"]

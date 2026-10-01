@@ -55,6 +55,7 @@ public final class ExportRunner: Sendable {
     func readStep(options: RunOptions, zone: TimeZone, errors: inout [String]) async -> ReadOutcome {
         do {
             for type in HealthType.allCases {
+                if Task.isCancelled { return .read }
                 let changes = try await health.changes(for: type, since: try store.anchor(for: type))
                 try store.applyChanges(changes, for: type, fallbackTimeZone: zone)
             }
@@ -75,7 +76,11 @@ public final class ExportRunner: Sendable {
             switch scope {
             case .none: return
             case .last30Days: start = end.addingTimeInterval(-Self.verifyWindow)
-            case .allDates: start = try await health.earliestSampleDate() ?? end
+            case .allDates:
+                // Also reach back to the earliest local sample, so samples older than HealthKit's earliest (or all of them, when HealthKit is empty) are compared.
+                let earliest = [try await health.earliestSampleDate(), try store.earliestSampleStart()].compactMap { $0 }.min()
+                guard let earliest else { return }
+                start = earliest
             }
         } catch {
             errors.append("verify: \(error)")
@@ -83,6 +88,7 @@ public final class ExportRunner: Sendable {
         }
         let interval = DateInterval(start: start, end: end)
         for type in HealthType.allCases {
+            if Task.isCancelled { return }
             do {
                 let remote = try await health.samples(for: type, in: interval)
                 let remoteUUIDs = Set(remote.map(\.uuid))
@@ -99,16 +105,18 @@ public final class ExportRunner: Sendable {
 
     /// Runs after Verify, so stored values never lag behind samples Verify added or removed.
     func dailyValuesStep(zone: TimeZone, errors: inout [String]) async {
-        let staleEntries: [DirtyEntry]
+        let dirtyEntries: [DirtyEntry]
         let preferredSleepSource: String?
         do {
-            staleEntries = try store.dirtyEntries().filter { !$0.fresh }
+            dirtyEntries = try store.dirtyEntries()
             preferredSleepSource = try store.sleepSourcePreference()
         } catch {
             errors.append("daily values: \(error)")
             return
         }
-        for entry in staleEntries {
+        // Every dirty entry, fresh or not: a day left dirty by a skipped or failed write must not keep stale values.
+        for entry in dirtyEntries {
+            if Task.isCancelled { return }
             do {
                 let value = try await dailyValue(for: entry, zone: zone, preferredSleepSource: preferredSleepSource)
                 try store.saveDailyValue(value, type: entry.type, day: entry.day)
