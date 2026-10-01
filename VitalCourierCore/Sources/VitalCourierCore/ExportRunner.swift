@@ -46,7 +46,8 @@ public final class ExportRunner: Sendable {
             }
         }
         onReadCommitted()
-        if readOutcome == .read {
+        // HealthKit was readable for this run, even when one type's read failed part way.
+        if readOutcome == .read || readOutcome == .failed {
             await verifyStep(scope: options.verify, zone: zone, errors: &errors)
             await dailyValuesStep(zone: zone, errors: &errors)
         }
@@ -137,6 +138,12 @@ public final class ExportRunner: Sendable {
                 try store.saveDailyValue(value, type: entry.type, day: entry.day)
             } catch {
                 errors.append("daily values \(entry.type.rawValue) \(entry.day): \(error)")
+                // A value fresh from an earlier run must not be written as if it were current.
+                do {
+                    try store.markNotFresh(type: entry.type, day: entry.day)
+                } catch {
+                    errors.append("daily values \(entry.type.rawValue) \(entry.day) invalidate: \(error)")
+                }
             }
         }
     }

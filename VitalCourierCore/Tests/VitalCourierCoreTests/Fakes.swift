@@ -18,6 +18,7 @@ actor FakeHealthSource: HealthSource {
     var storedSamples: [HealthType: [HealthSample]] = [:]
     var statistics: [String: Double] = [:]
     var failingStatistics: Set<String> = []
+    var failingChangeTypes: Set<HealthType> = []
     var earliest: Date?
 
     init(log: EventLog = EventLog()) { self.log = log }
@@ -28,12 +29,14 @@ actor FakeHealthSource: HealthSource {
     func setSamples(_ samples: [HealthSample], for type: HealthType) { storedSamples[type] = samples }
     func setStatistic(_ value: Double?, for type: HealthType, day: DayKey) { statistics["\(type.rawValue)|\(day)"] = value }
     func failStatistic(for type: HealthType, day: DayKey) { failingStatistics.insert("\(type.rawValue)|\(day)") }
+    func failChanges(for type: HealthType) { failingChangeTypes.insert(type) }
     func setEarliest(_ value: Date?) { earliest = value }
 
     func isReadable() -> Bool { readable }
 
     func changes(for type: HealthType, since anchor: Data?) throws -> HealthChanges {
         if refuseReads { throw HealthSourceError.readRefused }
+        if failingChangeTypes.contains(type) { throw FakeWriteError() }
         log.append("changes \(type.rawValue)")
         return queuedChanges.removeValue(forKey: type) ?? HealthChanges()
     }
