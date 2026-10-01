@@ -1,0 +1,75 @@
+import Foundation
+import Testing
+@testable import VitalCourierCore
+
+@Suite struct MarkdownWriterTests {
+    func text(_ summary: DailySummary) -> String {
+        String(decoding: MarkdownWriter.note(for: summary), as: UTF8.self)
+    }
+
+    @Test func writesEveryKeyInOrder() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.steps = 8412.4
+        summary.restingHeartRateBPM = 58.46
+        summary.sleepHours = 7.2
+        summary.sleepDeepHours = 1.1
+        summary.sleepREMHours = 1.556
+        summary.sleepSource = "Kleber's Apple Watch"
+        summary.weightKg = 72.44
+
+        #expect(text(summary) == """
+            ---
+            date: 2026-09-27
+            vc_steps: 8412
+            vc_resting_hr_bpm: 58.5
+            vc_sleep_hours: 7.20
+            vc_sleep_deep_hours: 1.10
+            vc_sleep_rem_hours: 1.56
+            vc_sleep_source: "Kleber's Apple Watch"
+            vc_weight_kg: 72.4
+            vc_schema: 1
+            ---
+
+            """)
+    }
+
+    @Test func leavesOutMissingKeysButKeepsARealZero() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.steps = 0
+
+        #expect(text(summary) == """
+            ---
+            date: 2026-09-27
+            vc_steps: 0
+            vc_schema: 1
+            ---
+
+            """)
+    }
+
+    @Test func escapesQuotesAndBackslashesInTheSleepSource() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.sleepSource = #"My "Ring" \ v2"#
+        #expect(text(summary).contains(#"vc_sleep_source: "My \"Ring\" \\ v2""#))
+    }
+
+    @Test func buildsASummaryFromStoredDailyValues() {
+        let summary = DailySummary(day: day("2026-09-27"), values: [
+            .steps: DailyValue(value: 100),
+            .restingHeartRate: DailyValue(value: 60),
+            .sleep: DailyValue(value: 7, deepHours: 1, remHours: 2, source: "Watch"),
+            .weight: DailyValue(value: 70),
+        ])
+        #expect(summary.steps == 100)
+        #expect(summary.restingHeartRateBPM == 60)
+        #expect(summary.sleepHours == 7)
+        #expect(summary.sleepDeepHours == 1)
+        #expect(summary.sleepREMHours == 2)
+        #expect(summary.sleepSource == "Watch")
+        #expect(summary.weightKg == 70)
+    }
+
+    @Test func theReadmeSaysEditsGetOverwritten() {
+        #expect(MarkdownWriter.readme.contains("overwritten"))
+    }
+}
