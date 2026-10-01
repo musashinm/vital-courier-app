@@ -16,6 +16,7 @@ func waitUntil(_ condition: @escaping @Sendable () async -> Bool) async throws {
 /// Fake runner whose runs (numbered from 1) can be held before or after they call `onReadCommitted`.
 actor GatedRunner: ExportRunning {
     private(set) var calls: [(trigger: Trigger, options: RunOptions)] = []
+    private(set) var cancelledAtStart: [Bool] = []
     private var gates: [Int: CheckedContinuation<Void, Never>] = [:]
     private let holdBeforeReadCommit: Set<Int>
     private let holdAfterReadCommit: Set<Int>
@@ -34,6 +35,7 @@ actor GatedRunner: ExportRunning {
 
     func run(trigger: Trigger, options: RunOptions, onReadCommitted: @escaping @Sendable () -> Void) async -> RunOutcome {
         calls.append((trigger, options))
+        cancelledAtStart.append(Task.isCancelled)
         let runNumber = calls.count
         if holdBeforeReadCommit.contains(runNumber) {
             await withCheckedContinuation { gates[runNumber] = $0 }
@@ -160,5 +162,26 @@ final class Counter: Sendable {
         _ = await first.value
         for follower in followers { _ = await follower.value }
         #expect(callbacks.value == 2)
+    }
+
+    @Test func aCancelledRequesterDoesNotCancelTheQueuedFollowUp() async throws {
+        let runner = GatedRunner(holdAfterReadCommit: [1])
+        let coordinator = TriggerCoordinator(runner: runner)
+        let callbacks = Counter()
+
+        let first = Task { await coordinator.request(.appOpen) }
+        try await waitUntil { await runner.callCount == 1 }
+        let follower = Task { await coordinator.request(.observerWake) { callbacks.increment() } }
+        try await waitUntil { await coordinator.pendingRequestCount == 1 }
+        first.cancel()
+        await runner.release(run: 1)
+
+        _ = await first.value
+        let followerOutcome = await follower.value
+
+        #expect(await runner.callCount == 2)
+        #expect(await runner.cancelledAtStart == [false, false])
+        #expect(followerOutcome.daysWritten == 2)
+        #expect(callbacks.value == 1)
     }
 }

@@ -41,6 +41,12 @@ public actor TriggerCoordinator {
         }
         isRunning = true
         let outcome = await runner.run(trigger: trigger, options: options, onReadCommitted: onReadCommitted)
+        // Follow-up runs go through a fresh unstructured task, which does not inherit this requester's cancellation.
+        await Task { await self.drainPendingRuns() }.value
+        return outcome
+    }
+
+    private func drainPendingRuns() async {
         while let next = pending {
             pending = nil
             let callbacks = next.readCallbacks
@@ -50,6 +56,5 @@ public actor TriggerCoordinator {
             for waiter in next.waiters { waiter.resume(returning: followUp) }
         }
         isRunning = false
-        return outcome
     }
 }
