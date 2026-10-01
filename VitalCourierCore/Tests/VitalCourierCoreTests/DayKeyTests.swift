@@ -52,6 +52,22 @@ import Testing
         #expect(interval.duration == 24 * 60 * 60)
     }
 
+    @Test func dayIntervalSpansTwentyThreeHoursWhenClocksSpringForward() {
+        let berlin = TimeZone(identifier: "Europe/Berlin")!
+        let interval = day("2026-03-29").interval(in: berlin)
+        #expect(interval.start == date("2026-03-28T23:00:00Z"))
+        #expect(interval.end == date("2026-03-29T22:00:00Z"))
+        #expect(interval.duration == 23 * 60 * 60)
+    }
+
+    @Test func dayIntervalSpansTwentyFiveHoursWhenClocksFallBack() {
+        let berlin = TimeZone(identifier: "Europe/Berlin")!
+        let interval = day("2026-10-25").interval(in: berlin)
+        #expect(interval.start == date("2026-10-24T22:00:00Z"))
+        #expect(interval.end == date("2026-10-25T23:00:00Z"))
+        #expect(interval.duration == 25 * 60 * 60)
+    }
+
     @Test func sortsChronologically() {
         #expect(day("2026-09-30") < day("2026-10-01"))
         #expect(day("2025-12-31") < day("2026-01-01"))
