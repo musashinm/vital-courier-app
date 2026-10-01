@@ -33,6 +33,14 @@ import Testing
         #expect(DayKey("not a day") == nil)
     }
 
+    @Test func rejectsMalformedAndImpossibleDays() {
+        #expect(DayKey("2026--09-07") == nil)
+        #expect(DayKey("2026-02-30") == nil)
+        #expect(DayKey("2026-9-07") == nil)
+        #expect(DayKey("2026-09-07x") == nil)
+        #expect(DayKey("2024-02-29") == day("2024-02-29"))
+    }
+
     @Test func addsDaysAcrossAMonthBoundary() {
         #expect(day("2026-10-01").adding(days: -1) == day("2026-09-30"))
         #expect(day("2026-09-30").adding(days: 1) == day("2026-10-01"))

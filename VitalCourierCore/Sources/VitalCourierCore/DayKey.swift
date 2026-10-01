@@ -18,9 +18,18 @@ public struct DayKey: Hashable, Comparable, Sendable, CustomStringConvertible {
 
     /// Parses `YYYY-MM-DD`.
     public init?(_ text: String) {
-        let parts = text.split(separator: "-").compactMap { Int($0) }
-        guard parts.count == 3 else { return nil }
-        self.init(year: parts[0], month: parts[1], day: parts[2])
+        let fields = text.split(separator: "-", omittingEmptySubsequences: false)
+        guard fields.count == 3,
+              fields[0].count == 4, fields[1].count == 2, fields[2].count == 2,
+              fields.allSatisfy({ $0.allSatisfy { $0.isASCII && $0.isNumber } }),
+              let year = Int(fields[0]), let month = Int(fields[1]), let day = Int(fields[2])
+        else { return nil }
+        let utcZone = TimeZone(identifier: "UTC")!
+        let calendar = Self.calendar(in: utcZone)
+        guard let date = calendar.date(from: DateComponents(year: year, month: month, day: day)) else { return nil }
+        let roundTrip = calendar.dateComponents([.year, .month, .day], from: date)
+        guard roundTrip.year == year, roundTrip.month == month, roundTrip.day == day else { return nil }
+        self.init(year: year, month: month, day: day)
     }
 
     public var description: String { String(format: "%04ld-%02ld-%02ld", year, month, day) }
