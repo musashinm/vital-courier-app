@@ -53,15 +53,28 @@ public enum MarkdownWriter {
         return Data((lines.joined(separator: "\n") + "\n").utf8)
     }
 
-    static func oneDecimal(_ number: Double) -> String { String(format: "%.1f", number) }
+    /// Fixed locale so the decimal separator is always `.`, whatever the device language.
+    static let posixLocale = Locale(identifier: "en_US_POSIX")
 
-    static func twoDecimals(_ number: Double) -> String { String(format: "%.2f", number) }
+    static func oneDecimal(_ number: Double) -> String { String(format: "%.1f", locale: posixLocale, number) }
 
-    /// A double-quoted YAML scalar.
+    static func twoDecimals(_ number: Double) -> String { String(format: "%.2f", locale: posixLocale, number) }
+
+    /// A double-quoted YAML scalar. Control characters are escaped so the line always parses and round-trips.
     static func quoted(_ text: String) -> String {
-        let escaped = text
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
+        var escaped = ""
+        for scalar in text.unicodeScalars {
+            switch scalar {
+            case "\\": escaped += "\\\\"
+            case "\"": escaped += "\\\""
+            case "\n": escaped += "\\n"
+            case "\r": escaped += "\\r"
+            case "\t": escaped += "\\t"
+            case "\u{0}"..."\u{1F}", "\u{7F}":
+                escaped += "\\x" + String(format: "%02X", locale: posixLocale, scalar.value)
+            default: escaped.unicodeScalars.append(scalar)
+            }
+        }
         return "\"\(escaped)\""
     }
 }

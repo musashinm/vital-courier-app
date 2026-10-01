@@ -53,6 +53,12 @@ import Testing
         #expect(text(summary).contains(#"vc_sleep_source: "My \"Ring\" \\ v2""#))
     }
 
+    @Test func escapesControlCharactersInTheSleepSource() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.sleepSource = "a\nb\tc\u{0}d\r"
+        #expect(text(summary).contains(#"vc_sleep_source: "a\nb\tc\x00d\r""#))
+    }
+
     @Test func buildsASummaryFromStoredDailyValues() {
         let summary = DailySummary(day: day("2026-09-27"), values: [
             .steps: DailyValue(value: 100),
