@@ -5,6 +5,7 @@ import Testing
 @Suite struct ExportRunnerWriteTests {
     let now = date("2026-09-30T15:00:00Z")
     let stepsJSON = "Vital Courier/json/steps/2026-09.json"
+    let readmePath = "Vital Courier/README.md"
     let note27 = "Vital Courier/daily/2026-09-27.md"
 
     func makeRunner(store: LocalStore, health: FakeHealthSource, destination: FakeDestination?) -> ExportRunner {
@@ -26,7 +27,7 @@ import Testing
         let outcome = await readableRunWithOneStepsSample(store: store, destination: destination)
 
         #expect(outcome.daysWritten == 1)
-        #expect(destination.paths == [stepsJSON, note27, "Vital Courier/README.md"])
+        #expect(destination.paths == [stepsJSON, note27, readmePath])
         #expect(destination.text(at: note27)?.contains("vc_steps: 8412") == true)
         #expect(try store.dirtyEntries().isEmpty)
         let run = try #require(try store.recentRuns(limit: 1).first)
@@ -44,7 +45,7 @@ import Testing
 
         let outcome = await makeRunner(store: store, health: health, destination: destination).run(trigger: .appIntent, options: .forTrigger(.appIntent)) {}
 
-        #expect(destination.paths == [stepsJSON])
+        #expect(destination.paths == [readmePath, stepsJSON])
         #expect(outcome.daysPending == 1)
         #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
     }
@@ -73,7 +74,7 @@ import Testing
 
         #expect(outcome.daysFailed == 1)
         #expect(outcome.errors.count == 1)
-        #expect(destination.paths == [stepsJSON])
+        #expect(destination.paths == [readmePath, stepsJSON])
         #expect(try store.dirtyEntries().count == 1)
     }
 
@@ -144,7 +145,7 @@ import Testing
         await health.setStatistic(1, for: .steps, day: day("2026-09-27"))
         await health.setStatistic(2, for: .steps, day: day("2026-09-28"))
         let destination = FakeDestination()
-        destination.cancelCurrentTaskOnFirstWrite()
+        destination.cancelCurrentTaskOnFirstWrite(to: stepsJSON)
 
         let runner = makeRunner(store: store, health: health, destination: destination)
         // Its own task, so the cancellation the fake triggers never touches the test's task.
@@ -153,5 +154,35 @@ import Testing
         #expect(outcome.daysWritten == 1)
         #expect(outcome.daysPending == 1)
         #expect(try store.dirtyEntries().map(\.day) == [day("2026-09-28")])
+    }
+
+    @Test func aFailedReadmeWriteKeepsEveryMarkForARetry() async throws {
+        let store = try LocalStore.inMemory()
+        let destination = FakeDestination()
+        destination.failWrites(to: readmePath)
+
+        let outcome = await readableRunWithOneStepsSample(store: store, destination: destination)
+
+        #expect(outcome.errors.count == 1)
+        #expect(outcome.daysWritten == 0)
+        #expect(outcome.daysFailed == 1)
+        #expect(destination.paths == [stepsJSON, note27])
+        #expect(try store.dirtyEntries().count == 1)
+    }
+
+    @Test func aSampleArrivingMidRunKeepsItsStaleMark() async throws {
+        let store = try LocalStore.inMemory()
+        let destination = FakeDestination()
+        destination.runOnFirstWrite {
+            do {
+                try store.applyChanges(HealthChanges(added: [makeSample(start: "2026-09-27T13:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+            } catch {
+                Issue.record("re-dirtying failed: \(error)")
+            }
+        }
+
+        _ = await readableRunWithOneStepsSample(store: store, destination: destination)
+
+        #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
     }
 }

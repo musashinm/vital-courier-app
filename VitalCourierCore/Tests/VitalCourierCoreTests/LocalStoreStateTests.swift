@@ -46,6 +46,8 @@ import Testing
         let store = try storeWithOneDirtyStepsDay()
         try store.applyChanges(HealthChanges(added: [makeSample(type: .weight, start: "2026-09-27T12:00:00Z", value: .quantity(72))]), for: .weight, fallbackTimeZone: saoPaulo)
         try store.applyChanges(HealthChanges(added: [makeSample(start: "2026-09-28T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+        try store.saveDailyValue(DailyValue(value: 1), type: .steps, day: day("2026-09-27"))
+        try store.saveDailyValue(DailyValue(value: 72), type: .weight, day: day("2026-09-27"))
         try store.clearDirty(day: day("2026-09-27"), types: [.steps, .weight])
 
         #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-28"), fresh: false)])
@@ -119,5 +121,15 @@ import Testing
         try store.appendRun(olderStart)
 
         #expect(try store.recentRuns(limit: 10) == [newerStart, olderStart])
+    }
+
+    @Test func clearingADayLeavesAMarkThatWentStaleAgain() throws {
+        let store = try storeWithOneDirtyStepsDay()
+        try store.saveDailyValue(DailyValue(value: 1), type: .steps, day: day("2026-09-27"))
+        try store.applyChanges(HealthChanges(added: [makeSample(start: "2026-09-27T13:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+
+        try store.clearDirty(day: day("2026-09-27"), types: [.steps])
+
+        #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
     }
 }

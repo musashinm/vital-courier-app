@@ -80,11 +80,11 @@ extension LocalStore {
         }
     }
 
-    /// Clears every given (type, day) mark of one day in a single transaction, so a day's marks never clear halfway.
+    /// Clears the given (type, day) marks of one day in a single transaction, so a day's marks never clear halfway. Only marks that are still fresh are deleted: a mark that went stale again (a late sample after the caller read `dirtyEntries()`) survives for the next run.
     public func clearDirty(day: DayKey, types: [HealthType]) throws {
         try dbQueue.write { db in
             for type in types {
-                try db.execute(sql: "DELETE FROM dirty WHERE type = ? AND day = ?", arguments: [type.rawValue, day.description])
+                try db.execute(sql: "DELETE FROM dirty WHERE type = ? AND day = ? AND fresh = 1", arguments: [type.rawValue, day.description])
             }
         }
     }

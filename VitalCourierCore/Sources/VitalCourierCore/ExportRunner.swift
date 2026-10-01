@@ -181,6 +181,14 @@ public final class ExportRunner: Sendable {
             errors.append("no folder picked")
             return (0, 0, entriesByDay.count)
         }
+        // README first, so a failure can't leave it missing with no dirty state to retry it: on failure the days are still written but no mark clears.
+        var readmeWritten = true
+        do {
+            try destination.write(Data(MarkdownWriter.readme.utf8), to: Self.readmePath)
+        } catch {
+            readmeWritten = false
+            errors.append("readme: \(error)")
+        }
         let generatedAt = now()
         var monthFileWritten: [String: Bool] = [:]
         var written = 0
@@ -220,7 +228,7 @@ public final class ExportRunner: Sendable {
                 everyFileWritten = false
                 errors.append("note \(day): \(error)")
             }
-            guard everyFileWritten else {
+            guard everyFileWritten, readmeWritten else {
                 failed += 1
                 continue
             }
@@ -230,13 +238,6 @@ public final class ExportRunner: Sendable {
             } catch {
                 failed += 1
                 errors.append("clear \(day): \(error)")
-            }
-        }
-        if written > 0 {
-            do {
-                try destination.write(Data(MarkdownWriter.readme.utf8), to: Self.readmePath)
-            } catch {
-                errors.append("readme: \(error)")
             }
         }
         return (written, failed, pending)

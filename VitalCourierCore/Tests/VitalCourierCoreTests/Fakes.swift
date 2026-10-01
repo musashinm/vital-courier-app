@@ -58,24 +58,32 @@ final class FakeDestination: ExportDestination {
         var files: [String: Data] = [:]
         var writeCounts: [String: Int] = [:]
         var failingPaths: Set<String> = []
-        var cancelCurrentTaskOnFirstWrite = false
+        var cancelCurrentTaskOnFirstWriteTo: String?
+        var onFirstWrite: (@Sendable () -> Void)?
     }
 
     private let state = Mutex(State())
 
     func failWrites(to path: String) { state.withLock { $0.failingPaths.insert(path) } }
-    func cancelCurrentTaskOnFirstWrite() { state.withLock { $0.cancelCurrentTaskOnFirstWrite = true } }
+    func cancelCurrentTaskOnFirstWrite(to path: String) { state.withLock { $0.cancelCurrentTaskOnFirstWriteTo = path } }
+    func runOnFirstWrite(_ action: @escaping @Sendable () -> Void) { state.withLock { $0.onFirstWrite = action } }
     var paths: Set<String> { state.withLock { Set($0.files.keys) } }
     func text(at path: String) -> String? { state.withLock { $0.files[path] }.map { String(decoding: $0, as: UTF8.self) } }
     func writeCount(at path: String) -> Int { state.withLock { $0.writeCounts[path] ?? 0 } }
 
     func write(_ data: Data, to relativePath: String) throws {
+        let hook = state.withLock { current -> (@Sendable () -> Void)? in
+            let action = current.onFirstWrite
+            current.onFirstWrite = nil
+            return action
+        }
+        hook?()
         let shouldCancel = try state.withLock { current -> Bool in
             if current.failingPaths.contains(relativePath) { throw FakeWriteError() }
             current.files[relativePath] = data
             current.writeCounts[relativePath, default: 0] += 1
-            let cancel = current.cancelCurrentTaskOnFirstWrite
-            current.cancelCurrentTaskOnFirstWrite = false
+            let cancel = current.cancelCurrentTaskOnFirstWriteTo == relativePath
+            if cancel { current.cancelCurrentTaskOnFirstWriteTo = nil }
             return cancel
         }
         if shouldCancel { withUnsafeCurrentTask { $0?.cancel() } }
