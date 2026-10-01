@@ -65,4 +65,32 @@ import Testing
         let onlyInBed = [sleep("2026-09-27T01:00:00Z", "2026-09-27T09:00:00Z", "inBed", source: "Watch", device: "Apple Watch")]
         #expect(SleepAggregator.nights(from: onlyInBed, preferredSource: nil, fallback: saoPaulo).isEmpty)
     }
+
+    @Test func duplicateOverlappingSamplesCountOnce() throws {
+        let duplicated = [
+            sleep("2026-09-27T01:00:00Z", "2026-09-27T09:00:00Z", "asleepCore", source: "Watch", device: "Apple Watch"),
+            sleep("2026-09-27T01:00:00Z", "2026-09-27T09:00:00Z", "asleepCore", source: "Watch", device: "Apple Watch"),
+        ]
+        let nights = SleepAggregator.nights(from: duplicated, preferredSource: nil, fallback: saoPaulo)
+        #expect(try #require(nights[day("2026-09-27")]).asleepHours == 8)
+    }
+
+    @Test func partiallyOverlappingDeepSamplesCountOnce() throws {
+        let overlapping = [
+            sleep("2026-09-27T02:00:00Z", "2026-09-27T04:00:00Z", "asleepDeep", source: "Watch", device: "Apple Watch"),
+            sleep("2026-09-27T03:00:00Z", "2026-09-27T05:00:00Z", "asleepDeep", source: "Watch", device: "Apple Watch"),
+        ]
+        let night = try #require(SleepAggregator.nights(from: overlapping, preferredSource: nil, fallback: saoPaulo)[day("2026-09-27")])
+        #expect(night.deepHours == 3)
+        #expect(night.asleepHours == 3)
+    }
+
+    @Test func aSourceWithWatchDataOnAnEarlierNightIsNotTheWatchTonight() throws {
+        let earlierWatchNight = [sleep("2026-09-26T02:00:00Z", "2026-09-26T09:00:00Z", "asleepCore", source: "Wrist", device: "Apple Watch")]
+        let tonightWithoutWatch = [sleep("2026-09-27T05:00:00Z", "2026-09-27T07:00:00Z", "asleepCore", source: "Wrist", device: "Ring")]
+        let nights = SleepAggregator.nights(
+            from: earlierWatchNight + tonightWithoutWatch + phoneNight, preferredSource: nil, fallback: saoPaulo)
+        #expect(try #require(nights[day("2026-09-27")]).source == "iPhone")
+        #expect(try #require(nights[day("2026-09-26")]).source == "Wrist")
+    }
 }
