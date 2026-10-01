@@ -157,7 +157,8 @@ public final class ExportRunner: Sendable {
             guard let latest, case .quantity(let kilograms) = latest.value else { return nil }
             return DailyValue(value: kilograms)
         case .sleep:
-            let samples = try store.samples(type: .sleep, fromDay: entry.day.adding(days: -1), toDay: entry.day)
+            // The day before through the day after, widened to whole nights: the night that wakes on this day may start the evening before, and a later segment may bridge into it.
+            let samples = try store.sleepSamples(from: entry.day.adding(days: -1).interval(in: zone).start, to: entry.day.adding(days: 1).interval(in: zone).end)
             let nights = SleepAggregator.nights(from: samples, preferredSource: preferredSleepSource, fallback: zone)
             guard let night = nights[entry.day] else { return nil }
             return DailyValue(value: night.asleepHours, deepHours: night.deepHours, remHours: night.remHours, source: night.source)

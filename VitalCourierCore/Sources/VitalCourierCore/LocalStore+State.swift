@@ -60,6 +60,11 @@ extension LocalStore {
         }
     }
 
+    /// Stored sleep samples in `from...to`, widened until every night in the result is whole.
+    func sleepSamples(from: Date, to: Date) throws -> [HealthSample] {
+        try dbQueue.read { db in try Self.sleepSamples(db, from: from, to: to) }
+    }
+
     public func dailyValues(day: DayKey) throws -> [HealthType: DailyValue] {
         try dbQueue.read { db in
             var values: [HealthType: DailyValue] = [:]

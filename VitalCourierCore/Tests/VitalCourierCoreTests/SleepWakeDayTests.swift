@@ -7,6 +7,7 @@ import Testing
     let wakeDay = day("2026-09-28")
     let previousDay = day("2026-09-27")
     let note28 = "Vital Courier/daily/2026-09-28.md"
+    let note27 = "Vital Courier/daily/2026-09-27.md"
 
     func sleepSample(start: String, end: String, source: String = "Watch", stage: String = "asleepCore", uuid: UUID = UUID()) -> HealthSample {
         makeSample(type: .sleep, start: start, end: end, value: .category(stage), source: source, device: "Apple Watch", zone: "UTC", uuid: uuid)
@@ -48,6 +49,8 @@ import Testing
         _ = await runner.run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
 
         #expect(destination.text(at: note28)?.contains("vc_sleep_hours: 7.00") == true)
+        // No phantom one-hour night on the previous day.
+        #expect(destination.text(at: note27)?.contains("vc_sleep") == false)
         #expect(try store.dirtyEntries().isEmpty)
     }
 
@@ -101,5 +104,46 @@ import Testing
         try clearAllMarks(store)
         try store.setSleepSourcePreference(nil)
         #expect(try store.dirtyEntries().isEmpty)
+    }
+
+    @Test func aLateSegmentThatBridgesTwoNightsDirtiesBothWakeDays() async throws {
+        let store = try LocalStore.inMemory()
+        let health = FakeHealthSource()
+        let destination = FakeDestination()
+        let fixedNow = now
+        let runner = ExportRunner(store: store, health: health, destination: { destination }, now: { fixedNow }, timeZone: { utc })
+        await health.queue(HealthChanges(added: [
+            sleepSample(start: "2026-09-27T20:00:00Z", end: "2026-09-27T23:00:00Z"),
+            sleepSample(start: "2026-09-28T05:00:00Z", end: "2026-09-28T06:00:00Z"),
+        ]), for: .sleep)
+        _ = await runner.run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+        #expect(destination.text(at: note27)?.contains("vc_sleep_hours: 3.00") == true)
+        #expect(destination.text(at: note28)?.contains("vc_sleep_hours: 1.00") == true)
+
+        let bridge = sleepSample(start: "2026-09-28T01:00:00Z", end: "2026-09-28T03:00:00Z")
+        try store.applyChanges(HealthChanges(added: [bridge]), for: .sleep, fallbackTimeZone: utc)
+        #expect(try isDirty(store, previousDay))
+        #expect(try isDirty(store, wakeDay))
+
+        _ = await runner.run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        #expect(destination.text(at: note28)?.contains("vc_sleep_hours: 6.00") == true)
+        #expect(destination.text(at: note27)?.contains("vc_sleep") == false)
+    }
+
+    @Test func aChainLongerThanThreeDaysRedirtiesTheFarWakeDay() throws {
+        let store = try LocalStore.inMemory()
+        let start = date("2026-09-20T00:00:00Z")
+        // Three hours asleep, three awake, for five days: one cluster, because every gap is under four hours.
+        let chain = (0..<20).map { index -> HealthSample in
+            let segmentStart = start.addingTimeInterval(Double(index) * 6 * 3600)
+            return makeSample(type: .sleep, start: ISO8601DateFormatter().string(from: segmentStart), end: ISO8601DateFormatter().string(from: segmentStart.addingTimeInterval(3 * 3600)), value: .category("asleepCore"), source: "Watch", device: "Apple Watch", zone: "UTC")
+        }
+        try store.applyChanges(HealthChanges(added: chain), for: .sleep, fallbackTimeZone: utc)
+        try clearAllMarks(store)
+
+        try store.applyChanges(HealthChanges(deletedUUIDs: [chain[0].uuid]), for: .sleep, fallbackTimeZone: utc)
+
+        #expect(try isDirty(store, day("2026-09-24")))
     }
 }

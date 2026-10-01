@@ -129,8 +129,8 @@ public final class LocalStore: Sendable {
         metadataEncoder.outputFormatting = [.sortedKeys]
         try dbQueue.write { db in
             for sample in changes.added {
-                // A sleep sample can merge nights, so the wake days of its nights are collected before and after the write.
-                let beforeNights = try Self.sleepNights(db, around: sample.uuid, fallbackTimeZone: fallbackTimeZone)
+                // A sleep sample can merge nights, so the wake days of its nights are collected from the stored samples before the write.
+                let sleepWakeDays = sample.type == .sleep ? try Self.sleepWakeDaysAffected(db, uuid: sample.uuid, incoming: sample, fallbackTimeZone: fallbackTimeZone) : []
                 let zone = DayAssigner.zone(for: sample, fallback: fallbackTimeZone)
                 let sampleDay = DayKey(date: sample.start, timeZone: zone)
                 let metadata = String(decoding: try metadataEncoder.encode(sample.metadata), as: UTF8.self)
@@ -159,18 +159,14 @@ public final class LocalStore: Sendable {
                         zone.identifier, sampleDay.description, sampleDay.monthKey,
                     ])
                 try Self.markTouched(db, uuid: sample.uuid, fallbackTimeZone: fallbackTimeZone)
-                if sample.type == .sleep {
-                    let afterNights = try Self.sleepNights(db, around: sample.uuid, seeds: beforeNights.members, window: beforeNights.window, fallbackTimeZone: fallbackTimeZone)
-                    try Self.markDirty(db, type: HealthType.sleep.rawValue, days: beforeNights.wakeDays.union(afterNights.wakeDays))
-                }
+                try Self.markDirty(db, type: HealthType.sleep.rawValue, days: sleepWakeDays)
             }
             for uuid in changes.deletedUUIDs {
-                let beforeNights = try Self.sleepNights(db, around: uuid, fallbackTimeZone: fallbackTimeZone)
+                let sleepWakeDays = try Self.sleepWakeDaysAffected(db, uuid: uuid, incoming: nil, fallbackTimeZone: fallbackTimeZone)
                 try Self.markTouched(db, uuid: uuid, fallbackTimeZone: fallbackTimeZone)
                 try db.execute(sql: "DELETE FROM sample WHERE uuid = ?", arguments: [uuid.uuidString])
                 // The deletion can split a night, so the pieces' wake days are dirtied too.
-                let afterNights = try Self.sleepNights(db, around: uuid, seeds: beforeNights.members, window: beforeNights.window, fallbackTimeZone: fallbackTimeZone)
-                try Self.markDirty(db, type: HealthType.sleep.rawValue, days: beforeNights.wakeDays.union(afterNights.wakeDays))
+                try Self.markDirty(db, type: HealthType.sleep.rawValue, days: sleepWakeDays)
             }
             if let anchor = changes.newAnchor {
                 try db.execute(
@@ -200,39 +196,45 @@ public final class LocalStore: Sendable {
         }
     }
 
-    /// Wake days of the nights that contain `seeds` (plus the sample `uuid` itself, when stored), computed over the stored sleep samples from the day before the sample starts to the day after it ends. Empty when the UUID is not a stored sleep sample, unless `window` says where to look.
-    static func sleepNights(
-        _ db: Database,
-        around uuid: UUID,
-        seeds: Set<UUID> = [],
-        window: ClosedRange<DayKey>? = nil,
-        fallbackTimeZone: TimeZone
-    ) throws -> (wakeDays: Set<DayKey>, members: Set<UUID>, window: ClosedRange<DayKey>?) {
-        var searchWindow = window
-        if let row = try Row.fetchOne(
-            db,
-            sql: "SELECT type, startTime, endTime, zone FROM sample WHERE uuid = ?",
-            arguments: [uuid.uuidString]
-        ) {
+    /// Cap on how far the search for whole nights reaches beyond the changed sample, in each direction. It only bounds the loop: a chain of asleep segments with gaps under four hours has no natural end in the spec, and a corrupt or synthetic store must not make every write scan the table.
+    static let sleepSearchCap: TimeInterval = 14 * 24 * 60 * 60
+
+    /// Every stored sleep sample in whole nights around `from...to`: the range is widened by the night gap and then again around whatever that finds, until it stops growing or hits the cap.
+    static func sleepSamples(_ db: Database, from seedStart: Date, to seedEnd: Date) throws -> [HealthSample] {
+        let gap = SleepAggregator.nightGap
+        let earliestReach = seedStart.addingTimeInterval(-sleepSearchCap)
+        let latestReach = seedEnd.addingTimeInterval(sleepSearchCap)
+        var lower = max(seedStart.addingTimeInterval(-gap), earliestReach)
+        var upper = min(seedEnd.addingTimeInterval(gap), latestReach)
+        while true {
+            let samples = try Row.fetchAll(
+                db,
+                sql: "SELECT * FROM sample WHERE type = ? AND startTime <= ? AND endTime >= ? ORDER BY startTime, uuid",
+                arguments: [HealthType.sleep.rawValue, upper.timeIntervalSince1970, lower.timeIntervalSince1970]
+            ).map(Self.sample(from:))
+            let asleep = samples.filter(SleepAggregator.isAsleep)
+            let widenedLower = max(min(lower, (asleep.map(\.start).min() ?? lower).addingTimeInterval(-gap)), earliestReach)
+            let widenedUpper = min(max(upper, (asleep.map(\.end).max() ?? upper).addingTimeInterval(gap)), latestReach)
+            if widenedLower >= lower && widenedUpper <= upper { return samples }
+            lower = min(lower, widenedLower)
+            upper = max(upper, widenedUpper)
+        }
+    }
+
+    static func sleepWakeDaysAffected(_ db: Database, uuid: UUID, incoming: HealthSample?, fallbackTimeZone: TimeZone) throws -> Set<DayKey> {
+        var rangeStart = incoming?.start
+        var rangeEnd = incoming?.end
+        if let row = try Row.fetchOne(db, sql: "SELECT type, startTime, endTime FROM sample WHERE uuid = ?", arguments: [uuid.uuidString]) {
             let typeRaw: String = row["type"]
-            guard typeRaw == HealthType.sleep.rawValue else { return ([], [], window) }
-            let zoneIdentifier: String = row["zone"]
-            let zone = TimeZone(identifier: zoneIdentifier) ?? fallbackTimeZone
+            guard typeRaw == HealthType.sleep.rawValue else { return [] }
             let startTime: Double = row["startTime"]
             let endTime: Double = row["endTime"]
-            let first = DayKey(date: Date(timeIntervalSince1970: startTime), timeZone: zone).adding(days: -1)
-            let last = DayKey(date: Date(timeIntervalSince1970: endTime), timeZone: zone).adding(days: 1)
-            let own = first...last
-            searchWindow = searchWindow.map { min($0.lowerBound, own.lowerBound)...max($0.upperBound, own.upperBound) } ?? own
+            rangeStart = min(rangeStart ?? .distantFuture, Date(timeIntervalSince1970: startTime))
+            rangeEnd = max(rangeEnd ?? .distantPast, Date(timeIntervalSince1970: endTime))
         }
-        guard let searchWindow else { return ([], [], nil) }
-        let samples = try Row.fetchAll(
-            db,
-            sql: "SELECT * FROM sample WHERE type = ? AND day >= ? AND day <= ? ORDER BY startTime, uuid",
-            arguments: [HealthType.sleep.rawValue, searchWindow.lowerBound.description, searchWindow.upperBound.description]
-        ).map(Self.sample(from:))
-        let affected = SleepAggregator.affectedNights(in: samples, containing: seeds.union([uuid]), fallback: fallbackTimeZone)
-        return (affected.wakeDays, affected.members, searchWindow)
+        guard let rangeStart, let rangeEnd else { return [] }
+        let stored = try sleepSamples(db, from: rangeStart, to: rangeEnd)
+        return SleepAggregator.wakeDaysAffected(stored: stored, replacing: uuid, with: incoming, fallback: fallbackTimeZone)
     }
 
     static func markDirty(_ db: Database, type: String, days: Set<DayKey>) throws {
