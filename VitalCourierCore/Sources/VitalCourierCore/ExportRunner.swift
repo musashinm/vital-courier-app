@@ -1,6 +1,6 @@
 import Foundation
 
-/// One run (spec, Data flow): read, verify, daily values, write. Task 9 adds the write step.
+/// One run (spec, Data flow): read, verify, daily values, write.
 public final class ExportRunner: Sendable {
     static let verifyWindow: TimeInterval = 30 * 24 * 60 * 60
 
@@ -26,6 +26,7 @@ public final class ExportRunner: Sendable {
 
     /// `onReadCommitted` is called exactly once, right after the read step, whether it read, was skipped or failed. The HealthKit observer completion handler goes here, never after file writes.
     public func run(trigger: Trigger, options: RunOptions, onReadCommitted: @escaping @Sendable () -> Void) async -> RunOutcome {
+        let startedAt = now()
         let zone = timeZone()
         var errors: [String] = []
         var readOutcome = ReadOutcome.notRequested
@@ -49,7 +50,21 @@ public final class ExportRunner: Sendable {
             await verifyStep(scope: options.verify, zone: zone, errors: &errors)
             await dailyValuesStep(zone: zone, errors: &errors)
         }
-        return RunOutcome(readOutcome: readOutcome, daysWritten: 0, daysFailed: 0, daysPending: 0, errors: errors)
+        let counts = writeStep(zone: zone, errors: &errors)
+        do {
+            try store.appendRun(RunRecord(
+                startedAt: startedAt,
+                trigger: trigger.rawValue,
+                readOutcome: readOutcome.rawValue,
+                daysWritten: counts.written,
+                daysFailed: counts.failed,
+                daysPending: counts.pending,
+                errors: errors
+            ))
+        } catch {
+            errors.append("run history: \(error)")
+        }
+        return RunOutcome(readOutcome: readOutcome, daysWritten: counts.written, daysFailed: counts.failed, daysPending: counts.pending, errors: errors)
     }
 
     func readStep(options: RunOptions, zone: TimeZone, errors: inout [String]) async -> ReadOutcome {
@@ -140,5 +155,90 @@ public final class ExportRunner: Sendable {
             guard let night = nights[entry.day] else { return nil }
             return DailyValue(value: night.asleepHours, deepHours: night.deepHours, remHours: night.remHours, source: night.source)
         }
+    }
+
+    static let readmePath = "Vital Courier/README.md"
+
+    static func jsonPath(type: HealthType, monthKey: String) -> String {
+        "Vital Courier/json/\(type.folderName)/\(monthKey).json"
+    }
+
+    static func notePath(day: DayKey) -> String {
+        "Vital Courier/daily/\(day).md"
+    }
+
+    func writeStep(zone: TimeZone, errors: inout [String]) -> (written: Int, failed: Int, pending: Int) {
+        let entries: [DirtyEntry]
+        do {
+            entries = try store.dirtyEntries()
+        } catch {
+            errors.append("write: \(error)")
+            return (0, 0, 0)
+        }
+        let entriesByDay = Dictionary(grouping: entries, by: \.day)
+        if entriesByDay.isEmpty { return (0, 0, 0) }
+        guard let destination = destination() else {
+            errors.append("no folder picked")
+            return (0, 0, entriesByDay.count)
+        }
+        let generatedAt = now()
+        var monthFileWritten: [String: Bool] = [:]
+        var written = 0
+        var failed = 0
+        var pending = 0
+        let days = entriesByDay.keys.sorted()
+        for (index, day) in days.enumerated() {
+            if Task.isCancelled {
+                pending += days.count - index
+                break
+            }
+            let dayEntries = entriesByDay[day]!
+            var everyFileWritten = true
+            for entry in dayEntries {
+                let path = Self.jsonPath(type: entry.type, monthKey: day.monthKey)
+                if monthFileWritten[path] == nil {
+                    do {
+                        let samples = try store.samples(type: entry.type, month: day.monthKey)
+                        let data = try JSONWriter.monthFile(type: entry.type, monthKey: day.monthKey, samples: samples, timeZone: zone, generatedAt: generatedAt)
+                        try destination.write(data, to: path)
+                        monthFileWritten[path] = true
+                    } catch {
+                        monthFileWritten[path] = false
+                        errors.append("json \(entry.type.folderName) \(day.monthKey): \(error)")
+                    }
+                }
+                if monthFileWritten[path] != true { everyFileWritten = false }
+            }
+            guard dayEntries.allSatisfy(\.fresh) else {
+                if everyFileWritten { pending += 1 } else { failed += 1 }
+                continue
+            }
+            do {
+                let summary = DailySummary(day: day, values: try store.dailyValues(day: day))
+                try destination.write(MarkdownWriter.note(for: summary), to: Self.notePath(day: day))
+            } catch {
+                everyFileWritten = false
+                errors.append("note \(day): \(error)")
+            }
+            guard everyFileWritten else {
+                failed += 1
+                continue
+            }
+            do {
+                try store.clearDirty(day: day, types: dayEntries.map(\.type))
+                written += 1
+            } catch {
+                failed += 1
+                errors.append("clear \(day): \(error)")
+            }
+        }
+        if written > 0 {
+            do {
+                try destination.write(Data(MarkdownWriter.readme.utf8), to: Self.readmePath)
+            } catch {
+                errors.append("readme: \(error)")
+            }
+        }
+        return (written, failed, pending)
     }
 }

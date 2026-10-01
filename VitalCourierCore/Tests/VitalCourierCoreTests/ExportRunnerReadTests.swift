@@ -20,7 +20,8 @@ import Testing
         let outcome = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake)) { commits.append("committed") }
 
         #expect(outcome.readOutcome == .read)
-        #expect(outcome.errors.isEmpty)
+        // No folder in this suite, so the write step records its one error; the read side had none.
+        #expect(outcome.errors == ["no folder picked"])
         #expect(commits.all == ["committed"])
         #expect(try store.anchor(for: .steps) == Data([7]))
         #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: true)])
@@ -108,7 +109,9 @@ import Testing
         let outcome = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
 
         #expect(try store.dirtyEntries().first?.fresh == false)
-        #expect(outcome.errors.count == 1)
+        // The statistic failure plus the write step's "no folder picked".
+        #expect(outcome.errors.count == 2)
+        #expect(outcome.errors.contains { $0.hasPrefix("daily values steps") })
     }
 
     @Test func weightUsesTheLatestSampleOfTheDay() async throws {
