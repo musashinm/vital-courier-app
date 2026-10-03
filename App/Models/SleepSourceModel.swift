@@ -35,16 +35,17 @@ final class SleepSourceModel {
             // A saved choice stays listed even after Clear local copy removed its samples.
             let appliesPreference = generation == choiceGeneration && !isSaving
             let listedChoice = appliesPreference ? preference : selected
-            if let listedChoice, !sourceNames.contains(listedChoice) {
-                names = (sourceNames + [listedChoice]).sorted { $0.caseInsensitiveCompare($1) == .orderedAscending }
-            } else {
-                names = sourceNames
-            }
+            names = Self.listing(sourceNames, including: listedChoice)
             if appliesPreference { selected = preference }
             loadError = nil
         } catch {
             loadError = String(describing: error)
         }
+    }
+
+    private static func listing(_ names: [String], including choice: String?) -> [String] {
+        guard let choice, !names.contains(choice) else { return names }
+        return (names + [choice]).sorted { $0.caseInsensitiveCompare($1) == .orderedAscending }
     }
 
     /// The checkmark moves at once; on failure it moves back and the real error shows.
@@ -68,6 +69,7 @@ final class SleepSourceModel {
                 onSaved()
             } catch {
                 selected = previous
+                names = Self.listing(names, including: previous)
                 isSaving = false
                 saveError = String(describing: error)
             }
