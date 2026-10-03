@@ -45,7 +45,7 @@ extension LocalStore {
 
     /// Stores (or, for nil, deletes) a (type, day) daily value and marks that dirty entry fresh, in one transaction.
     public func saveDailyValue(_ value: DailyValue?, type: HealthType, day: DayKey) throws {
-        try dbQueue.write { db in
+        try write { db in
             if let value {
                 try db.execute(sql: """
                     INSERT INTO dailyValue (type, day, value, deepHours, remHours, source) VALUES (?, ?, ?, ?, ?, ?)
@@ -84,13 +84,13 @@ extension LocalStore {
 
     /// Marks an existing dirty entry not fresh, for a day whose daily-values query failed. Does nothing when there is no entry.
     public func markNotFresh(type: HealthType, day: DayKey) throws {
-        try dbQueue.write { db in
+        try write { db in
             try db.execute(sql: "UPDATE dirty SET fresh = 0 WHERE type = ? AND day = ?", arguments: [type.rawValue, day.description])
         }
     }
 
     public func clearDirty(type: HealthType, day: DayKey) throws {
-        try dbQueue.write { db in
+        try write { db in
             try db.execute(sql: "DELETE FROM dirty WHERE type = ? AND day = ?", arguments: [type.rawValue, day.description])
         }
     }
@@ -98,7 +98,7 @@ extension LocalStore {
     /// Clears the given (type, day) marks of one day, all or nothing, in a single transaction. Marks are deleted only when every one is still fresh: if any went stale again (a late sample after the caller read `dirtyEntries()`), nothing is deleted and every mark survives for the next run. Returns true only when all were deleted.
     @discardableResult
     public func clearDirty(day: DayKey, types: [HealthType]) throws -> Bool {
-        try dbQueue.write { db in
+        try write { db in
             var freshCount = 0
             for type in types {
                 freshCount += try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM dirty WHERE type = ? AND day = ? AND fresh = 1", arguments: [type.rawValue, day.description]) ?? 0
@@ -113,7 +113,7 @@ extension LocalStore {
 
     /// "Rebuild all": every (type, day) that has stored samples becomes dirty and not fresh.
     public func markAllDirty() throws {
-        try dbQueue.write { db in
+        try write { db in
             try db.execute(sql: """
                 INSERT INTO dirty (type, day, fresh) SELECT DISTINCT type, day, 0 FROM sample WHERE true
                 ON CONFLICT(type, day) DO UPDATE SET fresh = 0
@@ -138,7 +138,7 @@ extension LocalStore {
     }
 
     public func setSleepSourcePreference(_ source: String?) throws {
-        try dbQueue.write { db in
+        try write { db in
             let current = try String.fetchOne(db, sql: "SELECT settingValue FROM setting WHERE settingKey = ?", arguments: [Self.sleepSourceSettingKey])
             guard current != source else { return }
             if let source {
@@ -156,7 +156,7 @@ extension LocalStore {
 
     public func appendRun(_ record: RunRecord) throws {
         let errorsJSON = String(decoding: try JSONEncoder().encode(record.errors), as: UTF8.self)
-        try dbQueue.write { db in
+        try write { db in
             try db.execute(sql: """
                 INSERT INTO runRecord (startedAt, triggerName, readOutcome, daysWritten, daysFailed, daysPending, errors)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -188,13 +188,35 @@ extension LocalStore {
 
     /// Settings "Clear local copy": deletes the health data and anchors, so the next readable run re-reads everything from HealthKit.
     public func clearLocalCopy() throws {
-        try dbQueue.write { db in
+        try write { db in
             try db.execute(sql: """
                 DELETE FROM sample;
                 DELETE FROM anchor;
                 DELETE FROM dirty;
                 DELETE FROM dailyValue;
                 """)
+        }
+    }
+}
+
+extension RunRecord {
+    /// Stored trigger name of a record that no run produced: a protection failure after a store write, or an observer acknowledgement timeout. History labels it "App event".
+    public static let appEventTrigger = "appEvent"
+    public static let fileProtectionErrorPrefix = "file protection: "
+    public static let observerAcknowledgementErrorPrefix = "observer acknowledgement: "
+}
+
+extension LocalStore {
+    /// Saves a run-history row for something that happened outside a run, so History and the Run detail show it.
+    public func recordAppEvent(errors: [String], at startedAt: Date) throws {
+        try appendRun(RunRecord(startedAt: startedAt, trigger: RunRecord.appEventTrigger, readOutcome: ReadOutcome.notRequested.rawValue, daysWritten: 0, daysFailed: 0, daysPending: 0, errors: errors))
+    }
+
+    /// Writes any pending protection failures to run history. Called when the store opens and after every write that is not a run (a run adds them to its own record): the sleep source choice, Clear local copy, and the record written by the previous call. The queue is only emptied after the row is saved, so a throw leaves it pending; a protection failure while writing the row itself is appended behind them and stays pending for the next call or launch.
+    public func recordProtectionFailuresInHistory(at startedAt: Date) throws {
+        try drainPendingProtectionFailures { failures in
+            guard !failures.isEmpty else { return nil }
+            return RunRecord(startedAt: startedAt, trigger: RunRecord.appEventTrigger, readOutcome: ReadOutcome.notRequested.rawValue, daysWritten: 0, daysFailed: 0, daysPending: 0, errors: failures.map { RunRecord.fileProtectionErrorPrefix + $0 })
         }
     }
 }

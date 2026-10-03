@@ -3,15 +3,19 @@ import GRDB
 
 /// Everything Home needs, read in one transaction (design iOS App v2, §6 UI status derivation). Read-only: nothing here changes export behaviour.
 public struct StoreStatusSnapshot: Equatable, Sendable {
+    /// The newest row a run produced. App event rows (`RunRecord.appEventTrigger`) are skipped: they checked nothing.
     public var latestRun: RunRecord?
+    /// The newest history row overall, when it is an App event row; nil when a run row is newer. Home reads it only to keep showing a saved protection failure (`HomeInputs.latestAppEvent`, Task 5).
+    public var latestAppEvent: RunRecord?
     public var lastSuccessfulReadAt: Date?
     public var dailyValuesFailureStreakStart: Date?
     public var latestDailyValueDays: [HealthType: DayKey]
     /// The source of the newest sleep daily value, for "Updated today · Apple Watch".
     public var latestSleepSource: String?
 
-    public init(latestRun: RunRecord?, lastSuccessfulReadAt: Date?, dailyValuesFailureStreakStart: Date?, latestDailyValueDays: [HealthType: DayKey], latestSleepSource: String?) {
+    public init(latestRun: RunRecord?, latestAppEvent: RunRecord? = nil, lastSuccessfulReadAt: Date?, dailyValuesFailureStreakStart: Date?, latestDailyValueDays: [HealthType: DayKey], latestSleepSource: String?) {
         self.latestRun = latestRun
+        self.latestAppEvent = latestAppEvent
         self.lastSuccessfulReadAt = lastSuccessfulReadAt
         self.dailyValuesFailureStreakStart = dailyValuesFailureStreakStart
         self.latestDailyValueDays = latestDailyValueDays
@@ -22,8 +26,10 @@ public struct StoreStatusSnapshot: Equatable, Sendable {
 extension LocalStore {
     public func statusSnapshot() throws -> StoreStatusSnapshot {
         try dbQueue.read { db in
-            StoreStatusSnapshot(
-                latestRun: try Self.runs(db, before: nil, limit: 1).first,
+            let newestRow = try Self.runs(db, before: nil, limit: 1).first
+            return StoreStatusSnapshot(
+                latestRun: try Self.latestRunSkippingAppEvents(db),
+                latestAppEvent: newestRow?.trigger == RunRecord.appEventTrigger ? newestRow : nil,
                 lastSuccessfulReadAt: try Self.lastSuccessfulReadAt(db),
                 dailyValuesFailureStreakStart: try Self.dailyValuesFailureStreakStart(db),
                 latestDailyValueDays: try Self.latestDailyValueDays(db),
@@ -61,6 +67,10 @@ extension LocalStore {
             try String.fetchAll(db, sql: "SELECT DISTINCT source FROM sample WHERE type = ?", arguments: [HealthType.sleep.rawValue])
         }
         .sorted { $0.caseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    static func latestRunSkippingAppEvents(_ db: Database) throws -> RunRecord? {
+        try Row.fetchOne(db, sql: "SELECT * FROM runRecord WHERE triggerName <> ? ORDER BY startedAt DESC, id DESC LIMIT 1", arguments: [RunRecord.appEventTrigger]).map(runRecord(from:))
     }
 
     static func runs(_ db: Database, before cursor: RunRecord?, limit: Int) throws -> [RunRecord] {

@@ -1,5 +1,6 @@
 import Foundation
 import GRDB
+import Synchronization
 
 public enum LocalStoreError: Error, Equatable {
     case corruptRow(String)
@@ -24,39 +25,121 @@ public final class LocalStore: Sendable {
     static let fileName = "local-store.sqlite"
 
     let dbQueue: DatabaseQueue
+    let directory: URL?
+    /// Sets the file protection class on one URL. Injectable so tests can make it fail; the real one is `StoreFileProtection.setCompleteUntilFirstUserAuthentication`.
+    let setProtection: @Sendable (URL) throws -> Void
+    /// Where protection failures wait until a run-history row holds them. Outside the SQLite database on purpose: a failure caused by writing the history row itself, or one followed by the app exiting, must still be there on the next launch.
+    let pendingFailureStore: any KeyValueStorage
+    static let pendingProtectionFailuresKey = "pendingProtectionFailures"
+    /// Serializes read-modify-write on the pending queue.
+    private let pendingFailureLock = Mutex<Void>(())
+    /// Serializes the whole drain (snapshot, append history row, discard) so two callers cannot snapshot the same failures or discard each other's newer ones. Separate from `pendingFailureLock` on purpose: saving the row can itself append a protection failure, and that append takes the queue lock.
+    private let drainLock = Mutex<Void>(())
 
     public static func inMemory() throws -> LocalStore {
         try LocalStore(dbQueue: DatabaseQueue())
     }
 
-    /// Opens or creates the store in `directory`. The directory and the database get `completeUntilFirstUserAuthentication` protection, so new journal and temp files inherit it, and the directory is excluded from backup.
+    /// Opens or creates the store in `directory`. The directory is excluded from backup and protected with `completeUntilFirstUserAuthentication` before the database exists, then every file in it is protected after the migration (`protectFiles`). Protection failures queue in `UserDefaults`.
     public static func open(directory: URL) throws -> LocalStore {
-        let fileManager = FileManager.default
-        try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
-        #if os(iOS)
-        try fileManager.setAttributes(
-            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-            ofItemAtPath: directory.path
-        )
-        #endif
+        try open(directory: directory, pendingFailureStore: StandardUserDefaultsStorage(), setProtection: StoreFileProtection.setCompleteUntilFirstUserAuthentication)
+    }
+
+    static func open(directory: URL, pendingFailureStore: any KeyValueStorage, setProtection: @escaping @Sendable (URL) throws -> Void) throws -> LocalStore {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         var backupExcluded = URLResourceValues()
         backupExcluded.isExcludedFromBackup = true
         var mutableDirectory = directory
         try mutableDirectory.setResourceValues(backupExcluded)
+        try setProtection(directory)
 
         let databasePath = directory.appendingPathComponent(fileName).path
-        let store = try LocalStore(dbQueue: DatabaseQueue(path: databasePath))
-        #if os(iOS)
-        try fileManager.setAttributes(
-            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-            ofItemAtPath: databasePath
-        )
-        #endif
+        let store = try LocalStore(dbQueue: DatabaseQueue(path: databasePath), directory: directory, pendingFailureStore: pendingFailureStore, setProtection: setProtection)
+        try store.protectFiles()
         return store
     }
 
-    init(dbQueue: DatabaseQueue) throws {
+    /// Protects the directory and every file in it. Called after opening (which migrates) and, through `write`, after every write. A no-op for the in-memory store.
+    public func protectFiles() throws {
+        try protectFiles(using: setProtection)
+    }
+
+    func protectFiles(using setProtection: (URL) throws -> Void) throws {
+        guard let directory else { return }
+        try StoreFileProtection.apply(to: directory, setProtection: setProtection)
+    }
+
+    /// The only place that writes to the database. Every write path (samples, daily values, dirty marks, the sleep preference, run history, Clear local copy) goes through it, so protection runs after each one. The write has already committed when protection fails, so the failure is kept in the durable pending queue, not thrown.
+    func write<Result>(_ updates: (Database) throws -> Result) throws -> Result {
+        let result = try dbQueue.write(updates)
+        do {
+            try protectFiles()
+        } catch {
+            appendPendingProtectionFailure(String(describing: error))
+        }
+        return result
+    }
+
+    /// Runs `body` while a write transaction is open and has modified the database, then rolls the transaction back. For Debug diagnostics: SQLite's rollback journal exists only inside such a window, so this is the one way to read its file attributes. Not a write path: nothing is committed, so it does not protect anything.
+    public func withWriteTransactionOpen<Result>(_ body: () throws -> Result) throws -> Result {
+        var result: Result?
+        try dbQueue.inTransaction { db in
+            let userVersion = try Int.fetchOne(db, sql: "PRAGMA user_version") ?? 0
+            try db.execute(sql: "PRAGMA user_version = \(userVersion + 1)")
+            result = try body()
+            return .rollback
+        }
+        return result.unsafelyUnwrapped
+    }
+
+    /// Protection failures not yet saved to run history, oldest first. Survives a relaunch. A queue that cannot be decoded is reported as one failure, not dropped.
+    public func pendingProtectionFailures() -> [String] {
+        pendingFailureLock.withLock { _ in readPendingFailures() }
+    }
+
+    /// The only way pending failures leave the queue, used by every path (`ExportRunner` and `recordProtectionFailuresInHistory`). Under the drain lock it snapshots the queue, saves the history row `makeRecord` builds from the snapshot, then discards exactly the snapshotted failures. `makeRecord` returns nil to save nothing (the app-event path with an empty queue); the queue is then left alone. A throw from `appendRun` leaves the queue untouched. Failures appended meanwhile stay, and they are never discarded by another drain's stale count.
+    @discardableResult
+    func drainPendingProtectionFailures(saving makeRecord: (_ failures: [String]) -> RunRecord?) throws -> Bool {
+        try drainLock.withLock { _ in
+            let failures = pendingProtectionFailures()
+            guard let record = makeRecord(failures) else { return false }
+            try appendRun(record)
+            pendingFailureLock.withLock { _ in writePendingFailures(Array(readPendingFailures().dropFirst(failures.count))) }
+            return true
+        }
+    }
+
+    private func appendPendingProtectionFailure(_ failure: String) {
+        pendingFailureLock.withLock { _ in writePendingFailures(readPendingFailures() + [failure]) }
+    }
+
+    private func readPendingFailures() -> [String] {
+        guard let data = pendingFailureStore.data(forKey: Self.pendingProtectionFailuresKey) else { return [] }
+        do {
+            return try JSONDecoder().decode([String].self, from: data)
+        } catch {
+            return ["unreadable pending failure queue: \(error)"]
+        }
+    }
+
+    private func writePendingFailures(_ failures: [String]) {
+        guard !failures.isEmpty else {
+            pendingFailureStore.set(nil, forKey: Self.pendingProtectionFailuresKey)
+            return
+        }
+        do {
+            pendingFailureStore.set(try JSONEncoder().encode(failures), forKey: Self.pendingProtectionFailuresKey)
+        } catch {
+            // Encoding a [String] cannot fail. A debug build stops here if that ever changes.
+            assertionFailure("encoding the pending failure queue: \(error)")
+        }
+    }
+
+    init(dbQueue: DatabaseQueue, directory: URL? = nil, pendingFailureStore: any KeyValueStorage = InMemoryStorage(), setProtection: @escaping @Sendable (URL) throws -> Void = StoreFileProtection.setCompleteUntilFirstUserAuthentication) throws {
         self.dbQueue = dbQueue
+        self.directory = directory
+        self.pendingFailureStore = pendingFailureStore
+        self.setProtection = setProtection
         try Self.migrator.migrate(dbQueue)
     }
 
@@ -129,7 +212,7 @@ public final class LocalStore: Sendable {
     public func applyChanges(_ changes: HealthChanges, for type: HealthType, fallbackTimeZone: TimeZone) throws {
         let metadataEncoder = JSONEncoder()
         metadataEncoder.outputFormatting = [.sortedKeys]
-        try dbQueue.write { db in
+        try write { db in
             for sample in changes.added {
                 // A sleep sample can merge nights, so the wake days of its nights are collected from the stored samples before the write.
                 let sleepWakeDays = sample.type == .sleep ? try Self.sleepWakeDaysAffected(db, uuid: sample.uuid, incoming: sample, fallbackTimeZone: fallbackTimeZone) : []

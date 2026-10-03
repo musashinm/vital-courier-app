@@ -53,15 +53,19 @@ public final class ExportRunner: Sendable {
         }
         let counts = writeStep(zone: zone, errors: &errors)
         do {
-            try store.appendRun(RunRecord(
-                startedAt: startedAt,
-                trigger: trigger.rawValue,
-                readOutcome: readOutcome.rawValue,
-                daysWritten: counts.written,
-                daysFailed: counts.failed,
-                daysPending: counts.pending,
-                errors: errors
-            ))
+            // Snapshot, history row and discard of the pending protection failures happen as one serialized drain.
+            try store.drainPendingProtectionFailures { pendingFailures in
+                errors.append(contentsOf: pendingFailures.map { RunRecord.fileProtectionErrorPrefix + $0 })
+                return RunRecord(
+                    startedAt: startedAt,
+                    trigger: trigger.rawValue,
+                    readOutcome: readOutcome.rawValue,
+                    daysWritten: counts.written,
+                    daysFailed: counts.failed,
+                    daysPending: counts.pending,
+                    errors: errors
+                )
+            }
         } catch {
             errors.append("run history: \(error)")
         }
