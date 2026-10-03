@@ -348,4 +348,28 @@ import Testing
 
         #expect(access.refreshReportingTemporaryFailure().temporaryFailure != nil)
     }
+
+    @Test func aProbeThatReturnsFalseMarksTheFolderLostWithoutATemporaryFailure() throws {
+        let folder = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let settings = AppSettings(storage: InMemoryStorage())
+        let unreachable = FolderRootAccess(
+            resolve: { try FolderRootAccess.live.resolve($0) },
+            makeBookmark: { try FolderRootAccess.live.makeBookmark($0) },
+            probe: { _ in false }
+        )
+        let access = FolderAccess(settings: settings, rootAccess: unreachable)
+        try access.savePickedFolder(folder)
+
+        let result = access.refreshReportingTemporaryFailure()
+
+        guard case .lost(let errorText) = result.state else {
+            Issue.record("expected .lost, got \(result.state)")
+            return
+        }
+        #expect(errorText.contains("folder no longer exists"))
+        #expect(result.temporaryFailure == nil)
+        #expect(settings.folderLostError == errorText)
+        #expect(access.state == result.state)
+    }
 }

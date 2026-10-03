@@ -183,4 +183,19 @@ import Testing
             return text.contains("folder no longer exists")
         }
     }
+
+    @Test func describeKeepsTheTextAndCodeOfEveryUnderlyingError() {
+        let inner = NSError(domain: NSCocoaErrorDomain, code: 4097, userInfo: [NSLocalizedDescriptionKey: "Couldn’t communicate with a helper application."])
+        let outer = NSError(domain: NSCocoaErrorDomain, code: NSFileReadUnknownError, userInfo: [NSLocalizedDescriptionKey: "Couldn’t read.", NSUnderlyingErrorKey: inner])
+
+        #expect(BookmarkedFolder.describe(inner) == "Couldn’t communicate with a helper application. [NSCocoaErrorDomain 4097]")
+        let text = BookmarkedFolder.describe(outer)
+        #expect(text.hasPrefix("Couldn’t read. [NSCocoaErrorDomain \(NSFileReadUnknownError)]; underlying: "))
+        #expect(text.hasSuffix("Couldn’t communicate with a helper application. [NSCocoaErrorDomain 4097]"))
+        guard case ExportFolderError.folderTemporarilyUnavailable(let recorded) = BookmarkedFolder.rootAccessFailure(outer) else {
+            Issue.record("expected a temporary failure")
+            return
+        }
+        #expect(recorded.contains("helper application") && recorded.contains("4097"))
+    }
 }

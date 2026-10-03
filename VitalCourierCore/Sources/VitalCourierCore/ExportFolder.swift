@@ -154,10 +154,15 @@ public final class BookmarkedFolder: ExportDestination {
         return false
     }
 
-    /// The localized text plus the domain and code, so the app recognises a full disk in any language.
+    /// The localized text plus the domain and code, so the app recognises a full disk in any language. Each error in the `NSUnderlyingErrorKey` chain follows as "; underlying: ...", so a wrapped provider error keeps its own text and code.
     static func describe(_ error: any Error) -> String {
-        let nsError = error as NSError
-        return "\(nsError.localizedDescription) [\(nsError.domain) \(nsError.code)]"
+        var parts: [String] = []
+        var current: NSError? = error as NSError
+        while let nsError = current {
+            parts.append("\(nsError.localizedDescription) [\(nsError.domain) \(nsError.code)]")
+            current = nsError.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+        return parts.enumerated().map { $0.offset == 0 ? $0.element : "underlying: \($0.element)" }.joined(separator: "; ")
     }
 
     /// Rejects paths that could leave the picked folder: empty, absolute, or with an empty, `.` or `..` component.
