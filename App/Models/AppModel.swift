@@ -82,7 +82,7 @@ final class AppModel {
         }
         let environment = self.environment
         let (storeState, folder) = await Task.detached {
-            (environment.storeStateNow, environment.folderAccess.refresh())
+            (environment.storeStateNow, environment.refreshFolderRecordingLoss())
         }.value
         progressGate.cancel()
         showsBootProgress = false
@@ -119,7 +119,7 @@ final class AppModel {
         now = Date()
         let environment = self.environment
         Task {
-            folderState = await Task.detached { environment.folderAccess.refresh() }.value
+            folderState = await Task.detached { environment.refreshFolderRecordingLoss() }.value
         }
         requestAppOpenRun()
     }
@@ -183,7 +183,9 @@ final class AppModel {
                 if case .valid(let displayPath) = state { folderSave = .saved(displayPath: displayPath) }
                 if phase == .ready { requestAppOpenRun() }
             } catch {
-                folderSave = .failed(errorText: String(describing: error))
+                let errorText = String(describing: error)
+                folderSave = .failed(errorText: errorText)
+                await Task.detached { environment.recordSetupError("folder save: \(errorText)") }.value
             }
         }
     }
