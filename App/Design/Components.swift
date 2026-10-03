@@ -16,9 +16,11 @@ struct SymbolImage: View {
     }
 
     var body: some View {
+        // A fixed column, so text next to glyphs of different widths (bed, figure, heart) starts at the same x.
         Image(systemName: name)
             .font(.system(size: size))
             .foregroundStyle(color)
+            .frame(width: size * 1.4)
     }
 }
 
