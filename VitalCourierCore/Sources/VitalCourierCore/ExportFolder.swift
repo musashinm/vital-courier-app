@@ -71,8 +71,27 @@ public final class BookmarkedFolder: ExportDestination {
             }
         }
         if let failure = coordinationError ?? writeError {
+            if Self.isLossOfRootFolder(failure, root: folder) {
+                throw ExportFolderError.bookmarkUnresolvable(Self.describe(failure))
+            }
             throw ExportFolderError.writeFailed(path: relativePath, reason: Self.describe(failure))
         }
+    }
+
+    /// Design recovery table: a Cocoa no-such-file or no-permission error whose failing URL is the selected root means the folder is lost. The same codes on a child path stay ordinary write failures. Looks through `NSUnderlyingErrorKey` too.
+    static func isLossOfRootFolder(_ error: any Error, root: URL) -> Bool {
+        let lossCodes: Set<Int> = [NSFileNoSuchFileError, NSFileReadNoSuchFileError, NSFileReadNoPermissionError, NSFileWriteNoPermissionError]
+        let rootPath = root.standardizedFileURL.path
+        var current: NSError? = error as NSError
+        while let nsError = current {
+            if nsError.domain == NSCocoaErrorDomain, lossCodes.contains(nsError.code) {
+                let failingPath: String? = (nsError.userInfo[NSURLErrorKey] as? URL)?.standardizedFileURL.path
+                    ?? (nsError.userInfo[NSFilePathErrorKey] as? String).map { URL(fileURLWithPath: $0).standardizedFileURL.path }
+                if failingPath == rootPath { return true }
+            }
+            current = nsError.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+        return false
     }
 
     /// The localized text plus the domain and code, so the app recognises a full disk in any language.

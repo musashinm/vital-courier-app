@@ -73,4 +73,38 @@ import Testing
             if case ExportFolderError.writeFailed(_, let reason) = error { reason.contains("[NSCocoaErrorDomain ") } else { false }
         }
     }
+
+    private func cocoaError(code: Int, domain: String = NSCocoaErrorDomain, url: URL? = nil, path: String? = nil, underlying: NSError? = nil) -> NSError {
+        var info: [String: Any] = [:]
+        if let url { info[NSURLErrorKey] = url }
+        if let path { info[NSFilePathErrorKey] = path }
+        if let underlying { info[NSUnderlyingErrorKey] = underlying }
+        return NSError(domain: domain, code: code, userInfo: info)
+    }
+
+    @Test func noPermissionOnTheRootIsALostFolder() {
+        let root = URL(fileURLWithPath: "/tmp/picked")
+        #expect(BookmarkedFolder.isLossOfRootFolder(cocoaError(code: NSFileWriteNoPermissionError, url: root), root: root))
+        #expect(BookmarkedFolder.isLossOfRootFolder(cocoaError(code: NSFileReadNoPermissionError, path: "/tmp/picked/"), root: root))
+    }
+
+    @Test func noSuchFileOnTheRootIsALostFolder() {
+        let root = URL(fileURLWithPath: "/tmp/picked")
+        #expect(BookmarkedFolder.isLossOfRootFolder(cocoaError(code: NSFileNoSuchFileError, url: root), root: root))
+        let wrapped = cocoaError(code: NSFileWriteUnknownError, underlying: cocoaError(code: NSFileReadNoSuchFileError, url: root))
+        #expect(BookmarkedFolder.isLossOfRootFolder(wrapped, root: root))
+    }
+
+    @Test func theSameCodesOnAChildPathStayWriteFailures() {
+        let root = URL(fileURLWithPath: "/tmp/picked")
+        let child = root.appendingPathComponent("Vital Courier")
+        #expect(!BookmarkedFolder.isLossOfRootFolder(cocoaError(code: NSFileWriteNoPermissionError, url: child), root: root))
+        #expect(!BookmarkedFolder.isLossOfRootFolder(cocoaError(code: NSFileNoSuchFileError, path: child.path), root: root))
+    }
+
+    @Test func otherCodesOnTheRootStayWriteFailures() {
+        let root = URL(fileURLWithPath: "/tmp/picked")
+        #expect(!BookmarkedFolder.isLossOfRootFolder(cocoaError(code: NSFileWriteOutOfSpaceError, url: root), root: root))
+        #expect(!BookmarkedFolder.isLossOfRootFolder(cocoaError(code: NSFileWriteNoPermissionError, domain: NSPOSIXErrorDomain, url: root), root: root))
+    }
 }
