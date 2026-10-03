@@ -2,35 +2,46 @@ import Foundation
 import Synchronization
 
 /// The picked export folder and its UI state. Never turns an error into "no folder" (spec, Error handling; design §6).
+///
+/// Every transition (in-memory state plus the settings it persists) runs under one lock. Each installed folder has a generation; work that started for an earlier folder (an export still writing, a stale-bookmark refresh) is ignored once a newer folder is installed.
 public final class FolderAccess: Sendable {
+    private struct Installed {
+        var state: FolderState
+        var folder: BookmarkedFolder?
+        var generation: Int
+    }
+
     private let settings: AppSettings
-    private let current: Mutex<FolderState>
-    private let folder: Mutex<BookmarkedFolder?>
+    private let installed: Mutex<Installed>
 
     public init(settings: AppSettings) {
         self.settings = settings
-        folder = Mutex(settings.folderBookmark.map { Self.makeFolder(bookmark: $0, settings: settings) })
-        current = Mutex(Self.persistedState(settings))
+        installed = Mutex(Installed(state: Self.persistedState(settings), folder: nil, generation: 0))
+        if let bookmark = settings.folderBookmark {
+            let folder = makeFolder(bookmark: bookmark, generation: 0)
+            installed.withLock { $0.folder = folder }
+        }
     }
 
     public var state: FolderState {
-        current.withLock { $0 }
+        installed.withLock { $0.state }
     }
 
     /// Resolves the saved bookmark now (at boot and on app open).
     @discardableResult
     public func refresh() -> FolderState {
-        guard let folder = folder.withLock({ $0 }) else { return setState(.none) }
+        let (folder, generation) = installed.withLock { ($0.folder, $0.generation) }
+        guard let folder else { return state }
         do {
             let url = try folder.resolvedURL()
             let isAccessing = url.startAccessingSecurityScopedResource()
             defer { if isAccessing { url.stopAccessingSecurityScopedResource() } }
             guard FileManager.default.fileExists(atPath: url.path) else {
-                return markLost(String(describing: ExportFolderError.bookmarkUnresolvable("folder no longer exists: \(url.path)")))
+                return markLost(String(describing: ExportFolderError.bookmarkUnresolvable("folder no longer exists: \(url.path)")), generation: generation)
             }
-            return markValid(displayPath: FolderDisplayPath.make(from: url))
+            return markValid(displayPath: FolderDisplayPath.make(from: url), generation: generation)
         } catch {
-            return markLost(String(describing: error))
+            return markLost(String(describing: error), generation: generation)
         }
     }
 
@@ -39,23 +50,46 @@ public final class FolderAccess: Sendable {
     public func savePickedFolder(_ url: URL) throws -> FolderState {
         let bookmark = try BookmarkedFolder.makeBookmark(forPickedFolder: url)
         let resolved = try BookmarkedFolder(bookmarkData: bookmark).resolvedURL()
-        settings.folderBookmark = bookmark
-        folder.withLock { $0 = Self.makeFolder(bookmark: bookmark, settings: settings) }
-        return markValid(displayPath: FolderDisplayPath.make(from: resolved))
+        let displayPath = FolderDisplayPath.make(from: resolved)
+        return installed.withLock { installed in
+            installed.generation += 1
+            installed.folder = makeFolder(bookmark: bookmark, generation: installed.generation)
+            settings.folderBookmark = bookmark
+            settings.folderLostError = nil
+            settings.folderDisplayPath = displayPath
+            installed.state = .valid(displayPath: displayPath)
+            return installed.state
+        }
     }
 
     /// The runner's destination: nil only when no folder was ever picked. A lost folder still gets one, so the run records the real error, and a folder that comes back recovers by itself.
     public func destination() -> (any ExportDestination)? {
-        guard let folder = folder.withLock({ $0 }) else { return nil }
+        let (folder, generation) = installed.withLock { ($0.folder, $0.generation) }
+        guard let folder else { return nil }
         return ObservedFolderDestination(
             folder: folder,
-            onLost: { [self] errorText in _ = markLost(errorText) },
-            onWritten: { [self] in markWrittenIfLost() }
+            onLost: { [self] errorText in _ = markLost(errorText, generation: generation) },
+            onWritten: { [self] in markWrittenIfLost(generation: generation) }
         )
     }
 
-    static func makeFolder(bookmark: Data, settings: AppSettings) -> BookmarkedFolder {
-        BookmarkedFolder(bookmarkData: bookmark) { refreshed in settings.folderBookmark = refreshed }
+    /// The generation of the folder currently installed.
+    var currentGeneration: Int {
+        installed.withLock { $0.generation }
+    }
+
+    /// Persists a refreshed bookmark only if its folder is still the installed one.
+    func recordRefreshedBookmark(_ bookmark: Data, generation: Int) {
+        installed.withLock { installed in
+            guard installed.generation == generation else { return }
+            settings.folderBookmark = bookmark
+        }
+    }
+
+    private func makeFolder(bookmark: Data, generation: Int) -> BookmarkedFolder {
+        BookmarkedFolder(bookmarkData: bookmark) { [self] refreshed in
+            recordRefreshedBookmark(refreshed, generation: generation)
+        }
     }
 
     static func persistedState(_ settings: AppSettings) -> FolderState {
@@ -64,27 +98,31 @@ public final class FolderAccess: Sendable {
         return .valid(displayPath: settings.folderDisplayPath ?? "")
     }
 
-    private func markLost(_ errorText: String) -> FolderState {
-        settings.folderLostError = errorText
-        return setState(.lost(errorText: errorText))
+    func markLost(_ errorText: String, generation: Int) -> FolderState {
+        installed.withLock { installed in
+            guard installed.generation == generation else { return installed.state }
+            settings.folderLostError = errorText
+            installed.state = .lost(errorText: errorText)
+            return installed.state
+        }
     }
 
-    private func markValid(displayPath: String) -> FolderState {
-        settings.folderLostError = nil
-        settings.folderDisplayPath = displayPath
-        return setState(.valid(displayPath: displayPath))
+    private func markValid(displayPath: String, generation: Int) -> FolderState {
+        installed.withLock { installed in
+            guard installed.generation == generation else { return installed.state }
+            settings.folderLostError = nil
+            settings.folderDisplayPath = displayPath
+            installed.state = .valid(displayPath: displayPath)
+            return installed.state
+        }
     }
 
-    private func markWrittenIfLost() {
-        guard state.isLost else { return }
-        settings.folderLostError = nil
-        setState(.valid(displayPath: settings.folderDisplayPath ?? ""))
-    }
-
-    @discardableResult
-    private func setState(_ newState: FolderState) -> FolderState {
-        current.withLock { $0 = newState }
-        return newState
+    func markWrittenIfLost(generation: Int) {
+        installed.withLock { installed in
+            guard installed.generation == generation, installed.state.isLost else { return }
+            settings.folderLostError = nil
+            installed.state = .valid(displayPath: settings.folderDisplayPath ?? "")
+        }
     }
 }
 

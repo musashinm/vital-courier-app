@@ -101,4 +101,70 @@ import Testing
         #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/private/var/mobile/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Health")) == "Obsidian/Vault/Health")
         #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/private/var/mobile/Containers/Shared/AppGroup/ABC/File Provider Storage/Exports")) == "File Provider Storage/Exports")
     }
+
+    @Test func aWriteFromTheOldFolderDoesNotMarkTheNewFolderLost() throws {
+        let oldFolder = try makeTemporaryFolder()
+        let newFolder = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: newFolder) }
+        let settings = AppSettings(storage: InMemoryStorage())
+        let access = FolderAccess(settings: settings)
+        try access.savePickedFolder(oldFolder)
+        let oldDestination = try #require(access.destination())
+        let newState = try access.savePickedFolder(newFolder)
+        try FileManager.default.removeItem(at: oldFolder)
+
+        #expect(throws: ExportFolderError.self) {
+            try oldDestination.write(Data("x".utf8), to: "Vital Courier/README.md")
+        }
+
+        #expect(access.state == newState)
+        #expect(settings.folderLostError == nil)
+        #expect(FolderAccess(settings: settings).state == newState)
+    }
+
+    @Test func aRefreshedBookmarkFromTheOldFolderIsNotPersisted() throws {
+        let oldFolder = try makeTemporaryFolder()
+        let newFolder = try makeTemporaryFolder()
+        defer {
+            try? FileManager.default.removeItem(at: oldFolder)
+            try? FileManager.default.removeItem(at: newFolder)
+        }
+        let settings = AppSettings(storage: InMemoryStorage())
+        let access = FolderAccess(settings: settings)
+        try access.savePickedFolder(oldFolder)
+        let oldGeneration = access.currentGeneration
+        try access.savePickedFolder(newFolder)
+        let newBookmark = try #require(settings.folderBookmark)
+
+        access.recordRefreshedBookmark(Data([9, 9]), generation: oldGeneration)
+        #expect(settings.folderBookmark == newBookmark)
+
+        access.recordRefreshedBookmark(Data([7]), generation: access.currentGeneration)
+        #expect(settings.folderBookmark == Data([7]))
+    }
+
+    @Test func concurrentLossAndRecoveryKeepStateAndPersistedErrorTogether() throws {
+        let folder = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let settings = AppSettings(storage: InMemoryStorage())
+        let access = FolderAccess(settings: settings)
+        try access.savePickedFolder(folder)
+        let generation = access.currentGeneration
+
+        for round in 0..<200 {
+            DispatchQueue.concurrentPerform(iterations: 16) { index in
+                if index.isMultiple(of: 2) {
+                    _ = access.markLost("error \(round)-\(index)", generation: generation)
+                } else {
+                    access.markWrittenIfLost(generation: generation)
+                }
+            }
+            let persistedError = settings.folderLostError
+            switch access.state {
+            case .lost(let errorText): #expect(persistedError == errorText)
+            case .valid: #expect(persistedError == nil)
+            case .none: Issue.record("a folder is installed, state cannot be none")
+            }
+        }
+    }
 }
