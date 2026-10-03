@@ -235,6 +235,25 @@ actor HandoffGate {
         #expect(observerCallbacks.value == 1)
     }
 
+    @Test func aRequestCancelledBeforeReachingAnIdleCoordinatorNeverRuns() async throws {
+        let runner = GatedRunner(holdFirstRun: false)
+        let coordinator = TriggerCoordinator(runner: runner)
+        let callbacks = Counter()
+        let gate = HandoffGate()
+
+        let request = Task {
+            await gate.arriveAndWait()
+            return try await coordinator.request(.backgroundRefresh) { callbacks.increment() }
+        }
+        try await waitUntil { await gate.hasArrived }
+        request.cancel()
+        await gate.open()
+
+        await #expect(throws: CancellationError.self) { try await request.value }
+        #expect(await runner.callCount == 0)
+        #expect(callbacks.value == 0)
+    }
+
     @Test func theOnlyQueuedRequestCancelledMeansNoFollowUp() async throws {
         let runner = GatedRunner(holdAfterReadCommit: [1])
         let coordinator = TriggerCoordinator(runner: runner)

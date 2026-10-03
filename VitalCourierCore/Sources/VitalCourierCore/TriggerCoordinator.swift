@@ -71,6 +71,7 @@ public actor TriggerCoordinator {
                 Task { await self.dropQueuedRequest(id: requestID) }
             }
         }
+        guard !Task.isCancelled else { throw CancellationError() }
         isRunning = true
         isMaintenanceRunActive = options.markAllDirty
         let outcome = await runner.run(trigger: trigger, options: options, onReadCommitted: onReadCommitted)
