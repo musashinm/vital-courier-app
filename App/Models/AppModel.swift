@@ -125,6 +125,7 @@ final class AppModel {
     }
 
     func sceneEnteredBackground() {
+        guard phase == .ready else { return }
         BackgroundRefresh.submitNextRequest(environment: environment)
     }
 
