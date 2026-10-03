@@ -71,8 +71,14 @@ public final class BookmarkedFolder: ExportDestination {
             }
         }
         if let failure = coordinationError ?? writeError {
-            throw ExportFolderError.writeFailed(path: relativePath, reason: failure.localizedDescription)
+            throw ExportFolderError.writeFailed(path: relativePath, reason: Self.describe(failure))
         }
+    }
+
+    /// The localized text plus the domain and code, so the app recognises a full disk in any language.
+    static func describe(_ error: any Error) -> String {
+        let nsError = error as NSError
+        return "\(nsError.localizedDescription) [\(nsError.domain) \(nsError.code)]"
     }
 
     /// Rejects paths that could leave the picked folder: empty, absolute, or with an empty, `.` or `..` component.

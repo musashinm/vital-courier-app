@@ -59,4 +59,18 @@ import Testing
         #expect(!FileManager.default.fileExists(atPath: parent.appendingPathComponent("escape.md").path))
         #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path).isEmpty)
     }
+
+    @Test func writeFailureReasonsCarryTheErrorDomainAndCode() throws {
+        let folder = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        // A plain file where the subfolder should be makes the directory creation fail.
+        try Data("x".utf8).write(to: folder.appendingPathComponent("Vital Courier"))
+        let destination = BookmarkedFolder(bookmarkData: try BookmarkedFolder.makeBookmark(forPickedFolder: folder))
+
+        #expect {
+            try destination.write(Data("x".utf8), to: "Vital Courier/README.md")
+        } throws: { error in
+            if case ExportFolderError.writeFailed(_, let reason) = error { reason.contains("[NSCocoaErrorDomain ") } else { false }
+        }
+    }
 }
