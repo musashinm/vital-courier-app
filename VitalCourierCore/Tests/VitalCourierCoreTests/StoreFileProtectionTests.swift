@@ -89,7 +89,7 @@ final class ProtectionProbe: Sendable {
             ("saveDailyValue", { try store.saveDailyValue(DailyValue(value: 1), type: .steps, day: day("2026-09-27")) }),
             ("markNotFresh", { try store.markNotFresh(type: .steps, day: day("2026-09-27")) }),
             ("clearDirty", { try store.clearDirty(type: .steps, day: day("2026-09-27")) }),
-            ("markAllDirty", { try store.markAllDirty() }),
+            ("markAllDirty", { try store.markAllDirty(statisticsZone: saoPaulo) }),
             ("setSleepSourcePreference", { try store.setSleepSourcePreference("Apple Watch") }),
             ("appendRun", { try store.appendRun(RunRecord(startedAt: date("2026-09-27T12:00:00Z"), trigger: "appOpen", readOutcome: "read", daysWritten: 0, daysFailed: 0, daysPending: 0, errors: [])) }),
             ("clearLocalCopy", { try store.clearLocalCopy() }),

@@ -36,6 +36,25 @@ import Testing
         #expect(run.daysWritten == 1)
     }
 
+    @Test func aStepsSampleAcrossMidnightRewritesBothDaysNotes() async throws {
+        let store = try LocalStore.inMemory()
+        let destination = FakeDestination()
+        let log = EventLog()
+        let health = FakeHealthSource(log: log)
+        // 23:30 on the 27th to 00:30 on the 28th, Sao Paulo time.
+        await health.queue(HealthChanges(added: [makeSample(start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")]), for: .steps)
+        await health.setStatistic(900, for: .steps, day: day("2026-09-27"))
+        await health.setStatistic(300, for: .steps, day: day("2026-09-28"))
+
+        let outcome = await makeRunner(store: store, health: health, destination: destination).run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        #expect(outcome.daysWritten == 2)
+        #expect(destination.text(at: note27)?.contains("vc_steps: 900") == true)
+        #expect(destination.text(at: "Vital Courier/daily/2026-09-28.md")?.contains("vc_steps: 300") == true)
+        #expect(log.all.contains("statistic steps|2026-09-27") && log.all.contains("statistic steps|2026-09-28"))
+        #expect(try store.dirtyEntries().isEmpty)
+    }
+
     @Test func aLockedRunWritesJSONButSkipsNotesWithStaleValues() async throws {
         let store = try LocalStore.inMemory()
         try store.applyChanges(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)

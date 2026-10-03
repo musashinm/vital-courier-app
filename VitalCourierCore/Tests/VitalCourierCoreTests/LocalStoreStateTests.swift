@@ -58,7 +58,7 @@ import Testing
         try store.applyChanges(HealthChanges(added: [makeSample(start: "2026-09-29T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
         try store.saveDailyValue(DailyValue(value: 1), type: .steps, day: day("2026-09-27"))
         try store.clearDirty(type: .steps, day: day("2026-09-29"))
-        try store.markAllDirty()
+        try store.markAllDirty(statisticsZone: saoPaulo)
 
         #expect(try store.dirtyEntries() == [
             DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false),

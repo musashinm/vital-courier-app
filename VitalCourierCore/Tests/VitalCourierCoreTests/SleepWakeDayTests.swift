@@ -73,7 +73,7 @@ import Testing
         try store.applyChanges(HealthChanges(added: [sleepSample(start: "2026-09-27T22:00:00Z", end: "2026-09-28T06:00:00Z")]), for: .sleep, fallbackTimeZone: utc)
         try clearAllMarks(store)
 
-        try store.markAllDirty()
+        try store.markAllDirty(statisticsZone: saoPaulo)
 
         #expect(try isDirty(store, wakeDay))
         #expect(try isDirty(store, previousDay))

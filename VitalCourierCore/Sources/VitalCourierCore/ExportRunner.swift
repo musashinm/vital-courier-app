@@ -33,7 +33,7 @@ public final class ExportRunner: Sendable {
         // Rebuild all marks every stored day dirty first, so it works even while HealthKit is locked.
         if options.markAllDirty {
             do {
-                try store.markAllDirty()
+                try store.markAllDirty(statisticsZone: zone)
             } catch {
                 errors.append("rebuild: \(error)")
             }

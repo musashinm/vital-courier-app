@@ -24,7 +24,8 @@ import Testing
         let stored = try store.samples(type: .steps, month: "2026-09")
         #expect(stored.count == 1)
         #expect(stored.first?.timeZoneIdentifier == "America/Sao_Paulo")
-        #expect(try store.dirtyEntries().map(\.day) == [day("2026-09-26")])
+        // The row keeps its Sao Paulo day (the 26th); the statistics query now runs in Lisbon, where the sample falls on the 27th, so that day is dirty too.
+        #expect(try store.dirtyEntries().map(\.day) == [day("2026-09-26"), day("2026-09-27")])
     }
 
     @Test func deletionRemovesTheRowAndMarksItsDayDirty() throws {
@@ -77,5 +78,116 @@ import Testing
         #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("local-store.sqlite").path))
         let values = try directory.resourceValues(forKeys: [.isExcludedFromBackupKey])
         #expect(values.isExcludedFromBackup == true)
+    }
+
+    // MARK: Samples that cross midnight
+
+    func dirtyDays(_ store: LocalStore, type: HealthType) throws -> [DayKey] {
+        try store.dirtyEntries().filter { $0.type == type }.map(\.day)
+    }
+
+    @Test func aSampleInsideOneDayOverlapsOnlyThatDay() {
+        let days = LocalStore.overlappedDays(start: date("2026-09-27T15:00:00Z"), end: date("2026-09-27T16:00:00Z"), zone: saoPaulo)
+        #expect(days == [day("2026-09-27")])
+    }
+
+    @Test func aSampleAcrossMidnightOverlapsBothDays() {
+        // 23:30 on the 27th to 00:30 on the 28th, Sao Paulo time.
+        let days = LocalStore.overlappedDays(start: date("2026-09-28T02:30:00Z"), end: date("2026-09-28T03:30:00Z"), zone: saoPaulo)
+        #expect(days == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func aSampleEndingExactlyAtMidnightOverlapsOnlyItsStartDay() {
+        let days = LocalStore.overlappedDays(start: date("2026-09-28T02:00:00Z"), end: date("2026-09-28T03:00:00Z"), zone: saoPaulo)
+        #expect(days == [day("2026-09-27")])
+    }
+
+    @Test func aZeroLengthOrBackwardsSampleOverlapsItsStartDay() {
+        let instant = date("2026-09-28T02:59:59Z")
+        #expect(LocalStore.overlappedDays(start: instant, end: instant, zone: saoPaulo) == [day("2026-09-27")])
+        #expect(LocalStore.overlappedDays(start: instant, end: date("2026-09-20T00:00:00Z"), zone: saoPaulo) == [day("2026-09-27")])
+    }
+
+    @Test func aThreeDaySampleOverlapsEveryDayItTouches() {
+        let days = LocalStore.overlappedDays(start: date("2026-09-27T15:00:00Z"), end: date("2026-09-29T15:00:00Z"), zone: saoPaulo)
+        #expect(days == [day("2026-09-27"), day("2026-09-28"), day("2026-09-29")])
+    }
+
+    @Test func calendarDaySteppingSurvivesTheSpringForwardDay() {
+        let newYork = TimeZone(identifier: "America/New_York")!
+        // 23:00 EST on March 7 to 01:00 EDT on March 9: three local days, the middle one only 23 hours long.
+        let across = LocalStore.overlappedDays(start: date("2026-03-08T04:00:00Z"), end: date("2026-03-09T05:00:00Z"), zone: newYork)
+        #expect(across == [day("2026-03-07"), day("2026-03-08"), day("2026-03-09")])
+        // 00:30 EST on March 8 to 00:00 EDT on March 9: the end is the next midnight, so only March 8.
+        let shortDay = LocalStore.overlappedDays(start: date("2026-03-08T05:30:00Z"), end: date("2026-03-09T04:00:00Z"), zone: newYork)
+        #expect(shortDay == [day("2026-03-08")])
+    }
+
+    @Test func addingAStepsSampleAcrossMidnightDirtiesBothDays() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .steps, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .steps) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func deletingAStepsSampleAcrossMidnightDirtiesBothDays() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .steps, fallbackTimeZone: saoPaulo)
+        for entry in try store.dirtyEntries() { try store.clearDirty(type: entry.type, day: entry.day) }
+
+        try store.applyChanges(HealthChanges(deletedUUIDs: [sample.uuid]), for: .steps, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .steps) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func aRestingHeartRateSampleAcrossMidnightDirtiesBothDays() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(type: .restingHeartRate, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .restingHeartRate, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .restingHeartRate) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func aWeightSampleAcrossMidnightDirtiesOnlyItsStartDay() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(type: .weight, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .weight, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .weight) == [day("2026-09-27")])
+    }
+
+    @Test func aStoredZoneDifferentFromTheQueryZoneDirtiesTheQueryZoneDays() throws {
+        let store = try LocalStore.inMemory()
+        // 03:30 to 04:30 in Lisbon is 23:30 on the 27th to 00:30 on the 28th in Sao Paulo, where the statistics are queried.
+        let sample = makeSample(start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z", zone: "Europe/Lisbon")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .steps, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .steps) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func rebuildAllDirtiesTheSecondDayOfAStoredCrossingSample() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z", zone: "UTC")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .steps, fallbackTimeZone: saoPaulo)
+        for entry in try store.dirtyEntries() { try store.clearDirty(type: entry.type, day: entry.day) }
+
+        try store.markAllDirty(statisticsZone: saoPaulo)
+
+        // Stored zone UTC keeps the sample on the 28th only; Sao Paulo, the statistics zone, adds the 27th.
+        #expect(try dirtyDays(store, type: .steps) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func rebuildAllDirtiesTheSecondDayInTheStoredZone() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z", zone: "America/Sao_Paulo")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .steps, fallbackTimeZone: lisbon)
+        for entry in try store.dirtyEntries() { try store.clearDirty(type: entry.type, day: entry.day) }
+
+        try store.markAllDirty(statisticsZone: lisbon)
+
+        // Stored zone Sao Paulo splits the sample across the 27th and 28th; Lisbon alone would keep it on the 28th.
+        #expect(try dirtyDays(store, type: .steps) == [day("2026-09-27"), day("2026-09-28")])
     }
 }

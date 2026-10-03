@@ -111,14 +111,35 @@ extension LocalStore {
         }
     }
 
-    /// "Rebuild all": every (type, day) that has stored samples becomes dirty and not fresh.
-    public func markAllDirty() throws {
+    /// "Rebuild all": every (type, day) that has stored samples becomes dirty and not fresh. `statisticsZone` is the zone the daily statistics are queried in.
+    public func markAllDirty(statisticsZone: TimeZone) throws {
         try write { db in
             try db.execute(sql: """
                 INSERT INTO dirty (type, day, fresh) SELECT DISTINCT type, day, 0 FROM sample WHERE true
                 ON CONFLICT(type, day) DO UPDATE SET fresh = 0
                 """)
             try Self.markEverySleepWakeDayDirty(db)
+            try Self.markEveryOverlappedDayDirty(db, statisticsZone: statisticsZone)
+        }
+    }
+
+    /// Dirties every day each stored steps and resting heart rate sample overlaps, in its stored zone and in `statisticsZone`. The stored-day marks of `markAllDirty` miss the later days of a sample that crosses midnight.
+    static func markEveryOverlappedDayDirty(_ db: Database, statisticsZone: TimeZone) throws {
+        let rows = try Row.fetchAll(
+            db,
+            sql: "SELECT type, zone, startTime, endTime FROM sample WHERE type IN (?, ?)",
+            arguments: [HealthType.steps.rawValue, HealthType.restingHeartRate.rawValue]
+        )
+        for row in rows {
+            let typeRaw: String = row["type"]
+            let zoneIdentifier: String = row["zone"]
+            let startTime: Double = row["startTime"]
+            let endTime: Double = row["endTime"]
+            let storedZone = TimeZone(identifier: zoneIdentifier) ?? statisticsZone
+            let start = Date(timeIntervalSince1970: startTime)
+            let end = Date(timeIntervalSince1970: endTime)
+            let days = overlappedDays(start: start, end: end, zone: storedZone).union(overlappedDays(start: start, end: end, zone: statisticsZone))
+            try markDirty(db, type: typeRaw, days: days)
         }
     }
 

@@ -262,11 +262,24 @@ public final class LocalStore: Sendable {
         }
     }
 
-    /// Marks the stored day of a sample dirty and, for sleep, its wake day too. Does nothing for an unknown UUID.
+    /// Every day the half-open interval [start, end) overlaps in `zone`, stepping by calendar day. The start day is always included, so an end at or before the start gives the start day only.
+    static func overlappedDays(start: Date, end: Date, zone: TimeZone) -> Set<DayKey> {
+        var days: Set<DayKey> = []
+        var current = DayKey(date: start, timeZone: zone)
+        days.insert(current)
+        // Stepping by DayKey.adding(days:) is calendar arithmetic, so a 23 or 25 hour day is still one step.
+        while end > current.adding(days: 1).interval(in: zone).start {
+            current = current.adding(days: 1)
+            days.insert(current)
+        }
+        return days
+    }
+
+    /// Marks the stored day of a sample dirty and, for sleep, its wake day too. For steps and resting heart rate, whose daily value comes from HealthKit's statistics query, which splits a sample across every day it overlaps, it marks every day the sample overlaps in its stored zone and in the query zone (`fallbackTimeZone`). Does nothing for an unknown UUID.
     static func markTouched(_ db: Database, uuid: UUID, fallbackTimeZone: TimeZone) throws {
         guard let row = try Row.fetchOne(
             db,
-            sql: "SELECT type, day, zone, endTime FROM sample WHERE uuid = ?",
+            sql: "SELECT type, day, zone, startTime, endTime FROM sample WHERE uuid = ?",
             arguments: [uuid.uuidString]
         ) else { return }
         let typeRaw: String = row["type"]
@@ -279,7 +292,20 @@ public final class LocalStore: Sendable {
             let wakeDay = DayKey(date: Date(timeIntervalSince1970: endTime), timeZone: zone)
             try markDirty(db, type: typeRaw, day: wakeDay.description)
         }
+        if statisticsTypeRawValues.contains(typeRaw) {
+            let zoneIdentifier: String = row["zone"]
+            let startTime: Double = row["startTime"]
+            let endTime: Double = row["endTime"]
+            let storedZone = TimeZone(identifier: zoneIdentifier) ?? fallbackTimeZone
+            let start = Date(timeIntervalSince1970: startTime)
+            let end = Date(timeIntervalSince1970: endTime)
+            let days = overlappedDays(start: start, end: end, zone: storedZone).union(overlappedDays(start: start, end: end, zone: fallbackTimeZone))
+            try markDirty(db, type: typeRaw, days: days)
+        }
     }
+
+    /// The types whose daily value is a HealthKit statistics query, which splits a sample across the days it overlaps.
+    static let statisticsTypeRawValues: Set<String> = [HealthType.steps.rawValue, HealthType.restingHeartRate.rawValue]
 
     /// Every stored sleep sample in whole nights around `from...to`: the range is widened by the night gap and then again around whatever that finds, until it stops growing. It ends on its own: the range only widens when a stored asleep sample reaches past it, and the store holds finitely many samples. There is deliberately no cap, because a capped search would return a truncated night as if it were complete.
     static func sleepSamples(_ db: Database, from seedStart: Date, to seedEnd: Date) throws -> [HealthSample] {
