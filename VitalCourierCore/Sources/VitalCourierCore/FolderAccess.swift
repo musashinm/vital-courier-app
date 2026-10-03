@@ -9,13 +9,17 @@ public final class FolderAccess: Sendable {
         var state: FolderState
         var folder: BookmarkedFolder?
         var generation: Int
+        /// True from the first temporary provider failure until a refresh or write succeeds, so one outage is reported once.
+        var isTemporarilyUnavailable = false
     }
 
     private let settings: AppSettings
     private let installed: Mutex<Installed>
+    private let rootAccess: FolderRootAccess
 
-    public init(settings: AppSettings) {
+    public init(settings: AppSettings, rootAccess: FolderRootAccess = .live) {
         self.settings = settings
+        self.rootAccess = rootAccess
         installed = Mutex(Installed(state: Self.persistedState(settings), folder: nil, generation: 0))
         if let bookmark = settings.folderBookmark {
             let folder = makeFolder(bookmark: bookmark, generation: 0)
@@ -30,29 +34,35 @@ public final class FolderAccess: Sendable {
     /// Resolves the saved bookmark now (at boot and on app open).
     @discardableResult
     public func refresh() -> FolderState {
+        refreshReportingTemporaryFailure().state
+    }
+
+    /// Like `refresh()`, and also returns the error text when the file provider couldn't be reached (iCloud's helper not ready). That is not a lost folder: the state is left as it was. The text comes back only on the transition into the outage, once until a refresh or write succeeds, so the caller records one row per outage.
+    public func refreshReportingTemporaryFailure() -> (state: FolderState, temporaryFailure: String?) {
         let (folder, generation) = installed.withLock { ($0.folder, $0.generation) }
-        guard let folder else { return state }
+        guard let folder else { return (state, nil) }
         do {
             let url = try folder.resolvedURL()
             let isAccessing = url.startAccessingSecurityScopedResource()
             defer { if isAccessing { url.stopAccessingSecurityScopedResource() } }
-            guard FileManager.default.fileExists(atPath: url.path) else {
-                return markLost(String(describing: ExportFolderError.bookmarkUnresolvable("folder no longer exists: \(url.path)")), generation: generation)
-            }
-            return markValid(displayPath: FolderDisplayPath.make(from: url), generation: generation)
+            try folder.verifyRootReachable(url)
+            return (markValid(displayPath: FolderDisplayPath.make(from: url), generation: generation), nil)
+        } catch ExportFolderError.folderTemporarilyUnavailable(let errorText) {
+            return markTemporarilyUnavailable(errorText, generation: generation)
         } catch {
-            return markLost(String(describing: error), generation: generation)
+            return (markLost(String(describing: error), generation: generation), nil)
         }
     }
 
     /// Saves the folder the picker returned. Throws the real error and keeps the previous folder when the new one can't be bookmarked or resolved.
     @discardableResult
     public func savePickedFolder(_ url: URL) throws -> FolderState {
-        let bookmark = try BookmarkedFolder.makeBookmark(forPickedFolder: url)
-        let resolved = try BookmarkedFolder(bookmarkData: bookmark).resolvedURL()
+        let bookmark = try rootAccess.makeBookmark(url)
+        let resolved = try BookmarkedFolder(bookmarkData: bookmark, rootAccess: rootAccess).resolvedURL()
         let displayPath = FolderDisplayPath.make(from: resolved)
         return installed.withLock { installed in
             installed.generation += 1
+            installed.isTemporarilyUnavailable = false
             installed.folder = makeFolder(bookmark: bookmark, generation: installed.generation)
             settings.folderBookmark = bookmark
             settings.folderLostError = nil
@@ -87,7 +97,7 @@ public final class FolderAccess: Sendable {
     }
 
     private func makeFolder(bookmark: Data, generation: Int) -> BookmarkedFolder {
-        BookmarkedFolder(bookmarkData: bookmark) { [self] refreshed in
+        BookmarkedFolder(bookmarkData: bookmark, rootAccess: rootAccess) { [self] refreshed in
             recordRefreshedBookmark(refreshed, generation: generation)
         }
     }
@@ -110,6 +120,7 @@ public final class FolderAccess: Sendable {
     private func markValid(displayPath: String, generation: Int) -> FolderState {
         installed.withLock { installed in
             guard installed.generation == generation else { return installed.state }
+            installed.isTemporarilyUnavailable = false
             settings.folderLostError = nil
             settings.folderDisplayPath = displayPath
             installed.state = .valid(displayPath: displayPath)
@@ -117,9 +128,22 @@ public final class FolderAccess: Sendable {
         }
     }
 
+    /// Keeps the state as it is. Reports the text only when this is the first temporary failure since the last success.
+    private func markTemporarilyUnavailable(_ errorText: String, generation: Int) -> (state: FolderState, temporaryFailure: String?) {
+        installed.withLock { installed in
+            guard installed.generation == generation else { return (installed.state, nil) }
+            let isNewOutage = !installed.isTemporarilyUnavailable
+            installed.isTemporarilyUnavailable = true
+            return (installed.state, isNewOutage ? errorText : nil)
+        }
+    }
+
+    /// A confirmed write ends any temporary outage, and restores a folder that was marked lost.
     func markWrittenIfLost(generation: Int) {
         installed.withLock { installed in
-            guard installed.generation == generation, installed.state.isLost else { return }
+            guard installed.generation == generation else { return }
+            installed.isTemporarilyUnavailable = false
+            guard installed.state.isLost else { return }
             settings.folderLostError = nil
             installed.state = .valid(displayPath: settings.folderDisplayPath ?? "")
         }

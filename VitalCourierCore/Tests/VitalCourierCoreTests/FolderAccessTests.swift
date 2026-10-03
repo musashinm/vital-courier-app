@@ -167,4 +167,185 @@ import Testing
             }
         }
     }
+
+    private func makeAccess(_ scripted: ScriptedRootAccess, settings: AppSettings = AppSettings(storage: InMemoryStorage())) -> FolderAccess {
+        FolderAccess(settings: settings, rootAccess: scripted.access)
+    }
+
+    @Test func aTemporaryResolveFailureKeepsTheFolderValid() throws {
+        let folder = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let settings = AppSettings(storage: InMemoryStorage())
+        let scripted = ScriptedRootAccess()
+        let access = makeAccess(scripted, settings: settings)
+        let valid = try access.savePickedFolder(folder)
+        scripted.fail(.resolve)
+
+        let result = access.refreshReportingTemporaryFailure()
+
+        #expect(result.state == valid)
+        #expect(try #require(result.temporaryFailure).contains("helper application"))
+        #expect(access.state == valid)
+        #expect(settings.folderLostError == nil)
+        #expect(access.refresh() == valid)
+    }
+
+    @Test func aTemporaryStaleRefreshFailureDoesNotMarkTheFolderLost() throws {
+        let folder = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let settings = AppSettings(storage: InMemoryStorage())
+        let scripted = ScriptedRootAccess()
+        let access = makeAccess(scripted, settings: settings)
+        let valid = try access.savePickedFolder(folder)
+        scripted.fail(.staleRefresh)
+
+        let result = access.refreshReportingTemporaryFailure()
+
+        #expect(result.state == valid)
+        #expect(result.temporaryFailure != nil)
+        #expect(settings.folderLostError == nil)
+    }
+
+    @Test func aTemporaryProbeFailureDoesNotMarkTheFolderLost() throws {
+        let folder = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let settings = AppSettings(storage: InMemoryStorage())
+        let scripted = ScriptedRootAccess()
+        let access = makeAccess(scripted, settings: settings)
+        let valid = try access.savePickedFolder(folder)
+        scripted.fail(.probe)
+
+        let result = access.refreshReportingTemporaryFailure()
+
+        #expect(result.state == valid)
+        #expect(result.temporaryFailure != nil)
+        #expect(settings.folderLostError == nil)
+    }
+
+    @Test func aRealLossStillMarksTheFolderLostWhenTheProviderIsFine() throws {
+        let folder = try makeTemporaryFolder()
+        let scripted = ScriptedRootAccess()
+        let access = makeAccess(scripted)
+        try access.savePickedFolder(folder)
+        try FileManager.default.removeItem(at: folder)
+
+        let result = access.refreshReportingTemporaryFailure()
+
+        #expect(result.state.isLost)
+        #expect(result.temporaryFailure == nil)
+    }
+
+    @Test func aTemporaryWriteFailureKeepsTheFolderValidAndIsNotReportedAsLost() throws {
+        let folder = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let settings = AppSettings(storage: InMemoryStorage())
+        let scripted = ScriptedRootAccess()
+        let access = makeAccess(scripted, settings: settings)
+        let valid = try access.savePickedFolder(folder)
+        let destination = try #require(access.destination())
+        scripted.fail(.probe)
+
+        #expect {
+            try destination.write(Data("x".utf8), to: "Vital Courier/README.md")
+        } throws: { error in
+            if case ExportFolderError.folderTemporarilyUnavailable = error { true } else { false }
+        }
+
+        #expect(access.state == valid)
+        #expect(settings.folderLostError == nil)
+    }
+
+    @Test func aTemporaryRefreshThatFinishesAfterTheFolderWasReplacedLeavesTheNewFolderAlone() throws {
+        let oldFolder = try makeTemporaryFolder()
+        let newFolder = try makeTemporaryFolder()
+        defer {
+            try? FileManager.default.removeItem(at: oldFolder)
+            try? FileManager.default.removeItem(at: newFolder)
+        }
+        let settings = AppSettings(storage: InMemoryStorage())
+        let scripted = ScriptedRootAccess()
+        let access = makeAccess(scripted, settings: settings)
+        try access.savePickedFolder(oldFolder)
+        scripted.fail(.probe)
+        scripted.runBeforeFailingProbe { [scripted] in
+            scripted.succeed()
+            do {
+                try access.savePickedFolder(newFolder)
+            } catch {
+                Issue.record("replacing the folder failed: \(error)")
+            }
+            scripted.fail(.probe)
+        }
+
+        let result = access.refreshReportingTemporaryFailure()
+
+        #expect(result.temporaryFailure == nil)
+        #expect(result.state == access.state)
+        #expect(result.state == .valid(displayPath: FolderDisplayPath.make(from: newFolder)))
+        #expect(settings.folderLostError == nil)
+        #expect(access.refreshReportingTemporaryFailure().temporaryFailure != nil)
+    }
+
+    @Test func twoTemporaryRefreshesReportTheOutageOnce() throws {
+        let folder = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let scripted = ScriptedRootAccess()
+        let access = makeAccess(scripted)
+        try access.savePickedFolder(folder)
+        scripted.fail(.resolve)
+
+        #expect(access.refreshReportingTemporaryFailure().temporaryFailure != nil)
+        #expect(access.refreshReportingTemporaryFailure().temporaryFailure == nil)
+    }
+
+    @Test func aSuccessfulRefreshEndsTheOutage() throws {
+        let folder = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let scripted = ScriptedRootAccess()
+        let access = makeAccess(scripted)
+        try access.savePickedFolder(folder)
+
+        scripted.fail(.resolve)
+        #expect(access.refreshReportingTemporaryFailure().temporaryFailure != nil)
+        scripted.succeed()
+        #expect(access.refreshReportingTemporaryFailure().temporaryFailure == nil)
+        scripted.fail(.resolve)
+        #expect(access.refreshReportingTemporaryFailure().temporaryFailure != nil)
+    }
+
+    @Test func aSuccessfulWriteEndsTheOutage() throws {
+        let folder = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let scripted = ScriptedRootAccess()
+        let access = makeAccess(scripted)
+        try access.savePickedFolder(folder)
+        let destination = try #require(access.destination())
+
+        scripted.fail(.resolve)
+        #expect(access.refreshReportingTemporaryFailure().temporaryFailure != nil)
+        scripted.succeed()
+        try destination.write(Data("x".utf8), to: "Vital Courier/README.md")
+        scripted.fail(.resolve)
+        #expect(access.refreshReportingTemporaryFailure().temporaryFailure != nil)
+    }
+
+    @Test func pickingANewFolderEndsTheOutage() throws {
+        let oldFolder = try makeTemporaryFolder()
+        let newFolder = try makeTemporaryFolder()
+        defer {
+            try? FileManager.default.removeItem(at: oldFolder)
+            try? FileManager.default.removeItem(at: newFolder)
+        }
+        let scripted = ScriptedRootAccess()
+        let access = makeAccess(scripted)
+        try access.savePickedFolder(oldFolder)
+        scripted.fail(.resolve)
+        #expect(access.refreshReportingTemporaryFailure().temporaryFailure != nil)
+        scripted.succeed()
+        try access.savePickedFolder(newFolder)
+
+        scripted.fail(.resolve)
+
+        #expect(access.refreshReportingTemporaryFailure().temporaryFailure != nil)
+    }
 }

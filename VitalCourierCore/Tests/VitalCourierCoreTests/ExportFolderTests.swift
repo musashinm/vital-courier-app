@@ -107,4 +107,80 @@ import Testing
         #expect(!BookmarkedFolder.isLossOfRootFolder(cocoaError(code: NSFileWriteOutOfSpaceError, url: root), root: root))
         #expect(!BookmarkedFolder.isLossOfRootFolder(cocoaError(code: NSFileWriteNoPermissionError, domain: NSPOSIXErrorDomain, url: root), root: root))
     }
+
+    @Test func helperNotReadyErrorsAreTemporary() {
+        #expect(BookmarkedFolder.isTemporaryProviderFailure(cocoaError(code: 4097)))
+        #expect(BookmarkedFolder.isTemporaryProviderFailure(cocoaError(code: 4099)))
+        #expect(BookmarkedFolder.isTemporaryProviderFailure(cocoaError(code: NSFileWriteUnknownError, underlying: cocoaError(code: 4097))))
+    }
+
+    @Test func otherErrorsAreNotTemporary() {
+        let root = URL(fileURLWithPath: "/tmp/picked")
+        #expect(!BookmarkedFolder.isTemporaryProviderFailure(cocoaError(code: 4098)))
+        #expect(!BookmarkedFolder.isTemporaryProviderFailure(cocoaError(code: NSFileNoSuchFileError, url: root)))
+        #expect(!BookmarkedFolder.isTemporaryProviderFailure(cocoaError(code: NSFileReadNoSuchFileError, url: root)))
+        #expect(!BookmarkedFolder.isTemporaryProviderFailure(cocoaError(code: 4097, domain: NSPOSIXErrorDomain)))
+    }
+
+    @Test func aTemporaryFailureIsNotReportedAsAFolderLoss() {
+        let description = String(describing: ExportFolderError.folderTemporarilyUnavailable("Couldn’t communicate with a helper application. [NSCocoaErrorDomain 4097]"))
+
+        #expect(RunErrorKind(error: description) == .other)
+        #expect(!description.contains("bookmarkUnresolvable"))
+    }
+
+    @Test func aTemporaryResolveFailureKeepsTheRealError() throws {
+        let scripted = ScriptedRootAccess()
+        let destination = BookmarkedFolder(bookmarkData: Data("unused".utf8), rootAccess: scripted.access)
+        scripted.fail(.resolve)
+
+        #expect {
+            try destination.write(Data("x".utf8), to: "Vital Courier/README.md")
+        } throws: { error in
+            guard case ExportFolderError.folderTemporarilyUnavailable(let text) = error else { return false }
+            return text.contains("helper application") && text.contains("4097")
+        }
+    }
+
+    @Test func aTemporaryStaleRefreshFailureIsTemporary() throws {
+        let folder = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let scripted = ScriptedRootAccess()
+        let destination = BookmarkedFolder(bookmarkData: try BookmarkedFolder.makeBookmark(forPickedFolder: folder), rootAccess: scripted.access)
+        scripted.fail(.staleRefresh)
+
+        #expect {
+            try destination.write(Data("x".utf8), to: "Vital Courier/README.md")
+        } throws: { error in
+            guard case ExportFolderError.folderTemporarilyUnavailable(let text) = error else { return false }
+            return text.contains("stale bookmark could not be refreshed") && text.contains("4097")
+        }
+    }
+
+    @Test func aTemporaryProbeFailureIsTemporaryAndAFalseProbeIsALostFolder() throws {
+        let folder = try makeTemporaryFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let scripted = ScriptedRootAccess()
+        let destination = BookmarkedFolder(bookmarkData: try BookmarkedFolder.makeBookmark(forPickedFolder: folder), rootAccess: scripted.access)
+        scripted.fail(.probe)
+
+        #expect {
+            try destination.write(Data("x".utf8), to: "Vital Courier/README.md")
+        } throws: { error in
+            if case ExportFolderError.folderTemporarilyUnavailable = error { true } else { false }
+        }
+
+        let unreachable = FolderRootAccess(
+            resolve: { try FolderRootAccess.live.resolve($0) },
+            makeBookmark: { try FolderRootAccess.live.makeBookmark($0) },
+            probe: { _ in false }
+        )
+        let lostDestination = BookmarkedFolder(bookmarkData: try BookmarkedFolder.makeBookmark(forPickedFolder: folder), rootAccess: unreachable)
+        #expect {
+            try lostDestination.write(Data("x".utf8), to: "Vital Courier/README.md")
+        } throws: { error in
+            guard case ExportFolderError.bookmarkUnresolvable(let text) = error else { return false }
+            return text.contains("folder no longer exists")
+        }
+    }
 }

@@ -8,16 +8,49 @@ public protocol ExportDestination: Sendable {
 public enum ExportFolderError: Error, Equatable {
     /// The folder moved, was deleted, or the provider signed out. The app asks the user to pick it again (spec, Error handling).
     case bookmarkUnresolvable(String)
+    /// The file provider couldn't be reached (iCloud's helper not ready); the folder is kept and the next run retries.
+    case folderTemporarilyUnavailable(String)
     case writeFailed(path: String, reason: String)
+}
+
+/// The calls that reach the picked folder's root: resolving the bookmark, making a fresh one, and probing that the root is reachable. One immutable dependency shared by `BookmarkedFolder` and `FolderAccess`, so tests can make any of the three fail the way the file provider does.
+public struct FolderRootAccess: Sendable {
+    public let resolve: @Sendable (Data) throws -> (url: URL, isStale: Bool)
+    public let makeBookmark: @Sendable (URL) throws -> Data
+    /// Returns false when the root is gone; throws the provider's real error when it can't tell.
+    public let probe: @Sendable (URL) throws -> Bool
+
+    public init(
+        resolve: @escaping @Sendable (Data) throws -> (url: URL, isStale: Bool),
+        makeBookmark: @escaping @Sendable (URL) throws -> Data,
+        probe: @escaping @Sendable (URL) throws -> Bool
+    ) {
+        self.resolve = resolve
+        self.makeBookmark = makeBookmark
+        self.probe = probe
+    }
+
+    /// The Foundation implementations.
+    public static let live = FolderRootAccess(
+        resolve: { bookmark in
+            var isStale = false
+            let url = try URL(resolvingBookmarkData: bookmark, options: [.withoutImplicitStartAccessing], relativeTo: nil, bookmarkDataIsStale: &isStale)
+            return (url, isStale)
+        },
+        makeBookmark: { url in try BookmarkedFolder.makeBookmark(forPickedFolder: url) },
+        probe: { url in try url.checkResourceIsReachable() }
+    )
 }
 
 /// The folder the user picked, kept as a bookmark (spec, Units: ExportFolder).
 public final class BookmarkedFolder: ExportDestination {
     private let bookmark: Mutex<Data>
     private let onBookmarkRefreshed: @Sendable (Data) -> Void
+    private let rootAccess: FolderRootAccess
 
-    public init(bookmarkData: Data, onBookmarkRefreshed: @escaping @Sendable (Data) -> Void = { _ in }) {
+    public init(bookmarkData: Data, rootAccess: FolderRootAccess = .live, onBookmarkRefreshed: @escaping @Sendable (Data) -> Void = { _ in }) {
         bookmark = Mutex(bookmarkData)
+        self.rootAccess = rootAccess
         self.onBookmarkRefreshed = onBookmarkRefreshed
     }
 
@@ -28,26 +61,55 @@ public final class BookmarkedFolder: ExportDestination {
         return try url.bookmarkData(options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil)
     }
 
-    /// Resolves the bookmark, refreshing and reporting it when the system says it is stale.
+    /// Resolves the bookmark, refreshing and reporting it when the system says it is stale. Throws `folderTemporarilyUnavailable` when the file provider can't be reached.
     public func resolvedURL() throws -> URL {
-        var isStale = false
-        let url: URL
+        let resolved: (url: URL, isStale: Bool)
         do {
-            url = try URL(resolvingBookmarkData: bookmark.withLock { $0 }, options: [.withoutImplicitStartAccessing], relativeTo: nil, bookmarkDataIsStale: &isStale)
+            resolved = try rootAccess.resolve(bookmark.withLock { $0 })
         } catch {
-            throw ExportFolderError.bookmarkUnresolvable(error.localizedDescription)
+            throw Self.rootAccessFailure(error)
         }
-        if isStale {
+        if resolved.isStale {
             let refreshed: Data
             do {
-                refreshed = try Self.makeBookmark(forPickedFolder: url)
+                refreshed = try rootAccess.makeBookmark(resolved.url)
             } catch {
-                throw ExportFolderError.bookmarkUnresolvable("stale bookmark could not be refreshed: \(error.localizedDescription)")
+                throw Self.rootAccessFailure(error, detail: "stale bookmark could not be refreshed")
             }
             bookmark.withLock { $0 = refreshed }
             onBookmarkRefreshed(refreshed)
         }
-        return url
+        return resolved.url
+    }
+
+    /// Checks that the root is reachable. Call with access already started. A thrown provider error is classified (temporary or lost); a `false` answer is a lost folder.
+    func verifyRootReachable(_ root: URL) throws {
+        let isReachable: Bool
+        do {
+            isReachable = try rootAccess.probe(root)
+        } catch {
+            throw Self.rootAccessFailure(error, detail: Self.isTemporaryProviderFailure(error) ? "folder could not be reached: \(root.path)" : "folder no longer exists: \(root.path)")
+        }
+        guard isReachable else {
+            throw ExportFolderError.bookmarkUnresolvable("folder no longer exists: \(root.path)")
+        }
+    }
+
+    /// The one place a root-access error becomes an `ExportFolderError`: temporary provider failures keep the folder, anything else is a lost folder. The text keeps the real error.
+    static func rootAccessFailure(_ error: any Error, detail: String? = nil) -> ExportFolderError {
+        let text = detail.map { "\($0): \(describe(error))" } ?? describe(error)
+        return isTemporaryProviderFailure(error) ? .folderTemporarilyUnavailable(text) : .bookmarkUnresolvable(text)
+    }
+
+    /// NSCocoaErrorDomain 4097 (`NSXPCConnectionInterrupted`, "Couldn't communicate with a helper application.") or 4099 (`NSXPCConnectionInvalid`), on the error or anywhere in its `NSUnderlyingErrorKey` chain. The rest of the XPC range is not temporary.
+    static func isTemporaryProviderFailure(_ error: any Error) -> Bool {
+        let temporaryCodes: Set<Int> = [4097, 4099]
+        var current: NSError? = error as NSError
+        while let nsError = current {
+            if nsError.domain == NSCocoaErrorDomain, temporaryCodes.contains(nsError.code) { return true }
+            current = nsError.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+        return false
     }
 
     /// Writes atomically through `NSFileCoordinator`, creating intermediate folders.
@@ -56,9 +118,7 @@ public final class BookmarkedFolder: ExportDestination {
         let folder = try resolvedURL()
         let isAccessing = folder.startAccessingSecurityScopedResource()
         defer { if isAccessing { folder.stopAccessingSecurityScopedResource() } }
-        guard FileManager.default.fileExists(atPath: folder.path) else {
-            throw ExportFolderError.bookmarkUnresolvable("folder no longer exists: \(folder.path)")
-        }
+        try verifyRootReachable(folder)
         let target = folder.appendingPathComponent(relativePath)
         var coordinationError: NSError?
         var writeError: (any Error)?
