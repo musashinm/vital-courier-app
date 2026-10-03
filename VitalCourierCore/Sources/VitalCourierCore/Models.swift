@@ -91,10 +91,13 @@ public struct HealthChanges: Sendable, Equatable {
     public var deletedUUIDs: [UUID]
     /// Nil when there is no anchor to save (Verify batches).
     public var newAnchor: Data?
+    /// True when the source stopped at its batch limit: call `changes(for:since:)` again with `newAnchor`.
+    public var hasMore: Bool
 
-    public init(added: [HealthSample] = [], deletedUUIDs: [UUID] = [], newAnchor: Data? = nil) {
+    public init(added: [HealthSample] = [], deletedUUIDs: [UUID] = [], newAnchor: Data? = nil, hasMore: Bool = false) {
         self.added = added
         self.deletedUUIDs = deletedUUIDs
         self.newAnchor = newAnchor
+        self.hasMore = hasMore
     }
 }

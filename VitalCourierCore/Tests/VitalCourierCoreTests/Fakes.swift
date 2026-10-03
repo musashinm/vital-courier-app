@@ -14,7 +14,9 @@ actor FakeHealthSource: HealthSource {
     let log: EventLog
     var readable = true
     var refuseReads = false
-    var queuedChanges: [HealthType: HealthChanges] = [:]
+    var queuedChanges: [HealthType: [HealthChanges]] = [:]
+    var receivedAnchors: [HealthType: [Data?]] = [:]
+    var cancelOnNextChanges = false
     var storedSamples: [HealthType: [HealthSample]] = [:]
     var statistics: [String: Double] = [:]
     var failingStatistics: Set<String> = []
@@ -25,7 +27,8 @@ actor FakeHealthSource: HealthSource {
 
     func setReadable(_ value: Bool) { readable = value }
     func setRefuseReads(_ value: Bool) { refuseReads = value }
-    func queue(_ changes: HealthChanges, for type: HealthType) { queuedChanges[type] = changes }
+    func queue(_ changes: HealthChanges, for type: HealthType) { queuedChanges[type, default: []].append(changes) }
+    func cancelCurrentTaskOnNextChanges() { cancelOnNextChanges = true }
     func setSamples(_ samples: [HealthSample], for type: HealthType) { storedSamples[type] = samples }
     func setStatistic(_ value: Double?, for type: HealthType, day: DayKey) { statistics["\(type.rawValue)|\(day)"] = value }
     func failStatistic(for type: HealthType, day: DayKey) { failingStatistics.insert("\(type.rawValue)|\(day)") }
@@ -38,7 +41,15 @@ actor FakeHealthSource: HealthSource {
         if refuseReads { throw HealthSourceError.readRefused }
         if failingChangeTypes.contains(type) { throw FakeWriteError() }
         log.append("changes \(type.rawValue)")
-        return queuedChanges.removeValue(forKey: type) ?? HealthChanges()
+        receivedAnchors[type, default: []].append(anchor)
+        if cancelOnNextChanges {
+            cancelOnNextChanges = false
+            withUnsafeCurrentTask { $0?.cancel() }
+        }
+        guard var batches = queuedChanges[type], !batches.isEmpty else { return HealthChanges() }
+        let next = batches.removeFirst()
+        queuedChanges[type] = batches
+        return next
     }
 
     func samples(for type: HealthType, in interval: DateInterval) -> [HealthSample] {
