@@ -64,17 +64,20 @@ private struct SummaryRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                SymbolImage(text.symbolName, size: SymbolSize.status, color: symbolColor)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(text.title)
-                        .font(.headline)
-                        .foregroundStyle(Color.vcPrimaryText)
-                    if let detail = text.detail {
-                        Text(detail)
-                            .font(.subheadline)
-                            .foregroundStyle(Color.vcSecondaryText)
+            // The spinner is centred on the whole row; the symbol stays on the title's baseline.
+            HStack(alignment: .center, spacing: 12) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    SymbolImage(text.symbolName, size: SymbolSize.status, color: symbolColor)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(text.title)
+                            .font(.headline)
+                            .foregroundStyle(Color.vcPrimaryText)
+                        if let detail = text.detail {
+                            Text(detail)
+                                .font(.subheadline)
+                                .foregroundStyle(Color.vcSecondaryText)
+                        }
                     }
                 }
                 if case .running = summary {
