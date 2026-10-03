@@ -191,13 +191,16 @@ final class AppEnvironment: Sendable {
         recordedSetupErrors.withLock { $0 }
     }
 
-    /// Refreshes the folder, and saves the error to run history only when the folder turns lost, so every app open on a still-lost folder adds no row.
+    /// Refreshes the folder. Saves the error to run history when the folder turns lost (so every app open on a still-lost folder adds no row), and when the file provider can't be reached, which `FolderAccess` reports once per outage and which leaves the folder valid.
     func refreshFolderRecordingLoss() -> FolderState {
         let wasLost: Bool
         if case .lost = folderAccess.state { wasLost = true } else { wasLost = false }
-        let refreshed = folderAccess.refresh()
+        let (refreshed, temporaryFailure) = folderAccess.refreshReportingTemporaryFailure()
         if case .lost(let errorText) = refreshed, !wasLost {
             recordSetupError("folder lost: \(errorText)")
+        }
+        if let temporaryFailure {
+            recordSetupError("folder temporarily unavailable: \(temporaryFailure)")
         }
         return refreshed
     }
