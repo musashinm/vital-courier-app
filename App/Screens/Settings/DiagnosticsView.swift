@@ -130,7 +130,8 @@ enum MidnightTestSample {
     static let metadataKey = "VCTestSample"
 
     static func window(now: Date, calendar: Calendar = .current) -> DateInterval {
-        let yesterdayStart = calendar.startOfDay(for: now.addingTimeInterval(-24 * 60 * 60))
+        let todayStart = calendar.startOfDay(for: now)
+        let yesterdayStart = calendar.date(byAdding: .day, value: -1, to: todayStart) ?? todayStart.addingTimeInterval(-24 * 60 * 60)
         return DateInterval(start: yesterdayStart.addingTimeInterval(-30 * 60), end: yesterdayStart.addingTimeInterval(30 * 60))
     }
 
