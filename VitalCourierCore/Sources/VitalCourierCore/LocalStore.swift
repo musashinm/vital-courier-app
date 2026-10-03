@@ -3,6 +3,8 @@ import GRDB
 
 public enum LocalStoreError: Error, Equatable {
     case corruptRow(String)
+    /// A History page cursor that was never saved, so it has no row id.
+    case invalidCursor
 }
 
 public struct DirtyEntry: Hashable, Sendable {

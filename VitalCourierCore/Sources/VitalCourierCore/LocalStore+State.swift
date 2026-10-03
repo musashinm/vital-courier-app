@@ -18,6 +18,8 @@ public struct DailyValue: Equatable, Sendable {
 }
 
 public struct RunRecord: Equatable, Sendable {
+    /// The `runRecord` row id; nil until the record is saved. History pages by it.
+    public var id: Int64?
     public var startedAt: Date
     public var trigger: String
     public var readOutcome: String
@@ -26,7 +28,8 @@ public struct RunRecord: Equatable, Sendable {
     public var daysPending: Int
     public var errors: [String]
 
-    public init(startedAt: Date, trigger: String, readOutcome: String, daysWritten: Int, daysFailed: Int, daysPending: Int, errors: [String]) {
+    public init(startedAt: Date, trigger: String, readOutcome: String, daysWritten: Int, daysFailed: Int, daysPending: Int, errors: [String], id: Int64? = nil) {
+        self.id = id
         self.startedAt = startedAt
         self.trigger = trigger
         self.readOutcome = readOutcome
@@ -165,21 +168,22 @@ extension LocalStore {
     }
 
     public func recentRuns(limit: Int) throws -> [RunRecord] {
-        try dbQueue.read { db in
-            try Row.fetchAll(db, sql: "SELECT * FROM runRecord ORDER BY startedAt DESC, id DESC LIMIT ?", arguments: [limit]).map { row in
-                let errorsText: String = row["errors"]
-                let startedAt: Double = row["startedAt"]
-                return RunRecord(
-                    startedAt: Date(timeIntervalSince1970: startedAt),
-                    trigger: row["triggerName"],
-                    readOutcome: row["readOutcome"],
-                    daysWritten: row["daysWritten"],
-                    daysFailed: row["daysFailed"],
-                    daysPending: row["daysPending"],
-                    errors: try JSONDecoder().decode([String].self, from: Data(errorsText.utf8))
-                )
-            }
-        }
+        try dbQueue.read { db in try Self.runs(db, before: nil, limit: limit) }
+    }
+
+    static func runRecord(from row: Row) throws -> RunRecord {
+        let errorsText: String = row["errors"]
+        let startedAt: Double = row["startedAt"]
+        return RunRecord(
+            startedAt: Date(timeIntervalSince1970: startedAt),
+            trigger: row["triggerName"],
+            readOutcome: row["readOutcome"],
+            daysWritten: row["daysWritten"],
+            daysFailed: row["daysFailed"],
+            daysPending: row["daysPending"],
+            errors: try JSONDecoder().decode([String].self, from: Data(errorsText.utf8)),
+            id: row["id"]
+        )
     }
 
     /// Settings "Clear local copy": deletes the health data and anchors, so the next readable run re-reads everything from HealthKit.

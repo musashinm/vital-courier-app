@@ -1,0 +1,117 @@
+import Foundation
+import GRDB
+
+/// Everything Home needs, read in one transaction (design iOS App v2, §6 UI status derivation). Read-only: nothing here changes export behaviour.
+public struct StoreStatusSnapshot: Equatable, Sendable {
+    public var latestRun: RunRecord?
+    public var lastSuccessfulReadAt: Date?
+    public var dailyValuesFailureStreakStart: Date?
+    public var latestDailyValueDays: [HealthType: DayKey]
+    /// The source of the newest sleep daily value, for "Updated today · Apple Watch".
+    public var latestSleepSource: String?
+
+    public init(latestRun: RunRecord?, lastSuccessfulReadAt: Date?, dailyValuesFailureStreakStart: Date?, latestDailyValueDays: [HealthType: DayKey], latestSleepSource: String?) {
+        self.latestRun = latestRun
+        self.lastSuccessfulReadAt = lastSuccessfulReadAt
+        self.dailyValuesFailureStreakStart = dailyValuesFailureStreakStart
+        self.latestDailyValueDays = latestDailyValueDays
+        self.latestSleepSource = latestSleepSource
+    }
+}
+
+extension LocalStore {
+    public func statusSnapshot() throws -> StoreStatusSnapshot {
+        try dbQueue.read { db in
+            StoreStatusSnapshot(
+                latestRun: try Self.runs(db, before: nil, limit: 1).first,
+                lastSuccessfulReadAt: try Self.lastSuccessfulReadAt(db),
+                dailyValuesFailureStreakStart: try Self.dailyValuesFailureStreakStart(db),
+                latestDailyValueDays: try Self.latestDailyValueDays(db),
+                latestSleepSource: try String.fetchOne(
+                    db,
+                    sql: "SELECT source FROM dailyValue WHERE type = ? ORDER BY day DESC LIMIT 1",
+                    arguments: [HealthType.sleep.rawValue]
+                )
+            )
+        }
+    }
+
+    /// Newest first. Pass the last record of the previous page as `cursor`; new runs arriving meanwhile never shift or repeat rows.
+    public func runs(before cursor: RunRecord?, limit: Int) throws -> [RunRecord] {
+        try dbQueue.read { db in try Self.runs(db, before: cursor, limit: limit) }
+    }
+
+    public func lastSuccessfulReadAt() throws -> Date? {
+        try dbQueue.read { db in try Self.lastSuccessfulReadAt(db) }
+    }
+
+    /// The newest day with a stored daily value, per type. Sleep uses its wake day.
+    public func latestDailyValueDays() throws -> [HealthType: DayKey] {
+        try dbQueue.read { db in try Self.latestDailyValueDays(db) }
+    }
+
+    /// Start of the current run of daily-values failures: readable runs (read or failed) newest first; a run with a `daily values` error extends the streak, the first one without ends it. Locked and not-requested runs are skipped.
+    public func dailyValuesFailureStreakStart() throws -> Date? {
+        try dbQueue.read { db in try Self.dailyValuesFailureStreakStart(db) }
+    }
+
+    /// Every sleep source seen locally, for the Settings sleep-source list. Names are never normalized.
+    public func sleepSourceNames() throws -> [String] {
+        try dbQueue.read { db in
+            try String.fetchAll(db, sql: "SELECT DISTINCT source FROM sample WHERE type = ?", arguments: [HealthType.sleep.rawValue])
+        }
+        .sorted { $0.caseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    static func runs(_ db: Database, before cursor: RunRecord?, limit: Int) throws -> [RunRecord] {
+        let rows: [Row]
+        if let cursor {
+            guard let cursorID = cursor.id else { throw LocalStoreError.invalidCursor }
+            let cursorStart = cursor.startedAt.timeIntervalSince1970
+            rows = try Row.fetchAll(db, sql: """
+                SELECT * FROM runRecord
+                WHERE startedAt < ? OR (startedAt = ? AND id < ?)
+                ORDER BY startedAt DESC, id DESC LIMIT ?
+                """, arguments: [cursorStart, cursorStart, cursorID, limit])
+        } else {
+            rows = try Row.fetchAll(db, sql: "SELECT * FROM runRecord ORDER BY startedAt DESC, id DESC LIMIT ?", arguments: [limit])
+        }
+        return try rows.map(runRecord(from:))
+    }
+
+    static func lastSuccessfulReadAt(_ db: Database) throws -> Date? {
+        try Double.fetchOne(
+            db,
+            sql: "SELECT MAX(startedAt) FROM runRecord WHERE readOutcome = ?",
+            arguments: [ReadOutcome.read.rawValue]
+        ).map { Date(timeIntervalSince1970: $0) }
+    }
+
+    static func latestDailyValueDays(_ db: Database) throws -> [HealthType: DayKey] {
+        var days: [HealthType: DayKey] = [:]
+        for row in try Row.fetchAll(db, sql: "SELECT type, MAX(day) AS latestDay FROM dailyValue GROUP BY type") {
+            let typeRaw: String = row["type"]
+            let dayText: String = row["latestDay"]
+            guard let type = HealthType(rawValue: typeRaw), let day = DayKey(dayText) else {
+                throw LocalStoreError.corruptRow("dailyValue \(typeRaw) \(dayText)")
+            }
+            days[type] = day
+        }
+        return days
+    }
+
+    static func dailyValuesFailureStreakStart(_ db: Database) throws -> Date? {
+        let rows = try Row.fetchAll(
+            db,
+            sql: "SELECT * FROM runRecord WHERE readOutcome IN (?, ?) ORDER BY startedAt DESC, id DESC",
+            arguments: [ReadOutcome.read.rawValue, ReadOutcome.failed.rawValue]
+        )
+        var streakStart: Date?
+        for row in rows {
+            let run = try runRecord(from: row)
+            guard run.errors.contains(where: { $0.hasPrefix("daily values") }) else { break }
+            streakStart = run.startedAt
+        }
+        return streakStart
+    }
+}
