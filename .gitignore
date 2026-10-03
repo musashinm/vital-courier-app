@@ -3,3 +3,5 @@
 .swiftpm/
 DerivedData/
 xcuserdata/
+VitalCourier.xcodeproj/
+build/
