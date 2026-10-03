@@ -37,8 +37,8 @@ public enum AcknowledgementGate {
                 try await work { signalOnce() }
             } catch {
                 let text = String(describing: error)
-                onFailure(text)
                 settle(.failed(text))
+                onFailure(text)
             }
             settle(.signaled)
         }

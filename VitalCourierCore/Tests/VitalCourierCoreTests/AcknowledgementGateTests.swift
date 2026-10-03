@@ -74,6 +74,19 @@ actor Latch {
         #expect(elapsed < .seconds(5))
     }
 
+    @Test func aBlockedFailureReporterDoesNotDelayAnImmediateFailure() async {
+        let reporterRelease = DispatchSemaphore(value: 0)
+
+        let outcome = await waitOnBackgroundQueue(timeout: .seconds(1), onFailure: { _ in
+            _ = reporterRelease.wait(timeout: .now() + .seconds(10))
+        }) { _ in
+            throw GateFailure()
+        }
+        reporterRelease.signal()
+
+        #expect(outcome == .failed("GateFailure()"))
+    }
+
     @Test func aTimeoutAcknowledgesAndTheWorkKeepsRunning() async throws {
         let latch = Latch()
         let finished = Counter()
