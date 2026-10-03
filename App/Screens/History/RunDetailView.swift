@@ -5,6 +5,8 @@ struct RunDetailView: View {
     @Environment(AppModel.self) private var model
     let run: RunRecord
     @State private var isPickerPresented = false
+    /// The save state is app-wide, so it shows here only after this screen's own picker ran.
+    @State private var hasPickedFolderHere = false
 
     var body: some View {
         let formatter = StatusDateFormatter()
@@ -42,8 +44,11 @@ struct RunDetailView: View {
             } header: {
                 Text("Errors").foregroundStyle(Color.vcTertiaryText)
             }
-            RecoverySection(recovery: recovery, outcome: RunRowOutcome(run: run), onPickFolder: { isPickerPresented = true })
-            if model.folderSave != .idle {
+            RecoverySection(recovery: recovery, outcome: RunRowOutcome(run: run), onPickFolder: {
+                hasPickedFolderHere = true
+                isPickerPresented = true
+            })
+            if hasPickedFolderHere && model.folderSave != .idle {
                 Section {
                     switch model.folderSave {
                     case .idle: EmptyView()
@@ -59,7 +64,10 @@ struct RunDetailView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(RunLabels.trigger(run.trigger))
         .navigationBarTitleDisplayMode(.inline)
-        .folderPicker(isPresented: $isPickerPresented, onPick: { model.pickFolder($0) }, onError: { model.folderSave = .failed(errorText: $0) })
+        .folderPicker(isPresented: $isPickerPresented, onPick: { model.pickFolder($0) }, onError: {
+            hasPickedFolderHere = true
+            model.folderSave = .failed(errorText: $0)
+        })
     }
 }
 
