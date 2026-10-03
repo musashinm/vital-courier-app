@@ -33,8 +33,8 @@ final class AppEnvironment: Sendable {
     let health: HealthKitSource
     private let storeState: Mutex<StoreState>
     private let recordedSetupErrors = Mutex<[String]>([])
-    /// Setup errors not yet saved to run history (store blocked, or the save failed). Saved by `drainPendingSetupErrors()`.
-    private let pendingSetupErrorsForHistory = Mutex<[String]>([])
+    /// Guards read-modify-write of the durable queue `settings.pendingSetupErrors` (setup errors not yet saved to run history). The Bool is true while one drain is running.
+    private let setupErrorQueue = Mutex(false)
     private let observersStarted = Mutex(false)
 
     init() {
@@ -131,17 +131,30 @@ final class AppEnvironment: Sendable {
         drainPendingSetupErrors(in: store)
     }
 
-    /// Saves the queued setup errors as one "App event" row. A failed save puts them back in the queue and records nothing new, so a failing store cannot start a retry loop.
+    /// Saves the queued setup errors as one "App event" row per round, and removes exactly the saved entries only after the save succeeded (entries appended meanwhile stay and are picked up by the loop). One drain runs at a time. A failed save leaves the queue as it is and records nothing new, so a failing store cannot start a retry loop.
     private func drainPendingSetupErrors(in store: LocalStore) {
-        let queuedTexts = pendingSetupErrorsForHistory.withLock { queue in
-            defer { queue.removeAll() }
-            return queue
+        let claimed = setupErrorQueue.withLock { isDraining in
+            if isDraining { return false }
+            isDraining = true
+            return true
         }
-        guard !queuedTexts.isEmpty else { return }
-        do {
-            try store.recordAppEvent(errors: queuedTexts, at: Date())
-        } catch {
-            pendingSetupErrorsForHistory.withLock { $0.insert(contentsOf: queuedTexts, at: 0) }
+        guard claimed else { return }
+        while true {
+            let snapshot = setupErrorQueue.withLock { isDraining in
+                let queued = settings.pendingSetupErrors
+                if queued.isEmpty { isDraining = false }
+                return queued
+            }
+            if snapshot.isEmpty { return }
+            do {
+                try store.recordAppEvent(errors: snapshot, at: Date())
+            } catch {
+                setupErrorQueue.withLock { $0 = false }
+                return
+            }
+            setupErrorQueue.withLock { _ in
+                settings.pendingSetupErrors = Array(settings.pendingSetupErrors.dropFirst(snapshot.count))
+            }
         }
     }
 
@@ -164,18 +177,14 @@ final class AppEnvironment: Sendable {
         }
     }
 
-    /// Failures that have no run to be recorded in (observer and background-delivery registration, a folder that failed to save). Kept for Settings → Diagnostics and saved as an "App event" row in run history. With the store blocked or the save failing, the text waits in a queue that the store open and retry drain. Callers whose own failure was a failed history save pass `savingToHistory: false`: the text is only queued, never saved at once.
+    /// Failures that have no run to be recorded in (observer and background-delivery registration, a folder that failed to save). Kept in memory for Settings → Diagnostics, and queued durably (outside the store) for run history as an "App event" row. After queueing, a ready store drains the queue at once; otherwise the store open and retry drain it. Callers whose own failure was a failed history save pass `savingToHistory: false`: the text is only queued, with no drain.
     func recordSetupError(_ errorText: String, savingToHistory: Bool = true) {
         recordedSetupErrors.withLock { $0.append(errorText) }
-        guard savingToHistory else {
-            pendingSetupErrorsForHistory.withLock { $0.append(errorText) }
-            return
+        setupErrorQueue.withLock { _ in
+            settings.pendingSetupErrors = settings.pendingSetupErrors + [errorText]
         }
-        do {
-            try readyStore().recordAppEvent(errors: [errorText], at: Date())
-        } catch {
-            pendingSetupErrorsForHistory.withLock { $0.append(errorText) }
-        }
+        guard savingToHistory, case .ready(let store, _) = storeStateNow else { return }
+        drainPendingSetupErrors(in: store)
     }
 
     var setupErrors: [String] {

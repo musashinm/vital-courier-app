@@ -28,4 +28,24 @@ import Testing
         #expect(settings.folderLostError == nil)
         #expect(settings.awaitingRereadAfterClear == false)
     }
+
+    @Test func pendingSetupErrorsDefaultToEmptyAndRoundTrip() {
+        let storage = InMemoryStorage()
+        let settings = AppSettings(storage: storage)
+        #expect(settings.pendingSetupErrors == [])
+
+        settings.pendingSetupErrors = ["one", "two \"quoted\""]
+        #expect(AppSettings(storage: storage).pendingSetupErrors == ["one", "two \"quoted\""])
+
+        settings.pendingSetupErrors = []
+        #expect(AppSettings(storage: storage).pendingSetupErrors == [])
+    }
+
+    @Test func undecodablePendingSetupErrorsAreSurfacedNotDropped() {
+        let storage = InMemoryStorage()
+        storage.set(Data("not json".utf8), forKey: AppSettings.Key.pendingSetupErrors)
+        let entries = AppSettings(storage: storage).pendingSetupErrors
+        #expect(entries.count == 1)
+        #expect(entries[0].contains("not json"))
+    }
 }

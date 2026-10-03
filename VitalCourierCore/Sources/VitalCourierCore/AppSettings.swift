@@ -8,6 +8,7 @@ public struct AppSettings: Sendable {
         static let folderLostError = "folderLostError"
         static let setupCompletedAt = "setupCompletedAt"
         static let awaitingRereadAfterClear = "awaitingRereadAfterClear"
+        static let pendingSetupErrors = "pendingSetupErrors"
     }
 
     let storage: any KeyValueStorage
@@ -41,6 +42,29 @@ public struct AppSettings: Sendable {
     public var awaitingRereadAfterClear: Bool {
         get { string(forKey: Key.awaitingRereadAfterClear) == "1" }
         nonmutating set { setString(newValue ? "1" : nil, forKey: Key.awaitingRereadAfterClear) }
+    }
+
+    /// Setup errors not yet saved to run history, kept outside `LocalStore` so a process exit does not lose them. Stored as a JSON array; stored data that cannot be decoded is returned as one visible entry, never dropped.
+    public var pendingSetupErrors: [String] {
+        get {
+            guard let data = storage.data(forKey: Key.pendingSetupErrors) else { return [] }
+            do {
+                return try JSONDecoder().decode([String].self, from: data)
+            } catch {
+                return ["pending setup errors could not be decoded (\(error)): \(String(decoding: data, as: UTF8.self))"]
+            }
+        }
+        nonmutating set {
+            if newValue.isEmpty {
+                storage.set(nil, forKey: Key.pendingSetupErrors)
+                return
+            }
+            do {
+                storage.set(try JSONEncoder().encode(newValue), forKey: Key.pendingSetupErrors)
+            } catch {
+                storage.set(Data("pending setup errors could not be encoded (\(error))".utf8), forKey: Key.pendingSetupErrors)
+            }
+        }
     }
 
     private func string(forKey key: String) -> String? {
