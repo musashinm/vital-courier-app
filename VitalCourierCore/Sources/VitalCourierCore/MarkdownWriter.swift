@@ -41,7 +41,8 @@ public enum MarkdownWriter {
 
     public static func note(for summary: DailySummary) -> Data {
         var lines = ["---", "date: \(summary.day)"]
-        if let steps = summary.steps { lines.append("vc_steps: \(Int(steps.rounded()))") }
+        // Truncated, not rounded: the Health app shows a fractional de-duplicated step sum without its fraction.
+        if let steps = summary.steps { lines.append("vc_steps: \(Int(steps.rounded(.down)))") }
         if let bpm = summary.restingHeartRateBPM { lines.append("vc_resting_hr_bpm: \(oneDecimal(bpm))") }
         if let hours = summary.sleepHours { lines.append("vc_sleep_hours: \(twoDecimals(hours))") }
         if let hours = summary.sleepDeepHours { lines.append("vc_sleep_deep_hours: \(twoDecimals(hours))") }
