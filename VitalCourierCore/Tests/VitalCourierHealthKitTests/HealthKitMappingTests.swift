@@ -1,0 +1,105 @@
+import Foundation
+import HealthKit
+import Testing
+import VitalCourierCore
+@testable import VitalCourierHealthKit
+
+private func date(_ iso: String) -> Date {
+    try! Date(iso, strategy: .iso8601)
+}
+
+@Suite struct HealthKitMappingTests {
+    @Test func theFourTypesMapToTheirHealthKitTypes() {
+        #expect(HealthKitMapping.sampleType(for: .steps) == HKQuantityType(.stepCount))
+        #expect(HealthKitMapping.sampleType(for: .restingHeartRate) == HKQuantityType(.restingHeartRate))
+        #expect(HealthKitMapping.sampleType(for: .sleep) == HKCategoryType(.sleepAnalysis))
+        #expect(HealthKitMapping.sampleType(for: .weight) == HKQuantityType(.bodyMass))
+        #expect(HealthKitMapping.readTypes.count == 4)
+    }
+
+    @Test func samplesAreStoredInSIUnits() throws {
+        let perMinute = HKUnit.count().unitDivided(by: .minute())
+        #expect(try HealthKitMapping.storedValue(HKQuantity(unit: perMinute, doubleValue: 60), for: .restingHeartRate) == 1)
+        #expect(try HealthKitMapping.storedValue(HKQuantity(unit: .count(), doubleValue: 812), for: .steps) == 812)
+        let kilograms = try HealthKitMapping.storedValue(HKQuantity(unit: .pound(), doubleValue: 154.324), for: .weight)
+        #expect(abs(kilograms - 70) < 0.001)
+    }
+
+    @Test func aQuantityInTheWrongUnitIsAnErrorNotACrash() {
+        #expect(throws: HealthKitMappingError.self) {
+            try HealthKitMapping.storedValue(HKQuantity(unit: .count(), doubleValue: 1), for: .weight)
+        }
+        #expect(throws: HealthKitMappingError.self) {
+            try HealthKitMapping.storedValue(HKQuantity(unit: .count(), doubleValue: 1), for: .sleep)
+        }
+    }
+
+    @Test func dailyStatisticsUseCountAndBeatsPerMinute() {
+        let perSecond = HKQuantity(unit: .count().unitDivided(by: .second()), doubleValue: 1)
+        #expect(HealthKitMapping.statisticUnit(for: .restingHeartRate).map { perSecond.doubleValue(for: $0) } == 60)
+        #expect(HealthKitMapping.statisticUnit(for: .steps) == .count())
+        #expect(HealthKitMapping.statisticUnit(for: .weight) == nil)
+        #expect(HealthKitMapping.statisticUnit(for: .sleep) == nil)
+    }
+
+    @Test func sleepValuesUseTheCoreNames() {
+        #expect(HealthKitMapping.sleepValueName(rawValue: HKCategoryValueSleepAnalysis.inBed.rawValue) == "inBed")
+        #expect(HealthKitMapping.sleepValueName(rawValue: HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue) == "asleepUnspecified")
+        #expect(HealthKitMapping.sleepValueName(rawValue: HKCategoryValueSleepAnalysis.awake.rawValue) == "awake")
+        #expect(HealthKitMapping.sleepValueName(rawValue: HKCategoryValueSleepAnalysis.asleepCore.rawValue) == "asleepCore")
+        #expect(HealthKitMapping.sleepValueName(rawValue: HKCategoryValueSleepAnalysis.asleepDeep.rawValue) == "asleepDeep")
+        #expect(HealthKitMapping.sleepValueName(rawValue: HKCategoryValueSleepAnalysis.asleepREM.rawValue) == "asleepREM")
+        #expect(HealthKitMapping.sleepValueName(rawValue: 99) == "unknown(99)")
+        #expect(SleepAggregator.asleepValues == ["asleepUnspecified", "asleepCore", "asleepDeep", "asleepREM"])
+    }
+
+    @Test func metadataBecomesStrings() {
+        let metadata: [String: Any] = [
+            HKMetadataKeyTimeZone: "America/Sao_Paulo",
+            HKMetadataKeyWasUserEntered: NSNumber(value: true),
+            "VCDate": date("2026-10-03T11:16:00Z"),
+            "VCQuantity": HKQuantity(unit: .count(), doubleValue: 5),
+        ]
+
+        let strings = HealthKitMapping.stringMetadata(metadata)
+
+        #expect(strings[HKMetadataKeyTimeZone] == "America/Sao_Paulo")
+        #expect(strings[HKMetadataKeyWasUserEntered] == "1")
+        #expect(strings["VCDate"] == "2026-10-03T11:16:00Z")
+        #expect(strings["VCQuantity"]?.contains("5") == true)
+        #expect(HealthKitMapping.stringMetadata(nil) == [:])
+    }
+
+    @Test func onlyAValidTimeZoneKeyIsKept() {
+        #expect(HealthKitMapping.timeZoneIdentifier(in: [HKMetadataKeyTimeZone: "Europe/Lisbon"]) == "Europe/Lisbon")
+        #expect(HealthKitMapping.timeZoneIdentifier(in: [HKMetadataKeyTimeZone: "Mars/Base"]) == nil)
+        #expect(HealthKitMapping.timeZoneIdentifier(in: [:]) == nil)
+        #expect(HealthKitMapping.timeZoneIdentifier(in: nil) == nil)
+    }
+
+    @Test func makeSampleCarriesSourceDeviceMetadataAndZone() {
+        let uuid = UUID()
+        let sample = HealthKitMapping.makeSample(
+            uuid: uuid, type: .sleep,
+            start: date("2026-10-03T02:00:00Z"), end: date("2026-10-03T03:00:00Z"),
+            value: .category("asleepREM"), sourceName: "Apple Watch", deviceName: "Watch",
+            metadata: [HKMetadataKeyTimeZone: "America/Sao_Paulo"]
+        )
+
+        #expect(sample == HealthSample(
+            uuid: uuid, type: .sleep,
+            start: date("2026-10-03T02:00:00Z"), end: date("2026-10-03T03:00:00Z"),
+            value: .category("asleepREM"), source: "Apple Watch", device: "Watch",
+            metadata: [HKMetadataKeyTimeZone: "America/Sao_Paulo"], timeZoneIdentifier: "America/Sao_Paulo"
+        ))
+    }
+
+    @Test func anchorsRoundTripThroughData() throws {
+        let data = try HealthKitMapping.anchorData(HKQueryAnchor(fromValue: 42))
+
+        let decoded = try HealthKitMapping.queryAnchor(from: data)
+
+        #expect(try HealthKitMapping.anchorData(decoded) == data)
+        #expect(throws: (any Error).self) { try HealthKitMapping.queryAnchor(from: Data([1, 2, 3])) }
+    }
+}
