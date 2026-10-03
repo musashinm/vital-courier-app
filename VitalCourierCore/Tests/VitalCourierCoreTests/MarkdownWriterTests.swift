@@ -54,6 +54,9 @@ import Testing
 
         summary.steps = 5632.5
         #expect(text(summary).contains("vc_steps: 5632\n"))
+
+        summary.steps = -0.6
+        #expect(text(summary).contains("vc_steps: 0\n"))
     }
 
     @Test func escapesQuotesAndBackslashesInTheSleepSource() {
