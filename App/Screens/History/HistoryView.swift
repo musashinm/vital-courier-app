@@ -74,7 +74,7 @@ private struct RunRow: View {
 
     var body: some View {
         let outcome = RunRowOutcome(run: run)
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             SymbolImage(outcome.symbolName, size: SymbolSize.status, color: outcome.color)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {

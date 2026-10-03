@@ -103,7 +103,7 @@ private struct RecoverySection: View {
     }
 
     private func header(symbol: String, color: Color, text: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             SymbolImage(symbol, size: SymbolSize.status, color: color)
                 .accessibilityHidden(true)
             Text(text).foregroundStyle(Color.vcPrimaryText)
