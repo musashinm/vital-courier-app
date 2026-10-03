@@ -13,6 +13,8 @@ final class SleepSourceModel {
     var loadError: String?
     /// Called after a choice is saved, to start a run that rewrites the affected notes.
     var onSaved: () -> Void = {}
+    /// Bumped by every accepted choice. A load that started before a choice must not overwrite it.
+    private var choiceGeneration = 0
 
     init(environment: AppEnvironment) {
         self.environment = environment
@@ -24,18 +26,21 @@ final class SleepSourceModel {
 
     func load() async {
         let environment = self.environment
+        let generation = choiceGeneration
         do {
             let (sourceNames, preference) = try await Task.detached {
                 let store = try environment.readyStore()
                 return (try store.sleepSourceNames(), try store.sleepSourcePreference())
             }.value
             // A saved choice stays listed even after Clear local copy removed its samples.
-            if let preference, !sourceNames.contains(preference) {
-                names = (sourceNames + [preference]).sorted { $0.caseInsensitiveCompare($1) == .orderedAscending }
+            let appliesPreference = generation == choiceGeneration && !isSaving
+            let listedChoice = appliesPreference ? preference : selected
+            if let listedChoice, !sourceNames.contains(listedChoice) {
+                names = (sourceNames + [listedChoice]).sorted { $0.caseInsensitiveCompare($1) == .orderedAscending }
             } else {
                 names = sourceNames
             }
-            selected = preference
+            if appliesPreference { selected = preference }
             loadError = nil
         } catch {
             loadError = String(describing: error)
@@ -46,6 +51,7 @@ final class SleepSourceModel {
     func choose(_ choice: String?) {
         guard choice != selected, !isSaving else { return }
         let previous = selected
+        choiceGeneration += 1
         selected = choice
         isSaving = true
         saveError = nil
