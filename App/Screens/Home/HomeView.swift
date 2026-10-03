@@ -15,11 +15,11 @@ struct HomeView: View {
                 SummaryRow(
                     summary: summary,
                     text: summary.text(formatter: formatter, now: model.now),
-                    latestRun: model.snapshot?.latestRun,
+                    hidesPickAction: { if case .failed = model.folderSave { true } else { false } }(),
                     onPickFolder: { isPickerPresented = true },
                     onViewRecentRuns: { model.selectedTab = .history }
                 )
-                FolderSaveRow(state: model.folderSave)
+                FolderSaveRow(state: model.folderSave, onPickFolder: { isPickerPresented = true })
                 if let statusError = model.statusError {
                     ErrorTextView(text: statusError)
                 }
@@ -58,7 +58,7 @@ struct HomeView: View {
 private struct SummaryRow: View {
     let summary: HomeSummary
     let text: HomeSummaryText
-    let latestRun: RunRecord?
+    let hidesPickAction: Bool
     let onPickFolder: () -> Void
     let onViewRecentRuns: () -> Void
 
@@ -101,15 +101,23 @@ private struct SummaryRow: View {
         case .none:
             EmptyView()
         case .runDetails:
-            if let latestRun {
-                NavigationLink("Run details") { RunDetailView(run: latestRun) }
+            if let summaryRun {
+                NavigationLink("Run details") { RunDetailView(run: summaryRun) }
             }
         case .pickFolder:
-            Button("Pick a folder", action: onPickFolder)
+            if !hidesPickAction { Button("Pick a folder", action: onPickFolder) }
         case .pickFolderAgain:
-            Button("Pick it again", action: onPickFolder)
+            if !hidesPickAction { Button("Pick it again", action: onPickFolder) }
         case .viewRecentRuns:
             Button("View recent runs", action: onViewRecentRuns)
+        }
+    }
+
+    /// The run the summary was resolved from, including an App event row for a protection failure.
+    private var summaryRun: RunRecord? {
+        switch summary {
+        case .protectionFailure(let run), .writeFailure(let run), .daysUpdated(let run), .upToDate(let run): run
+        default: nil
         }
     }
 
@@ -126,6 +134,7 @@ private struct SummaryRow: View {
 /// Picking a folder from Home: progress and the real error (design §5, "Bookmark save/resolve uses the first-run loading and error states").
 private struct FolderSaveRow: View {
     let state: AppModel.FolderSaveState
+    let onPickFolder: () -> Void
 
     var body: some View {
         switch state {
@@ -140,6 +149,7 @@ private struct FolderSaveRow: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Folder couldn’t be saved").font(.headline).foregroundStyle(Color.vcPrimaryText)
                 ErrorTextView(text: errorText)
+                Button("Choose another folder", action: onPickFolder)
             }
         }
     }
