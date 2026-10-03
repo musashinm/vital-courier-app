@@ -33,6 +33,8 @@ final class AppEnvironment: Sendable {
     let health: HealthKitSource
     private let storeState: Mutex<StoreState>
     private let recordedSetupErrors = Mutex<[String]>([])
+    /// Setup errors not yet saved to run history (store blocked, or the save failed). Saved by `drainPendingSetupErrors()`.
+    private let pendingSetupErrorsForHistory = Mutex<[String]>([])
     private let observersStarted = Mutex(false)
 
     init() {
@@ -126,6 +128,21 @@ final class AppEnvironment: Sendable {
     private func drainPendingProtectionFailures() {
         guard case .ready(let store, _) = storeStateNow else { return }
         recordProtectionFailures(in: store)
+        drainPendingSetupErrors(in: store)
+    }
+
+    /// Saves the queued setup errors as one "App event" row. A failed save puts them back in the queue and records nothing new, so a failing store cannot start a retry loop.
+    private func drainPendingSetupErrors(in store: LocalStore) {
+        let queuedTexts = pendingSetupErrorsForHistory.withLock { queue in
+            defer { queue.removeAll() }
+            return queue
+        }
+        guard !queuedTexts.isEmpty else { return }
+        do {
+            try store.recordAppEvent(errors: queuedTexts, at: Date())
+        } catch {
+            pendingSetupErrorsForHistory.withLock { $0.insert(contentsOf: queuedTexts, at: 0) }
+        }
     }
 
     /// Saves pending file-protection failures to run history, so Home and History show them (Task 3A). Only a failure to save the row is left for Diagnostics.
@@ -133,7 +150,7 @@ final class AppEnvironment: Sendable {
         do {
             try store.recordProtectionFailuresInHistory(at: Date())
         } catch {
-            recordSetupError("saving a file protection failure to run history: \(error)")
+            recordSetupError("saving a file protection failure to run history: \(error)", savingToHistory: false)
         }
     }
 
@@ -143,17 +160,37 @@ final class AppEnvironment: Sendable {
         do {
             try readyStore().recordAppEvent(errors: [errorText], at: Date())
         } catch {
-            recordSetupError("\(errorText) (not saved to run history: \(error))")
+            recordSetupError("\(errorText) (not saved to run history: \(error))", savingToHistory: false)
         }
     }
 
-    /// Failures that have no run to be recorded in (observer and background-delivery registration). Shown in Settings → Diagnostics.
-    func recordSetupError(_ errorText: String) {
+    /// Failures that have no run to be recorded in (observer and background-delivery registration, a folder that failed to save). Kept for Settings → Diagnostics and saved as an "App event" row in run history. With the store blocked or the save failing, the text waits in a queue that the store open and retry drain. Callers whose own failure was a failed history save pass `savingToHistory: false`: the text is only queued, never saved at once.
+    func recordSetupError(_ errorText: String, savingToHistory: Bool = true) {
         recordedSetupErrors.withLock { $0.append(errorText) }
+        guard savingToHistory else {
+            pendingSetupErrorsForHistory.withLock { $0.append(errorText) }
+            return
+        }
+        do {
+            try readyStore().recordAppEvent(errors: [errorText], at: Date())
+        } catch {
+            pendingSetupErrorsForHistory.withLock { $0.append(errorText) }
+        }
     }
 
     var setupErrors: [String] {
         recordedSetupErrors.withLock { $0 }
+    }
+
+    /// Refreshes the folder, and saves the error to run history only when the folder turns lost, so every app open on a still-lost folder adds no row.
+    func refreshFolderRecordingLoss() -> FolderState {
+        let wasLost: Bool
+        if case .lost = folderAccess.state { wasLost = true } else { wasLost = false }
+        let refreshed = folderAccess.refresh()
+        if case .lost(let errorText) = refreshed, !wasLost {
+            recordSetupError("folder lost: \(errorText)")
+        }
+        return refreshed
     }
 
     /// True the first time only.
