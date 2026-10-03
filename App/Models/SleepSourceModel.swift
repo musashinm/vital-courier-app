@@ -13,7 +13,7 @@ final class SleepSourceModel {
     var loadError: String?
     /// Called after a choice is saved, to start a run that rewrites the affected notes.
     var onSaved: () -> Void = {}
-    /// Bumped by every accepted choice. A load that started before a choice must not overwrite it.
+    /// Bumped when a choice starts and when its save finishes. A load that started before either must not overwrite the choice.
     private var choiceGeneration = 0
 
     init(environment: AppEnvironment) {
@@ -65,11 +65,13 @@ final class SleepSourceModel {
                     // The write protected the files (Task 3A); a failure there is saved to run history.
                     environment.recordProtectionFailures(in: store)
                 }.value
+                choiceGeneration += 1
                 isSaving = false
                 onSaved()
             } catch {
                 selected = previous
                 names = Self.listing(names, including: previous)
+                choiceGeneration += 1
                 isSaving = false
                 saveError = String(describing: error)
             }
