@@ -33,7 +33,7 @@ public final class ExportRunner: Sendable {
         // Rebuild all marks every stored day dirty first, so it works even while HealthKit is locked.
         if options.markAllDirty {
             do {
-                try store.markAllDirty()
+                try store.markAllDirty(statisticsZone: zone)
             } catch {
                 errors.append("rebuild: \(error)")
             }
@@ -53,15 +53,19 @@ public final class ExportRunner: Sendable {
         }
         let counts = writeStep(zone: zone, errors: &errors)
         do {
-            try store.appendRun(RunRecord(
-                startedAt: startedAt,
-                trigger: trigger.rawValue,
-                readOutcome: readOutcome.rawValue,
-                daysWritten: counts.written,
-                daysFailed: counts.failed,
-                daysPending: counts.pending,
-                errors: errors
-            ))
+            // Snapshot, history row and discard of the pending protection failures happen as one serialized drain.
+            try store.drainPendingProtectionFailures { pendingFailures in
+                errors.append(contentsOf: pendingFailures.map { RunRecord.fileProtectionErrorPrefix + $0 })
+                return RunRecord(
+                    startedAt: startedAt,
+                    trigger: trigger.rawValue,
+                    readOutcome: readOutcome.rawValue,
+                    daysWritten: counts.written,
+                    daysFailed: counts.failed,
+                    daysPending: counts.pending,
+                    errors: errors
+                )
+            }
         } catch {
             errors.append("run history: \(error)")
         }
@@ -71,9 +75,18 @@ public final class ExportRunner: Sendable {
     func readStep(options: RunOptions, zone: TimeZone, errors: inout [String]) async -> ReadOutcome {
         do {
             for type in HealthType.allCases {
-                if Task.isCancelled { return .read }
-                let changes = try await health.changes(for: type, since: try store.anchor(for: type))
-                try store.applyChanges(changes, for: type, fallbackTimeZone: zone)
+                var hasMore = true
+                while hasMore {
+                    if Task.isCancelled { return .read }
+                    let anchor = try store.anchor(for: type)
+                    let changes = try await health.changes(for: type, since: anchor)
+                    if changes.hasMore && (changes.newAnchor == nil || changes.newAnchor == anchor) {
+                        throw HealthSourceError.anchorDidNotAdvance(type)
+                    }
+                    // Each batch commits with its anchor (spec, Data flow 1.2), so an expired run keeps what it read.
+                    try store.applyChanges(changes, for: type, fallbackTimeZone: zone)
+                    hasMore = changes.hasMore
+                }
             }
             return .read
         } catch HealthSourceError.readRefused {

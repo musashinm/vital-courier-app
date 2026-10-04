@@ -58,7 +58,7 @@ import Testing
         try store.applyChanges(HealthChanges(added: [makeSample(start: "2026-09-29T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
         try store.saveDailyValue(DailyValue(value: 1), type: .steps, day: day("2026-09-27"))
         try store.clearDirty(type: .steps, day: day("2026-09-29"))
-        try store.markAllDirty()
+        try store.markAllDirty(statisticsZone: saoPaulo)
 
         #expect(try store.dirtyEntries() == [
             DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false),
@@ -77,10 +77,12 @@ import Testing
 
     @Test func keepsRunHistoryNewestFirst() throws {
         let store = try LocalStore.inMemory()
-        let older = RunRecord(startedAt: date("2026-09-27T10:00:00Z"), trigger: "appOpen", readOutcome: "read", daysWritten: 1, daysFailed: 0, daysPending: 0, errors: [])
-        let newer = RunRecord(startedAt: date("2026-09-27T11:00:00Z"), trigger: "appIntent", readOutcome: "not requested", daysWritten: 0, daysFailed: 1, daysPending: 2, errors: ["json steps 2026-09: disk full"])
+        var older = RunRecord(startedAt: date("2026-09-27T10:00:00Z"), trigger: "appOpen", readOutcome: "read", daysWritten: 1, daysFailed: 0, daysPending: 0, errors: [])
+        var newer = RunRecord(startedAt: date("2026-09-27T11:00:00Z"), trigger: "appIntent", readOutcome: "not requested", daysWritten: 0, daysFailed: 1, daysPending: 2, errors: ["json steps 2026-09: disk full"])
         try store.appendRun(older)
         try store.appendRun(newer)
+        older.id = 1
+        newer.id = 2
 
         #expect(try store.recentRuns(limit: 10) == [newer, older])
         #expect(try store.recentRuns(limit: 1) == [newer])
@@ -115,10 +117,12 @@ import Testing
 
     @Test func ordersRunHistoryByStartTimeNotInsertionOrder() throws {
         let store = try LocalStore.inMemory()
-        let newerStart = RunRecord(startedAt: date("2026-09-27T11:00:00Z"), trigger: "appIntent", readOutcome: "read", daysWritten: 0, daysFailed: 0, daysPending: 0, errors: [])
-        let olderStart = RunRecord(startedAt: date("2026-09-27T10:00:00Z"), trigger: "appOpen", readOutcome: "read", daysWritten: 0, daysFailed: 0, daysPending: 0, errors: [])
+        var newerStart = RunRecord(startedAt: date("2026-09-27T11:00:00Z"), trigger: "appIntent", readOutcome: "read", daysWritten: 0, daysFailed: 0, daysPending: 0, errors: [])
+        var olderStart = RunRecord(startedAt: date("2026-09-27T10:00:00Z"), trigger: "appOpen", readOutcome: "read", daysWritten: 0, daysFailed: 0, daysPending: 0, errors: [])
         try store.appendRun(newerStart)
         try store.appendRun(olderStart)
+        newerStart.id = 1
+        olderStart.id = 2
 
         #expect(try store.recentRuns(limit: 10) == [newerStart, olderStart])
     }

@@ -1,0 +1,48 @@
+name: VitalCourier
+options:
+  bundleIdPrefix: app.vitalcourier
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
+    DEVELOPMENT_TEAM: Y4P6U2R57W
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+packages:
+  VitalCourierCore:
+    path: VitalCourierCore
+targets:
+  VitalCourier:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    dependencies:
+      - package: VitalCourierCore
+        product: VitalCourierCore
+      - package: VitalCourierCore
+        product: VitalCourierHealthKit
+      - sdk: HealthKit.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.vitalcourier.VitalCourier
+        PRODUCT_NAME: VitalCourier
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO
+        INFOPLIST_FILE: Config/Info.plist
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Vital Courier
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        CODE_SIGN_ENTITLEMENTS: Config/VitalCourier.entitlements
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: VCAccent
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      configs:
+        Debug:
+          INFOPLIST_KEY_NSHealthUpdateUsageDescription: "Debug builds write one test step sample for the midnight check and delete it afterwards."

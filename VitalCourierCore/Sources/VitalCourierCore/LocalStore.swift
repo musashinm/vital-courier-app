@@ -1,8 +1,11 @@
 import Foundation
 import GRDB
+import Synchronization
 
 public enum LocalStoreError: Error, Equatable {
     case corruptRow(String)
+    /// A History page cursor that was never saved, so it has no row id.
+    case invalidCursor
 }
 
 public struct DirtyEntry: Hashable, Sendable {
@@ -22,39 +25,121 @@ public final class LocalStore: Sendable {
     static let fileName = "local-store.sqlite"
 
     let dbQueue: DatabaseQueue
+    let directory: URL?
+    /// Sets the file protection class on one URL. Injectable so tests can make it fail; the real one is `StoreFileProtection.setCompleteUntilFirstUserAuthentication`.
+    let setProtection: @Sendable (URL) throws -> Void
+    /// Where protection failures wait until a run-history row holds them. Outside the SQLite database on purpose: a failure caused by writing the history row itself, or one followed by the app exiting, must still be there on the next launch.
+    let pendingFailureStore: any KeyValueStorage
+    static let pendingProtectionFailuresKey = "pendingProtectionFailures"
+    /// Serializes read-modify-write on the pending queue.
+    private let pendingFailureLock = Mutex<Void>(())
+    /// Serializes the whole drain (snapshot, append history row, discard) so two callers cannot snapshot the same failures or discard each other's newer ones. Separate from `pendingFailureLock` on purpose: saving the row can itself append a protection failure, and that append takes the queue lock.
+    private let drainLock = Mutex<Void>(())
 
     public static func inMemory() throws -> LocalStore {
         try LocalStore(dbQueue: DatabaseQueue())
     }
 
-    /// Opens or creates the store in `directory`. The directory and the database get `completeUntilFirstUserAuthentication` protection, so new journal and temp files inherit it, and the directory is excluded from backup.
+    /// Opens or creates the store in `directory`. The directory is excluded from backup and protected with `completeUntilFirstUserAuthentication` before the database exists, then every file in it is protected after the migration (`protectFiles`). Protection failures queue in `UserDefaults`.
     public static func open(directory: URL) throws -> LocalStore {
-        let fileManager = FileManager.default
-        try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
-        #if os(iOS)
-        try fileManager.setAttributes(
-            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-            ofItemAtPath: directory.path
-        )
-        #endif
+        try open(directory: directory, pendingFailureStore: StandardUserDefaultsStorage(), setProtection: StoreFileProtection.setCompleteUntilFirstUserAuthentication)
+    }
+
+    static func open(directory: URL, pendingFailureStore: any KeyValueStorage, setProtection: @escaping @Sendable (URL) throws -> Void) throws -> LocalStore {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         var backupExcluded = URLResourceValues()
         backupExcluded.isExcludedFromBackup = true
         var mutableDirectory = directory
         try mutableDirectory.setResourceValues(backupExcluded)
+        try setProtection(directory)
 
         let databasePath = directory.appendingPathComponent(fileName).path
-        let store = try LocalStore(dbQueue: DatabaseQueue(path: databasePath))
-        #if os(iOS)
-        try fileManager.setAttributes(
-            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-            ofItemAtPath: databasePath
-        )
-        #endif
+        let store = try LocalStore(dbQueue: DatabaseQueue(path: databasePath), directory: directory, pendingFailureStore: pendingFailureStore, setProtection: setProtection)
+        try store.protectFiles()
         return store
     }
 
-    init(dbQueue: DatabaseQueue) throws {
+    /// Protects the directory and every file in it. Called after opening (which migrates) and, through `write`, after every write. A no-op for the in-memory store.
+    public func protectFiles() throws {
+        try protectFiles(using: setProtection)
+    }
+
+    func protectFiles(using setProtection: (URL) throws -> Void) throws {
+        guard let directory else { return }
+        try StoreFileProtection.apply(to: directory, setProtection: setProtection)
+    }
+
+    /// The only place that writes to the database. Every write path (samples, daily values, dirty marks, the sleep preference, run history, Clear local copy) goes through it, so protection runs after each one. The write has already committed when protection fails, so the failure is kept in the durable pending queue, not thrown.
+    func write<Result>(_ updates: (Database) throws -> Result) throws -> Result {
+        let result = try dbQueue.write(updates)
+        do {
+            try protectFiles()
+        } catch {
+            appendPendingProtectionFailure(String(describing: error))
+        }
+        return result
+    }
+
+    /// Runs `body` while a write transaction is open and has modified the database, then rolls the transaction back. For Debug diagnostics: SQLite's rollback journal exists only inside such a window, so this is the one way to read its file attributes. Not a write path: nothing is committed, so it does not protect anything.
+    public func withWriteTransactionOpen<Result>(_ body: () throws -> Result) throws -> Result {
+        var result: Result?
+        try dbQueue.inTransaction { db in
+            let userVersion = try Int.fetchOne(db, sql: "PRAGMA user_version") ?? 0
+            try db.execute(sql: "PRAGMA user_version = \(userVersion + 1)")
+            result = try body()
+            return .rollback
+        }
+        return result.unsafelyUnwrapped
+    }
+
+    /// Protection failures not yet saved to run history, oldest first. Survives a relaunch. A queue that cannot be decoded is reported as one failure, not dropped.
+    public func pendingProtectionFailures() -> [String] {
+        pendingFailureLock.withLock { _ in readPendingFailures() }
+    }
+
+    /// The only way pending failures leave the queue, used by every path (`ExportRunner` and `recordProtectionFailuresInHistory`). Under the drain lock it snapshots the queue, saves the history row `makeRecord` builds from the snapshot, then discards exactly the snapshotted failures. `makeRecord` returns nil to save nothing (the app-event path with an empty queue); the queue is then left alone. A throw from `appendRun` leaves the queue untouched. Failures appended meanwhile stay, and they are never discarded by another drain's stale count.
+    @discardableResult
+    func drainPendingProtectionFailures(saving makeRecord: (_ failures: [String]) -> RunRecord?) throws -> Bool {
+        try drainLock.withLock { _ in
+            let failures = pendingProtectionFailures()
+            guard let record = makeRecord(failures) else { return false }
+            try appendRun(record)
+            pendingFailureLock.withLock { _ in writePendingFailures(Array(readPendingFailures().dropFirst(failures.count))) }
+            return true
+        }
+    }
+
+    private func appendPendingProtectionFailure(_ failure: String) {
+        pendingFailureLock.withLock { _ in writePendingFailures(readPendingFailures() + [failure]) }
+    }
+
+    private func readPendingFailures() -> [String] {
+        guard let data = pendingFailureStore.data(forKey: Self.pendingProtectionFailuresKey) else { return [] }
+        do {
+            return try JSONDecoder().decode([String].self, from: data)
+        } catch {
+            return ["unreadable pending failure queue: \(error)"]
+        }
+    }
+
+    private func writePendingFailures(_ failures: [String]) {
+        guard !failures.isEmpty else {
+            pendingFailureStore.set(nil, forKey: Self.pendingProtectionFailuresKey)
+            return
+        }
+        do {
+            pendingFailureStore.set(try JSONEncoder().encode(failures), forKey: Self.pendingProtectionFailuresKey)
+        } catch {
+            // Encoding a [String] cannot fail. A debug build stops here if that ever changes.
+            assertionFailure("encoding the pending failure queue: \(error)")
+        }
+    }
+
+    init(dbQueue: DatabaseQueue, directory: URL? = nil, pendingFailureStore: any KeyValueStorage = InMemoryStorage(), setProtection: @escaping @Sendable (URL) throws -> Void = StoreFileProtection.setCompleteUntilFirstUserAuthentication) throws {
         self.dbQueue = dbQueue
+        self.directory = directory
+        self.pendingFailureStore = pendingFailureStore
+        self.setProtection = setProtection
         try Self.migrator.migrate(dbQueue)
     }
 
@@ -127,7 +212,7 @@ public final class LocalStore: Sendable {
     public func applyChanges(_ changes: HealthChanges, for type: HealthType, fallbackTimeZone: TimeZone) throws {
         let metadataEncoder = JSONEncoder()
         metadataEncoder.outputFormatting = [.sortedKeys]
-        try dbQueue.write { db in
+        try write { db in
             for sample in changes.added {
                 // A sleep sample can merge nights, so the wake days of its nights are collected from the stored samples before the write.
                 let sleepWakeDays = sample.type == .sleep ? try Self.sleepWakeDaysAffected(db, uuid: sample.uuid, incoming: sample, fallbackTimeZone: fallbackTimeZone) : []
@@ -177,11 +262,24 @@ public final class LocalStore: Sendable {
         }
     }
 
-    /// Marks the stored day of a sample dirty and, for sleep, its wake day too. Does nothing for an unknown UUID.
+    /// Every day the half-open interval [start, end) overlaps in `zone`, stepping by calendar day. The start day is always included, so an end at or before the start gives the start day only.
+    static func overlappedDays(start: Date, end: Date, zone: TimeZone) -> Set<DayKey> {
+        var days: Set<DayKey> = []
+        var current = DayKey(date: start, timeZone: zone)
+        days.insert(current)
+        // Stepping by DayKey.adding(days:) is calendar arithmetic, so a 23 or 25 hour day is still one step.
+        while end > current.adding(days: 1).interval(in: zone).start {
+            current = current.adding(days: 1)
+            days.insert(current)
+        }
+        return days
+    }
+
+    /// Marks the stored day of a sample dirty and, for sleep, its wake day too. For steps and resting heart rate, whose daily value comes from HealthKit's statistics query, which splits a sample across every day it overlaps, it marks every day the sample overlaps in its stored zone and in the query zone (`fallbackTimeZone`). Does nothing for an unknown UUID.
     static func markTouched(_ db: Database, uuid: UUID, fallbackTimeZone: TimeZone) throws {
         guard let row = try Row.fetchOne(
             db,
-            sql: "SELECT type, day, zone, endTime FROM sample WHERE uuid = ?",
+            sql: "SELECT type, day, zone, startTime, endTime FROM sample WHERE uuid = ?",
             arguments: [uuid.uuidString]
         ) else { return }
         let typeRaw: String = row["type"]
@@ -194,7 +292,20 @@ public final class LocalStore: Sendable {
             let wakeDay = DayKey(date: Date(timeIntervalSince1970: endTime), timeZone: zone)
             try markDirty(db, type: typeRaw, day: wakeDay.description)
         }
+        if statisticsTypeRawValues.contains(typeRaw) {
+            let zoneIdentifier: String = row["zone"]
+            let startTime: Double = row["startTime"]
+            let endTime: Double = row["endTime"]
+            let storedZone = TimeZone(identifier: zoneIdentifier) ?? fallbackTimeZone
+            let start = Date(timeIntervalSince1970: startTime)
+            let end = Date(timeIntervalSince1970: endTime)
+            let days = overlappedDays(start: start, end: end, zone: storedZone).union(overlappedDays(start: start, end: end, zone: fallbackTimeZone))
+            try markDirty(db, type: typeRaw, days: days)
+        }
     }
+
+    /// The types whose daily value is a HealthKit statistics query, which splits a sample across the days it overlaps.
+    static let statisticsTypeRawValues: Set<String> = [HealthType.steps.rawValue, HealthType.restingHeartRate.rawValue]
 
     /// Every stored sleep sample in whole nights around `from...to`: the range is widened by the night gap and then again around whatever that finds, until it stops growing. It ends on its own: the range only widens when a stored asleep sample reaches past it, and the store holds finitely many samples. There is deliberately no cap, because a capped search would return a truncated night as if it were complete.
     static func sleepSamples(_ db: Database, from seedStart: Date, to seedEnd: Date) throws -> [HealthSample] {

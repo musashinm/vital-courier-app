@@ -47,6 +47,18 @@ import Testing
             """)
     }
 
+    @Test func truncatesAFractionalStepSumLikeTheHealthApp() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.steps = 1923.6
+        #expect(text(summary).contains("vc_steps: 1923\n"))
+
+        summary.steps = 5632.5
+        #expect(text(summary).contains("vc_steps: 5632\n"))
+
+        summary.steps = -0.6
+        #expect(text(summary).contains("vc_steps: 0\n"))
+    }
+
     @Test func escapesQuotesAndBackslashesInTheSleepSource() {
         var summary = DailySummary(day: day("2026-09-27"))
         summary.sleepSource = #"My "Ring" \ v2"#
