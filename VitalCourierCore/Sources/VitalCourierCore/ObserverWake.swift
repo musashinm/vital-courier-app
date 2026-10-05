@@ -19,10 +19,16 @@ public final class ObserverWake: Sendable {
     private let state = Mutex(State())
     private let endBackgroundTime: @Sendable (BackgroundTimeToken) -> Void
     private let onCutShort: @Sendable () -> Void
+    private let deliverCutShort: @Sendable (@escaping @Sendable () -> Void) -> Void
 
-    private init(endBackgroundTime: @escaping @Sendable (BackgroundTimeToken) -> Void, onCutShort: @escaping @Sendable () -> Void) {
+    private init(
+        endBackgroundTime: @escaping @Sendable (BackgroundTimeToken) -> Void,
+        onCutShort: @escaping @Sendable () -> Void,
+        deliverCutShort: @escaping @Sendable (@escaping @Sendable () -> Void) -> Void
+    ) {
         self.endBackgroundTime = endBackgroundTime
         self.onCutShort = onCutShort
+        self.deliverCutShort = deliverCutShort
     }
 
     /// Begins background time, starts `run` in a new task, and returns at once. `beginBackgroundTime` returns nil when no time was granted: the run still starts, nothing is ended, and expiry is ignored. For a granted token, `endBackgroundTime` is called exactly once, by the run finishing or by expiry, whichever claims it first; expiry also cancels the run. `onFailure` gets any error but cancellation. `onCutShort` is called at most once, in its own task after the end, when expiry claimed the token or the run ended cancelled.
@@ -41,11 +47,12 @@ public final class ObserverWake: Sendable {
             onCutShort: onCutShort,
             beforeRegistration: {},
             beforeCompletion: {},
+            deliverCutShort: { callback in Task { callback() } },
             run: run
         )
     }
 
-    /// Test seams: `beforeRegistration` runs after background time is known and before the run task is registered; `beforeCompletion` runs after `run` returned or threw and before the wake claims its end.
+    /// Test seams: `beforeRegistration` runs after background time is known and before the run task is registered; `beforeCompletion` runs after `run` returned or threw and before the wake claims its end; `deliverCutShort` is asked once per cut-short, after the lock is released, to run the callback.
     static func start(
         beginBackgroundTime: (_ onExpire: @escaping @Sendable () -> Void) -> BackgroundTimeToken?,
         endBackgroundTime: @escaping @Sendable (BackgroundTimeToken) -> Void,
@@ -53,9 +60,10 @@ public final class ObserverWake: Sendable {
         onCutShort: @escaping @Sendable () -> Void,
         beforeRegistration: () -> Void,
         beforeCompletion: @escaping @Sendable () async -> Void,
+        deliverCutShort: @escaping @Sendable (@escaping @Sendable () -> Void) -> Void,
         run: @escaping @Sendable () async throws -> Void
     ) -> ObserverWake {
-        let wake = ObserverWake(endBackgroundTime: endBackgroundTime, onCutShort: onCutShort)
+        let wake = ObserverWake(endBackgroundTime: endBackgroundTime, onCutShort: onCutShort, deliverCutShort: deliverCutShort)
         let token = beginBackgroundTime { wake.expire() }
         wake.recordToken(token)
         beforeRegistration()
@@ -126,8 +134,7 @@ public final class ObserverWake: Sendable {
 
     /// In its own task: expiry can be claimed synchronously inside `start`, on HealthKit's queue, and the callback may write the store.
     private func scheduleCutShort() {
-        let onCutShort = onCutShort
-        Task { onCutShort() }
+        deliverCutShort(onCutShort)
     }
 
     /// A run registered after a granted token expired is cancelled at once.

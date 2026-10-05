@@ -45,18 +45,12 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
     }
 }
 
-/// Waits until the cut-short callback count settles at `expected`: first until it gets there (when `expected` is above 0), then a short settle so a late extra callback would show up, then asserts the final count is exactly `expected`. Call it after `untilRunFinishes()`.
-func expectCutShortCountAfterQuiescence(_ expected: Int, _ cutShort: Counter, sourceLocation: SourceLocation = #_sourceLocation) async throws {
-    if expected > 0 { try await waitUntil { cutShort.value >= expected } }
-    try await Task.sleep(for: .milliseconds(50))
-    #expect(cutShort.value == expected, sourceLocation: sourceLocation)
-}
-
 @Suite struct ObserverWakeTests {
     func startWake(
         _ time: FakeBackgroundTime,
         failures: TextLog = TextLog(),
         cutShort: @escaping @Sendable () -> Void = {},
+        deliverCutShort: @escaping @Sendable (@escaping @Sendable () -> Void) -> Void = { callback in Task { callback() } },
         beforeRegistration: () -> Void = {},
         beforeCompletion: @escaping @Sendable () async -> Void = {},
         run: @escaping @Sendable () async throws -> Void
@@ -68,6 +62,7 @@ func expectCutShortCountAfterQuiescence(_ expected: Int, _ cutShort: Counter, so
             onCutShort: cutShort,
             beforeRegistration: beforeRegistration,
             beforeCompletion: beforeCompletion,
+            deliverCutShort: deliverCutShort,
             run: run
         )
     }
@@ -91,63 +86,63 @@ func expectCutShortCountAfterQuiescence(_ expected: Int, _ cutShort: Counter, so
 
     @Test func aReturnedRunEndsTheTokenOnceAndIsNotCutShort() async throws {
         let time = FakeBackgroundTime()
-        let cutShort = Counter()
+        let cutShortDeliveries = Counter()
 
-        let wake = startWake(time, cutShort: cutShort.increment) {}
+        let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }) {}
         await wake.untilRunFinishes()
 
         #expect(time.ends == [7])
-        try await expectCutShortCountAfterQuiescence(0, cutShort)
+        #expect(cutShortDeliveries.value == 0)
     }
 
     @Test func aThrownRunEndsTheTokenOnceAndReportsTheError() async throws {
         let time = FakeBackgroundTime()
         let failures = TextLog()
-        let cutShort = Counter()
+        let cutShortDeliveries = Counter()
 
-        let wake = startWake(time, failures: failures, cutShort: cutShort.increment) { throw WakeRunFailure() }
+        let wake = startWake(time, failures: failures, deliverCutShort: { _ in cutShortDeliveries.increment() }) { throw WakeRunFailure() }
         await wake.untilRunFinishes()
 
         #expect(time.ends == [7])
         #expect(failures.values == ["WakeRunFailure()"])
-        try await expectCutShortCountAfterQuiescence(0, cutShort)
+        #expect(cutShortDeliveries.value == 0)
     }
 
     @Test func aCancelledRunEndsTheTokenOnceIsCutShortAndIsNotAFailure() async throws {
         let time = FakeBackgroundTime()
         let failures = TextLog()
-        let cutShort = Counter()
+        let cutShortDeliveries = Counter()
 
-        let wake = startWake(time, failures: failures, cutShort: cutShort.increment) { throw CancellationError() }
+        let wake = startWake(time, failures: failures, deliverCutShort: { _ in cutShortDeliveries.increment() }) { throw CancellationError() }
         await wake.untilRunFinishes()
 
         #expect(time.ends == [7])
         #expect(failures.values.isEmpty)
-        try await expectCutShortCountAfterQuiescence(1, cutShort)
+        #expect(cutShortDeliveries.value == 1)
     }
 
     @Test func expiryEndsTheTokenAtOnceCancelsTheRunAndIsCutShortOnce() async throws {
         let time = FakeBackgroundTime()
-        let cutShort = Counter()
+        let cutShortDeliveries = Counter()
         let observedCancellation = Counter()
 
-        let wake = startWake(time, cutShort: cutShort.increment) { try await runUntilCancelled(observedCancellation) }
+        let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }) { try await runUntilCancelled(observedCancellation) }
         time.expire()
 
         #expect(time.ends == [7])
         try await waitUntil { observedCancellation.value == 1 }
         await wake.untilRunFinishes()
         #expect(time.ends == [7])
-        try await expectCutShortCountAfterQuiescence(1, cutShort)
+        #expect(cutShortDeliveries.value == 1)
     }
 
     @Test func withoutATokenTheRunStillRunsAndNothingEnds() async throws {
         let time = FakeBackgroundTime(grantedToken: nil)
         let latch = Latch()
         let finished = Counter()
-        let cutShort = Counter()
+        let cutShortDeliveries = Counter()
 
-        let wake = startWake(time, cutShort: cutShort.increment) {
+        let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }) {
             await latch.wait()
             finished.increment()
         }
@@ -157,29 +152,29 @@ func expectCutShortCountAfterQuiescence(_ expected: Int, _ cutShort: Counter, so
 
         #expect(finished.value == 1)
         #expect(time.ends.isEmpty)
-        try await expectCutShortCountAfterQuiescence(0, cutShort)
+        #expect(cutShortDeliveries.value == 0)
     }
 
     @Test func expiryDuringBeginEndsOnceAndCancelsTheRun() async throws {
         let time = FakeBackgroundTime(expiresDuringBegin: true)
-        let cutShort = Counter()
+        let cutShortDeliveries = Counter()
         let observedCancellation = Counter()
 
-        let wake = startWake(time, cutShort: cutShort.increment) { try await runUntilCancelled(observedCancellation) }
+        let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }) { try await runUntilCancelled(observedCancellation) }
 
         #expect(time.ends == [7])
         try await waitUntil { observedCancellation.value == 1 }
         await wake.untilRunFinishes()
         #expect(time.ends == [7])
-        try await expectCutShortCountAfterQuiescence(1, cutShort)
+        #expect(cutShortDeliveries.value == 1)
     }
 
     @Test func expiryBeforeRegistrationCancelsTheRunAtRegistration() async throws {
         let time = FakeBackgroundTime()
-        let cutShort = Counter()
+        let cutShortDeliveries = Counter()
         let observedCancellation = Counter()
 
-        let wake = startWake(time, cutShort: cutShort.increment, beforeRegistration: { time.expire() }) {
+        let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }, beforeRegistration: { time.expire() }) {
             try await runUntilCancelled(observedCancellation)
         }
 
@@ -187,44 +182,44 @@ func expectCutShortCountAfterQuiescence(_ expected: Int, _ cutShort: Counter, so
         try await waitUntil { observedCancellation.value == 1 }
         await wake.untilRunFinishes()
         #expect(time.ends == [7])
-        try await expectCutShortCountAfterQuiescence(1, cutShort)
+        #expect(cutShortDeliveries.value == 1)
     }
 
     @Test func expiryAfterCompletionEndsNothingMore() async throws {
         let time = FakeBackgroundTime()
-        let cutShort = Counter()
+        let cutShortDeliveries = Counter()
 
-        let wake = startWake(time, cutShort: cutShort.increment) {}
+        let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }) {}
         await wake.untilRunFinishes()
         time.expire()
 
         #expect(time.ends == [7])
-        try await expectCutShortCountAfterQuiescence(0, cutShort)
+        #expect(cutShortDeliveries.value == 0)
     }
 
     @Test func completionAfterExpiryEndsNothingMore() async throws {
         let time = FakeBackgroundTime()
         let latch = Latch()
-        let cutShort = Counter()
+        let cutShortDeliveries = Counter()
 
-        let wake = startWake(time, cutShort: cutShort.increment) { await latch.wait() }
+        let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }) { await latch.wait() }
         time.expire()
         await latch.open()
         await wake.untilRunFinishes()
 
         #expect(time.ends == [7])
-        try await expectCutShortCountAfterQuiescence(1, cutShort)
+        #expect(cutShortDeliveries.value == 1)
     }
 
     @Test func expiryBetweenTheRunReturningAndItsCompletionIsStillCutShort() async throws {
         let time = FakeBackgroundTime()
-        let cutShort = Counter()
+        let cutShortDeliveries = Counter()
 
-        let wake = startWake(time, cutShort: cutShort.increment, beforeCompletion: { time.expire() }) {}
+        let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }, beforeCompletion: { time.expire() }) {}
         await wake.untilRunFinishes()
 
         #expect(time.ends == [7])
-        try await expectCutShortCountAfterQuiescence(1, cutShort)
+        #expect(cutShortDeliveries.value == 1)
     }
 
     @Test func expiryRacingCompletionEndsTheTokenExactlyOnce() async {
@@ -232,11 +227,21 @@ func expectCutShortCountAfterQuiescence(_ expected: Int, _ cutShort: Counter, so
         var iterationsWithWrongEnds = 0
         for _ in 0..<iterations {
             let time = FakeBackgroundTime()
-            let gate = Latch()
-            // The run holds its completion at the gate, so expiry on another thread and the completion run at the same moment.
-            let wake = startWake(time, beforeCompletion: { await gate.wait() }) {}
-            let expiry = Task.detached { time.expire() }
-            await gate.open()
+            let reachedCompletion = Latch()
+            let startCompletion = Latch()
+            let startExpiry = Latch()
+            // The run parks at the completion point, then expiry on another thread and the completion are released together (a `Latch` holds one waiter, so each side has its own).
+            let wake = startWake(time, beforeCompletion: {
+                await reachedCompletion.open()
+                await startCompletion.wait()
+            }) {}
+            await reachedCompletion.wait()
+            let expiry = Task.detached {
+                await startExpiry.wait()
+                time.expire()
+            }
+            await startCompletion.open()
+            await startExpiry.open()
             await wake.untilRunFinishes()
             await expiry.value
             if time.ends != [7] { iterationsWithWrongEnds += 1 }
