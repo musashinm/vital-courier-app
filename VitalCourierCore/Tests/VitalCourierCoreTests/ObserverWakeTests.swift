@@ -45,6 +45,13 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
     }
 }
 
+/// Waits until the cut-short callback count settles at `expected`: first until it gets there (when `expected` is above 0), then a short settle so a late extra callback would show up, then asserts the final count is exactly `expected`. Call it after `untilRunFinishes()`.
+func expectCutShortCountAfterQuiescence(_ expected: Int, _ cutShort: Counter, sourceLocation: SourceLocation = #_sourceLocation) async throws {
+    if expected > 0 { try await waitUntil { cutShort.value >= expected } }
+    try await Task.sleep(for: .milliseconds(50))
+    #expect(cutShort.value == expected, sourceLocation: sourceLocation)
+}
+
 @Suite struct ObserverWakeTests {
     func startWake(
         _ time: FakeBackgroundTime,
@@ -82,7 +89,7 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
         #expect(finished.value == 1)
     }
 
-    @Test func aReturnedRunEndsTheTokenOnceAndIsNotCutShort() async {
+    @Test func aReturnedRunEndsTheTokenOnceAndIsNotCutShort() async throws {
         let time = FakeBackgroundTime()
         let cutShort = Counter()
 
@@ -90,10 +97,10 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
         await wake.untilRunFinishes()
 
         #expect(time.ends == [7])
-        #expect(cutShort.value == 0)
+        try await expectCutShortCountAfterQuiescence(0, cutShort)
     }
 
-    @Test func aThrownRunEndsTheTokenOnceAndReportsTheError() async {
+    @Test func aThrownRunEndsTheTokenOnceAndReportsTheError() async throws {
         let time = FakeBackgroundTime()
         let failures = TextLog()
         let cutShort = Counter()
@@ -103,7 +110,7 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
 
         #expect(time.ends == [7])
         #expect(failures.values == ["WakeRunFailure()"])
-        #expect(cutShort.value == 0)
+        try await expectCutShortCountAfterQuiescence(0, cutShort)
     }
 
     @Test func aCancelledRunEndsTheTokenOnceIsCutShortAndIsNotAFailure() async throws {
@@ -116,7 +123,7 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
 
         #expect(time.ends == [7])
         #expect(failures.values.isEmpty)
-        try await waitUntil { cutShort.value == 1 }
+        try await expectCutShortCountAfterQuiescence(1, cutShort)
     }
 
     @Test func expiryEndsTheTokenAtOnceCancelsTheRunAndIsCutShortOnce() async throws {
@@ -131,10 +138,10 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
         try await waitUntil { observedCancellation.value == 1 }
         await wake.untilRunFinishes()
         #expect(time.ends == [7])
-        try await waitUntil { cutShort.value == 1 }
+        try await expectCutShortCountAfterQuiescence(1, cutShort)
     }
 
-    @Test func withoutATokenTheRunStillRunsAndNothingEnds() async {
+    @Test func withoutATokenTheRunStillRunsAndNothingEnds() async throws {
         let time = FakeBackgroundTime(grantedToken: nil)
         let latch = Latch()
         let finished = Counter()
@@ -150,7 +157,7 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
 
         #expect(finished.value == 1)
         #expect(time.ends.isEmpty)
-        #expect(cutShort.value == 0)
+        try await expectCutShortCountAfterQuiescence(0, cutShort)
     }
 
     @Test func expiryDuringBeginEndsOnceAndCancelsTheRun() async throws {
@@ -164,7 +171,7 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
         try await waitUntil { observedCancellation.value == 1 }
         await wake.untilRunFinishes()
         #expect(time.ends == [7])
-        try await waitUntil { cutShort.value == 1 }
+        try await expectCutShortCountAfterQuiescence(1, cutShort)
     }
 
     @Test func expiryBeforeRegistrationCancelsTheRunAtRegistration() async throws {
@@ -180,10 +187,10 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
         try await waitUntil { observedCancellation.value == 1 }
         await wake.untilRunFinishes()
         #expect(time.ends == [7])
-        try await waitUntil { cutShort.value == 1 }
+        try await expectCutShortCountAfterQuiescence(1, cutShort)
     }
 
-    @Test func expiryAfterCompletionEndsNothingMore() async {
+    @Test func expiryAfterCompletionEndsNothingMore() async throws {
         let time = FakeBackgroundTime()
         let cutShort = Counter()
 
@@ -192,7 +199,7 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
         time.expire()
 
         #expect(time.ends == [7])
-        #expect(cutShort.value == 0)
+        try await expectCutShortCountAfterQuiescence(0, cutShort)
     }
 
     @Test func completionAfterExpiryEndsNothingMore() async throws {
@@ -206,7 +213,7 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
         await wake.untilRunFinishes()
 
         #expect(time.ends == [7])
-        try await waitUntil { cutShort.value == 1 }
+        try await expectCutShortCountAfterQuiescence(1, cutShort)
     }
 
     @Test func expiryBetweenTheRunReturningAndItsCompletionIsStillCutShort() async throws {
@@ -217,7 +224,24 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
         await wake.untilRunFinishes()
 
         #expect(time.ends == [7])
-        try await waitUntil { cutShort.value == 1 }
+        try await expectCutShortCountAfterQuiescence(1, cutShort)
+    }
+
+    @Test func expiryRacingCompletionEndsTheTokenExactlyOnce() async {
+        let iterations = 500
+        var iterationsWithWrongEnds = 0
+        for _ in 0..<iterations {
+            let time = FakeBackgroundTime()
+            let gate = Latch()
+            // The run holds its completion at the gate, so expiry on another thread and the completion run at the same moment.
+            let wake = startWake(time, beforeCompletion: { await gate.wait() }) {}
+            let expiry = Task.detached { time.expire() }
+            await gate.open()
+            await wake.untilRunFinishes()
+            await expiry.value
+            if time.ends != [7] { iterationsWithWrongEnds += 1 }
+        }
+        #expect(iterationsWithWrongEnds == 0)
     }
 
     @Test func aBlockedCutShortCallbackNeitherBlocksExpiryNorHoldsTheLock() async throws {
