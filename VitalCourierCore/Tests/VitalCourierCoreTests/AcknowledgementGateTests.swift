@@ -5,23 +5,6 @@ import Testing
 
 struct GateFailure: Error {}
 
-/// Holds async work until the test releases it.
-actor Latch {
-    private var isOpen = false
-    private var waiter: CheckedContinuation<Void, Never>?
-
-    func wait() async {
-        if isOpen { return }
-        await withCheckedContinuation { waiter = $0 }
-    }
-
-    func open() {
-        isOpen = true
-        waiter?.resume()
-        waiter = nil
-    }
-}
-
 @Suite struct AcknowledgementGateTests {
     /// Calls the gate from a dispatch queue, like HealthKit does, so the blocking wait never sits on the cooperative pool.
     func waitOnBackgroundQueue(

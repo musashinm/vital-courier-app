@@ -35,3 +35,20 @@ func makeSample(
         timeZoneIdentifier: zone
     )
 }
+
+/// Holds async work until the test releases it.
+actor Latch {
+    private var isOpen = false
+    private var waiter: CheckedContinuation<Void, Never>?
+
+    func wait() async {
+        if isOpen { return }
+        await withCheckedContinuation { waiter = $0 }
+    }
+
+    func open() {
+        isOpen = true
+        waiter?.resume()
+        waiter = nil
+    }
+}
