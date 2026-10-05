@@ -222,26 +222,20 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
         #expect(cutShortDeliveries.value == 1)
     }
 
-    @Test func expiryRacingCompletionEndsTheTokenExactlyOnce() async {
+    @Test func expiryRacingCompletionEndsTheTokenExactlyOnce() async throws {
         let iterations = 500
         var iterationsWithWrongEnds = 0
         for _ in 0..<iterations {
             let time = FakeBackgroundTime()
-            let reachedCompletion = Latch()
-            let startCompletion = Latch()
-            let startExpiry = Latch()
-            // The run parks at the completion point, then expiry on another thread and the completion are released together (a `Latch` holds one waiter, so each side has its own).
-            let wake = startWake(time, beforeCompletion: {
-                await reachedCompletion.open()
-                await startCompletion.wait()
-            }) {}
-            await reachedCompletion.wait()
+            let barrier = ReleaseBarrier()
+            // The run parks at the completion point and the expiry task parks beside it on the same barrier. Only when both are parked does one `releaseAll` resume them in a single actor call, so neither can reach the state machine before the other is ready.
+            let wake = startWake(time, beforeCompletion: { await barrier.waitForRelease() }) {}
             let expiry = Task.detached {
-                await startExpiry.wait()
+                await barrier.waitForRelease()
                 time.expire()
             }
-            await startCompletion.open()
-            await startExpiry.open()
+            try await waitUntil { await barrier.parkedCount == 2 }
+            await barrier.releaseAll()
             await wake.untilRunFinishes()
             await expiry.value
             if time.ends != [7] { iterationsWithWrongEnds += 1 }
