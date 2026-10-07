@@ -8,7 +8,7 @@ struct ExportNowIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let outcome = try await AppEnvironment.shared.request(.appIntent)
-        return .result(dialog: IntentDialog(stringLiteral: RunLabels.exportNowDialog(outcome)))
+        return .result(dialog: IntentDialog(RunLabels.exportNowDialog(outcome)))
     }
 }
 

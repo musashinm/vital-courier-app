@@ -21,7 +21,7 @@ final class SleepSourceModel {
     }
 
     var selectedDisplayName: String {
-        selected ?? "Automatic"
+        selected ?? String(localized: "Automatic")
     }
 
     func load() async {

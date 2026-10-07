@@ -1,0 +1,1797 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ at %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ às %2$@"
+          }
+        }
+      }
+    },
+    "%@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "%lld days failed" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day failed"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days failed"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dia falhou"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dias falharam"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld days updated" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day updated"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days updated"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dia atualizado"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dias atualizados"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld days written, %lld failed, %lld pending.%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@daysWritten@, %2$lld failed, %3$lld pending.%4$@"
+          },
+          "substitutions" : {
+            "daysWritten" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg day written"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg days written"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@daysWritten@, %#@daysFailed@, %#@daysPending@.%4$@"
+          },
+          "substitutions" : {
+            "daysFailed" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg falha"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg falhas"
+                    }
+                  }
+                }
+              }
+            },
+            "daysPending" : {
+              "argNum" : 3,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg pendente"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg pendentes"
+                    }
+                  }
+                }
+              }
+            },
+            "daysWritten" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg dia gravado"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg dias gravados"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld days written, %lld failed.%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@daysWritten@, %2$lld failed.%3$@"
+          },
+          "substitutions" : {
+            "daysWritten" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg day written"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg days written"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@daysWritten@, %#@daysFailed@.%3$@"
+          },
+          "substitutions" : {
+            "daysFailed" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg falha"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg falhas"
+                    }
+                  }
+                }
+              }
+            },
+            "daysWritten" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg dia gravado"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg dias gravados"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld days written, 0 failed, %lld pending.%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@daysWritten@, 0 failed, %2$lld pending.%3$@"
+          },
+          "substitutions" : {
+            "daysWritten" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg day written"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg days written"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@daysWritten@, 0 falhas, %#@daysPending@.%3$@"
+          },
+          "substitutions" : {
+            "daysPending" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg pendente"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg pendentes"
+                    }
+                  }
+                }
+              }
+            },
+            "daysWritten" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg dia gravado"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg dias gravados"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld days written, 0 failed.%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@daysWritten@, 0 failed.%2$@"
+          },
+          "substitutions" : {
+            "daysWritten" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg day written"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg days written"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@daysWritten@, 0 falhas.%2$@"
+          },
+          "substitutions" : {
+            "daysWritten" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg dia gravado"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg dias gravados"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld written · %lld failed" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gravados: %1$lld · Falhas: %2$lld"
+          }
+        }
+      }
+    },
+    "%lld written · %lld failed · %lld pending" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gravados: %1$lld · Falhas: %2$lld · Pendentes: %3$lld"
+          }
+        }
+      }
+    },
+    "0 days failed" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0 dias falharam"
+          }
+        }
+      }
+    },
+    "0 days updated" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0 dias atualizados"
+          }
+        }
+      }
+    },
+    "0 days written, %lld failed, %lld pending.%@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0 dias gravados, %#@daysFailed@, %#@daysPending@.%3$@"
+          },
+          "substitutions" : {
+            "daysFailed" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg falha"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg falhas"
+                    }
+                  }
+                }
+              }
+            },
+            "daysPending" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg pendente"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg pendentes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "0 days written, %lld failed.%@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0 dias gravados, %#@daysFailed@.%2$@"
+          },
+          "substitutions" : {
+            "daysFailed" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg falha"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg falhas"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "0 days written, 0 failed, %lld pending.%@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0 dias gravados, 0 falhas, %#@daysPending@.%2$@"
+          },
+          "substitutions" : {
+            "daysPending" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg pendente"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg pendentes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "0 days written, 0 failed.%@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0 dias gravados, 0 falhas.%1$@"
+          }
+        }
+      }
+    },
+    "A folder you choose in Files" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma pasta que você escolhe no app Arquivos"
+          }
+        }
+      }
+    },
+    "App event" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Evento do app"
+          }
+        }
+      }
+    },
+    "App open" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App aberto"
+          }
+        }
+      }
+    },
+    "Apple Health data" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dados do app Saúde"
+          }
+        }
+      }
+    },
+    "Automatic" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automático"
+          }
+        }
+      }
+    },
+    "Automatic uses Apple Watch when it has data, then the source with the most asleep time. If you choose a source, Vital Courier uses it when available, then the same fallback. Changing this rebuilds affected daily notes." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automático usa o Apple Watch quando ele tem dados e, se não tiver, a fonte com mais tempo dormindo. Se você escolher uma fonte, o Vital Courier usa essa fonte quando houver dados dela e, se não houver, segue a mesma regra. Mudar isso refaz as notas diárias afetadas."
+          }
+        }
+      }
+    },
+    "Background refresh" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualização em segundo plano"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar"
+          }
+        }
+      }
+    },
+    "Check again" : {
+      "shouldTranslate" : false
+    },
+    "Checked %@ · %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificado %1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "Checking for updates" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Procurando atualizações"
+          }
+        }
+      }
+    },
+    "Checking for updates…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Procurando atualizações…"
+          }
+        }
+      }
+    },
+    "Checking the local copy and export folder." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificando a cópia local e a pasta de exportação."
+          }
+        }
+      }
+    },
+    "Choose another folder" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher outra pasta"
+          }
+        }
+      }
+    },
+    "Choose folder" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher pasta"
+          }
+        }
+      }
+    },
+    "Choose where files go." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha onde os arquivos vão ficar."
+          }
+        }
+      }
+    },
+    "Clear local copy" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apagar cópia local"
+          }
+        }
+      }
+    },
+    "Clear the local copy?" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apagar a cópia local?"
+          }
+        }
+      }
+    },
+    "Clearing…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apagando…"
+          }
+        }
+      }
+    },
+    "Continue" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar"
+          }
+        }
+      }
+    },
+    "Copy error" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar erro"
+          }
+        }
+      }
+    },
+    "Daily summaries haven’t refreshed in 24 hours" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os resumos diários não são atualizados há 24 horas"
+          }
+        }
+      }
+    },
+    "Days failed" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dias com falha"
+          }
+        }
+      }
+    },
+    "Days pending" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dias pendentes"
+          }
+        }
+      }
+    },
+    "Days written" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dias gravados"
+          }
+        }
+      }
+    },
+    "Debug" : {
+      "shouldTranslate" : false
+    },
+    "Delete midnight test sample" : {
+      "shouldTranslate" : false
+    },
+    "Diagnostics" : {
+      "shouldTranslate" : false
+    },
+    "Edits inside that subfolder can be replaced when health data changes." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mudanças feitas dentro dessa subpasta podem ser substituídas quando os dados de saúde mudarem."
+          }
+        }
+      }
+    },
+    "Errors" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erros"
+          }
+        }
+      }
+    },
+    "Every file and the folder should report NSFileProtectionCompleteUntilFirstUserAuthentication, and the folder excludedFromBackup=true. A -journal, -wal, -shm or temp file listed here must carry it too." : {
+      "shouldTranslate" : false
+    },
+    "Export folder" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasta de exportação"
+          }
+        }
+      }
+    },
+    "Export now" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar agora"
+          }
+        }
+      }
+    },
+    "Failed" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falhou"
+          }
+        }
+      }
+    },
+    "Files" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arquivos"
+          }
+        }
+      }
+    },
+    "Folder" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasta"
+          }
+        }
+      }
+    },
+    "Folder couldn’t be saved" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não deu para salvar a pasta"
+          }
+        }
+      }
+    },
+    "Folder lost, pick it again" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasta perdida, escolha de novo"
+          }
+        }
+      }
+    },
+    "Four data types" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quatro tipos de dados"
+          }
+        }
+      }
+    },
+    "Free up space, then open Vital Courier to retry." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Libere espaço e abra o Vital Courier para tentar de novo."
+          }
+        }
+      }
+    },
+    "Health access couldn’t be requested" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não deu para pedir acesso ao app Saúde"
+          }
+        }
+      }
+    },
+    "Health data" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dados de saúde"
+          }
+        }
+      }
+    },
+    "Health data can be read locally, but files need a destination." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os dados de saúde podem ser lidos no iPhone, mas os arquivos precisam de um destino."
+          }
+        }
+      }
+    },
+    "Health data hasn’t been read in 24 hours" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os dados de saúde não são lidos há 24 horas"
+          }
+        }
+      }
+    },
+    "History" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Histórico"
+          }
+        }
+      }
+    },
+    "History couldn’t be loaded" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não deu para carregar o histórico"
+          }
+        }
+      }
+    },
+    "Home" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Início"
+          }
+        }
+      }
+    },
+    "JSON and daily Markdown" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON e Markdown diário"
+          }
+        }
+      }
+    },
+    "Keep this iPhone unlocked and open Vital Courier. Your exported files remain in place." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deixe este iPhone desbloqueado e abra o Vital Courier. Seus arquivos exportados continuam onde estão."
+          }
+        }
+      }
+    },
+    "Keep your iPhone unlocked while Vital Courier reads the four data types." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deixe o iPhone desbloqueado enquanto o Vital Courier lê os quatro tipos de dados."
+          }
+        }
+      }
+    },
+    "Last completed %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Última conclusão: %@."
+          }
+        }
+      }
+    },
+    "Local copy couldn’t be cleared" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não deu para apagar a cópia local"
+          }
+        }
+      }
+    },
+    "Local data protection failed" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A proteção dos dados locais falhou"
+          }
+        }
+      }
+    },
+    "Local store protection" : {
+      "shouldTranslate" : false
+    },
+    "Maintenance" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manutenção"
+          }
+        }
+      }
+    },
+    "Midnight split release gate" : {
+      "shouldTranslate" : false
+    },
+    "More errors in run details" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mais erros nos detalhes da execução"
+          }
+        }
+      }
+    },
+    "No data received in 7 days" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum dado recebido em 7 dias"
+          }
+        }
+      }
+    },
+    "No data yet" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum dado ainda"
+          }
+        }
+      }
+    },
+    "No errors" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum erro"
+          }
+        }
+      }
+    },
+    "No folder is picked." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma pasta foi escolhida."
+          }
+        }
+      }
+    },
+    "No runs yet" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma execução ainda"
+          }
+        }
+      }
+    },
+    "None" : {
+      "shouldTranslate" : false
+    },
+    "Not requested" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não solicitado"
+          }
+        }
+      }
+    },
+    "Observer wake" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aviso do app Saúde"
+          }
+        }
+      }
+    },
+    "Opens a write transaction that changes the database, lists the files while it is open (the rollback journal exists only now), then rolls it back. The -journal line must carry the same class as the database." : {
+      "shouldTranslate" : false
+    },
+    "Pause the app in the debugger after it went to the background, paste the command, then continue." : {
+      "shouldTranslate" : false
+    },
+    "Pick a folder" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher uma pasta"
+          }
+        }
+      }
+    },
+    "Pick again" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher de novo"
+          }
+        }
+      }
+    },
+    "Pick folder again" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher a pasta de novo"
+          }
+        }
+      }
+    },
+    "Pick it again" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher de novo"
+          }
+        }
+      }
+    },
+    "Pick one folder in Files. Vital Courier creates a subfolder named Vital Courier and keeps its JSON and Markdown files there." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha uma pasta no app Arquivos. O Vital Courier cria dentro dela uma subpasta chamada Vital Courier e guarda ali os arquivos JSON e Markdown."
+          }
+        }
+      }
+    },
+    "Preparing Vital Courier…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparando o Vital Courier…"
+          }
+        }
+      }
+    },
+    "Privacy and app" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacidade e app"
+          }
+        }
+      }
+    },
+    "Privacy policy" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Política de privacidade"
+          }
+        }
+      }
+    },
+    "Protection during a write" : {
+      "shouldTranslate" : false
+    },
+    "Read" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leitura"
+          }
+        }
+      }
+    },
+    "Read protection during a write" : {
+      "shouldTranslate" : false
+    },
+    "Rebuild all" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconstruir tudo"
+          }
+        }
+      }
+    },
+    "Rebuild every export?" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconstruir todas as exportações?"
+          }
+        }
+      }
+    },
+    "Rebuilding…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconstruindo…"
+          }
+        }
+      }
+    },
+    "Resting heart rate" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frequência cardíaca em repouso"
+          }
+        }
+      }
+    },
+    "Review access" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisar acesso"
+          }
+        }
+      }
+    },
+    "Run details" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detalhes da execução"
+          }
+        }
+      }
+    },
+    "Runs will appear after setup finishes." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As execuções aparecem depois que a configuração terminar."
+          }
+        }
+      }
+    },
+    "Saving folder…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvando a pasta…"
+          }
+        }
+      }
+    },
+    "Saving it to History failed. It is saved the next time the app can write." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não deu para salvar isso no Histórico. Vai ser salvo na próxima vez que o app conseguir gravar."
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes"
+          }
+        }
+      }
+    },
+    "Setup errors" : {
+      "shouldTranslate" : false
+    },
+    "Skipped: locked" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulado: bloqueado"
+          }
+        }
+      }
+    },
+    "Sleep" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sono"
+          }
+        }
+      }
+    },
+    "Sleep source" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fonte de sono"
+          }
+        }
+      }
+    },
+    "Sleep source couldn’t be saved" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não deu para salvar a fonte de sono"
+          }
+        }
+      }
+    },
+    "Source code" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Código-fonte"
+          }
+        }
+      }
+    },
+    "Steps" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passos"
+          }
+        }
+      }
+    },
+    "Summary" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resumo"
+          }
+        }
+      }
+    },
+    "The export folder can’t be reached." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não deu para acessar a pasta de exportação."
+          }
+        }
+      }
+    },
+    "This can be normal. If you expected data, review Apple Health access. %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isso pode ser normal. Se você esperava dados, revise o acesso ao app Saúde. %@"
+          }
+        }
+      }
+    },
+    "This removes Vital Courier’s protected local health-data database. It does not delete Apple Health data or exported files. Run history, settings, and your folder choice remain. The next unlocked run rereads the four data types." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Isso apaga o banco de dados local e protegido do Vital Courier. Não apaga dados do app Saúde nem arquivos exportados. O histórico de execuções, os ajustes e a pasta escolhida continuam. A próxima execução com o iPhone desbloqueado lê de novo os quatro tipos de dados."
+          }
+        }
+      }
+    },
+    "Time" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horário"
+          }
+        }
+      }
+    },
+    "Trigger" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Origem"
+          }
+        }
+      }
+    },
+    "Try again" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tentar de novo"
+          }
+        }
+      }
+    },
+    "Unlock this iPhone and open Vital Courier to try again." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desbloqueie este iPhone e abra o Vital Courier para tentar de novo."
+          }
+        }
+      }
+    },
+    "Unlock this iPhone and open Vital Courier. Saved files remain in place." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desbloqueie este iPhone e abra o Vital Courier. Os arquivos salvos continuam onde estão."
+          }
+        }
+      }
+    },
+    "Up to date" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo em dia"
+          }
+        }
+      }
+    },
+    "Updated %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualizado %@"
+          }
+        }
+      }
+    },
+    "Updated %@ · %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualizado %1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "Version" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versão"
+          }
+        }
+      }
+    },
+    "View recent runs" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver execuções recentes"
+          }
+        }
+      }
+    },
+    "Vital Courier" : {
+      "shouldTranslate" : false
+    },
+    "Vital Courier couldn’t open its local data." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Vital Courier não conseguiu abrir os dados locais."
+          }
+        }
+      }
+    },
+    "Vital Courier couldn’t open its local data. %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Vital Courier não conseguiu abrir os dados locais. %@"
+          }
+        }
+      }
+    },
+    "Vital Courier keeps a protected local working copy so exports can finish in the background. You can clear it in Settings." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Vital Courier guarda uma cópia local protegida para que as exportações terminem em segundo plano. Você pode apagá-la em Ajustes."
+          }
+        }
+      }
+    },
+    "Vital Courier reads steps, resting heart rate, sleep, and weight from the Apple Health app. It sends nothing to an account or server." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Vital Courier lê passos, frequência cardíaca em repouso, sono e peso do app Saúde. Ele não envia nada para nenhuma conta ou servidor."
+          }
+        }
+      }
+    },
+    "Vital Courier runs when Apple Health reports changes and at other opportunities chosen by iOS. Reading waits until this iPhone is unlocked." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Vital Courier roda quando o app Saúde avisa que algo mudou e em outros momentos escolhidos pelo iOS. A leitura espera até este iPhone ser desbloqueado."
+          }
+        }
+      }
+    },
+    "Vital Courier will reread all four data types and rewrite every day and month it knows about. Keep this iPhone unlocked. This can take a while." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Vital Courier vai ler de novo os quatro tipos de dados e regravar todos os dias e meses que conhece. Deixe este iPhone desbloqueado. Isso pode demorar."
+          }
+        }
+      }
+    },
+    "Vital Courier will try again on the next run." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Vital Courier vai tentar de novo na próxima execução."
+          }
+        }
+      }
+    },
+    "Vital Courier writes inside a subfolder named Vital Courier. Edits there can be replaced." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Vital Courier grava dentro de uma subpasta chamada Vital Courier. Mudanças feitas lá podem ser substituídas."
+          }
+        }
+      }
+    },
+    "Waiting for Apple Health…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aguardando o app Saúde…"
+          }
+        }
+      }
+    },
+    "Waiting for the first export" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aguardando a primeira exportação"
+          }
+        }
+      }
+    },
+    "Waiting to reread health data" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aguardando para ler os dados de saúde de novo"
+          }
+        }
+      }
+    },
+    "Weight" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peso"
+          }
+        }
+      }
+    },
+    "What happens next" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O que acontece agora"
+          }
+        }
+      }
+    },
+    "Write midnight test sample" : {
+      "shouldTranslate" : false
+    },
+    "Writes one 600-step sample from 23:30 two days ago to 00:30 yesterday, tagged VCTestSample. Compare vc_steps on both days with the Health app, then delete it." : {
+      "shouldTranslate" : false
+    },
+    "Writes the health data Vital Courier has already saved to your folder. It doesn’t read new data." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grava na sua pasta os dados de saúde que o Vital Courier já salvou. Não lê dados novos."
+          }
+        }
+      }
+    },
+    "Your health data, in your folder." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seus dados de saúde, na sua pasta."
+          }
+        }
+      }
+    },
+    "Your local copy was not deleted. Vital Courier won’t read or write health data until this is fixed." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua cópia local não foi apagada. O Vital Courier não vai ler nem gravar dados de saúde até isso ser resolvido."
+          }
+        }
+      }
+    },
+    "readOutcome.read" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lido"
+          }
+        }
+      }
+    },
+    "today" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hoje"
+          }
+        }
+      }
+    },
+    "yesterday" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ontem"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

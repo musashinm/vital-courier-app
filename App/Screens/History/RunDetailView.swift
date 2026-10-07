@@ -102,7 +102,7 @@ private struct RecoverySection: View {
         }
     }
 
-    private func header(symbol: String, color: Color, text: String) -> some View {
+    private func header(symbol: String, color: Color, text: LocalizedStringKey) -> some View {
         HStack(alignment: .center, spacing: 12) {
             SymbolImage(symbol, size: SymbolSize.status, color: color)
                 .accessibilityHidden(true)

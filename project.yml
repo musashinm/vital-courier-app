@@ -4,6 +4,7 @@ options:
   deploymentTarget:
     iOS: "18.0"
   createIntermediateGroups: true
+  developmentLanguage: en
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -27,6 +28,9 @@ targets:
       - package: VitalCourierCore
         product: VitalCourierHealthKit
       - sdk: HealthKit.framework
+    scheme:
+      testTargets:
+        - VitalCourierTests
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.vitalcourier.VitalCourier
@@ -43,6 +47,19 @@ targets:
         CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: VCAccent
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_EMIT_LOC_STRINGS: YES
+        LOCALIZATION_PREFERS_STRING_CATALOGS: YES
       configs:
         Debug:
           INFOPLIST_KEY_NSHealthUpdateUsageDescription: "Debug builds write one test step sample for the midnight check and delete it afterwards."
+  VitalCourierTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: AppTests
+    dependencies:
+      - target: VitalCourier
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.vitalcourier.VitalCourierTests
+        GENERATE_INFOPLIST_FILE: YES

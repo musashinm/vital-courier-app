@@ -1,0 +1,11 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Export now in ${applicationName}" : {
+      "localizations" : {
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Exportar agora no ${applicationName}" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

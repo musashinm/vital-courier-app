@@ -3,7 +3,9 @@ import SwiftUI
 struct SleepSourceView: View {
     @Environment(AppModel.self) private var model
 
-    static let footer = "Automatic uses Apple Watch when it has data, then the source with the most asleep time. If you choose a source, Vital Courier uses it when available, then the same fallback. Changing this rebuilds affected daily notes."
+    static var footer: LocalizedStringKey {
+        "Automatic uses Apple Watch when it has data, then the source with the most asleep time. If you choose a source, Vital Courier uses it when available, then the same fallback. Changing this rebuilds affected daily notes."
+    }
 
     var body: some View {
         let sources = model.sleepSources
@@ -13,7 +15,7 @@ struct SleepSourceView: View {
                     sources.choose(nil)
                 }
                 ForEach(sources.names, id: \.self) { name in
-                    ChoiceRow(title: name, isSelected: sources.selected == name, isSaving: sources.isSaving) {
+                    ChoiceRow(verbatim: name, isSelected: sources.selected == name, isSaving: sources.isSaving) {
                         sources.choose(name)
                     }
                 }
@@ -43,15 +45,31 @@ struct SleepSourceView: View {
 }
 
 private struct ChoiceRow: View {
-    let title: String
+    /// Fixed text ("Automatic") is localized; a sleep source name from Health is shown exactly as saved, never looked up as a key.
+    let title: Text
     let isSelected: Bool
     let isSaving: Bool
     let action: () -> Void
 
+    init(title: LocalizedStringKey, isSelected: Bool, isSaving: Bool, action: @escaping () -> Void) {
+        self.init(label: Text(title), isSelected: isSelected, isSaving: isSaving, action: action)
+    }
+
+    init(verbatim name: String, isSelected: Bool, isSaving: Bool, action: @escaping () -> Void) {
+        self.init(label: Text(verbatim: name), isSelected: isSelected, isSaving: isSaving, action: action)
+    }
+
+    private init(label: Text, isSelected: Bool, isSaving: Bool, action: @escaping () -> Void) {
+        self.title = label
+        self.isSelected = isSelected
+        self.isSaving = isSaving
+        self.action = action
+    }
+
     var body: some View {
         Button(action: action) {
             HStack {
-                Text(title).foregroundStyle(Color.vcPrimaryText)
+                title.foregroundStyle(Color.vcPrimaryText)
                 Spacer()
                 if isSelected && isSaving {
                     ProgressView()

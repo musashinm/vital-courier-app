@@ -35,7 +35,7 @@ private struct OnboardingPage<Content: View>: View {
 
 private struct FactRow: View {
     let symbol: String
-    let text: String
+    let text: LocalizedStringKey
 
     var body: some View {
         HStack(spacing: 12) {
@@ -53,6 +53,10 @@ private struct HealthPermissionStep: View {
     let onDone: () -> Void
     @State private var isRequesting = false
     @State private var requestError: String?
+
+    private var continueTitle: LocalizedStringKey {
+        requestError == nil ? "Continue" : "Try again"
+    }
 
     var body: some View {
         OnboardingPage {
@@ -92,7 +96,7 @@ private struct HealthPermissionStep: View {
                     Text("Waiting for Apple Health…").foregroundStyle(Color.vcSecondaryText)
                 }
             }
-            Button(requestError == nil ? "Continue" : "Try again", action: request)
+            Button(continueTitle, action: request)
                 .buttonStyle(ProminentActionStyle())
                 .disabled(isRequesting)
         }
@@ -172,7 +176,7 @@ private struct FolderStep: View {
         }
     }
 
-    private var chooseTitle: String {
+    private var chooseTitle: LocalizedStringKey {
         if case .failed = model.folderSave { "Choose another folder" } else { "Choose folder" }
     }
 
