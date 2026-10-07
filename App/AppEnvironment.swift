@@ -167,16 +167,6 @@ final class AppEnvironment: Sendable {
         }
     }
 
-    /// An observer callback waited the whole budget without a committed read and was acknowledged anyway. Saved as a run-history row (an "App event" row, shown as an attention row in History), so it is visible, not only counted.
-    func recordObserverAcknowledgementTimeout(type: HealthType) {
-        let errorText = "\(RunRecord.observerAcknowledgementErrorPrefix)\(type.rawValue) read had not committed after \(ObserverRegistration.acknowledgementBudgetSeconds) s; acknowledged anyway"
-        do {
-            try readyStore().recordAppEvent(errors: [errorText], at: Date())
-        } catch {
-            recordSetupError("\(errorText) (not saved to run history: \(error))", savingToHistory: false)
-        }
-    }
-
     /// Failures that have no run to be recorded in (observer and background-delivery registration, a folder that failed to save). Kept in memory for Settings → Diagnostics, and queued durably (outside the store) for run history as an "App event" row. After queueing, a ready store drains the queue at once; otherwise the store open and retry drain it. Callers whose own failure was a failed history save pass `savingToHistory: false`: the text is only queued, with no drain.
     func recordSetupError(_ errorText: String, savingToHistory: Bool = true) {
         recordedSetupErrors.withLock { $0.append(errorText) }

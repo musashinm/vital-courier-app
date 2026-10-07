@@ -35,3 +35,40 @@ func makeSample(
         timeZoneIdentifier: zone
     )
 }
+
+/// Holds async work until the test releases it.
+actor Latch {
+    private var isOpen = false
+    private var waiter: CheckedContinuation<Void, Never>?
+
+    func wait() async {
+        if isOpen { return }
+        await withCheckedContinuation { waiter = $0 }
+    }
+
+    func open() {
+        isOpen = true
+        waiter?.resume()
+        waiter = nil
+    }
+}
+
+/// Parks any number of callers and resumes all of them in one synchronous actor call, so contenders released together start together.
+actor ReleaseBarrier {
+    private var isReleased = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    var parkedCount: Int { waiters.count }
+
+    func waitForRelease() async {
+        if isReleased { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func releaseAll() {
+        isReleased = true
+        let parked = waiters
+        waiters = []
+        for waiter in parked { waiter.resume() }
+    }
+}
