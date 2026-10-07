@@ -103,6 +103,8 @@ import Testing
         #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/private/var/mobile/Containers/Shared/AppGroup/E5125041-52E5-4CC0-ABDA-B986B712A6A6/File Provider Storage")) == "On My iPhone")
         #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/private/var/mobile/Containers/Shared/AppGroup/ABC/File Provider Storage/Health/Daily")) == "On My iPhone/Health/Daily")
         #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/Users/someone/File Provider Storage/Exports")) == "File Provider Storage/Exports")
+        #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/Users/x/File Provider Storage/y/Containers/Shared/AppGroup/ABC/File Provider Storage/Exports")) == "On My iPhone/Exports")
+        #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/private/var/mobile/Containers/Shared/AppGroup/ABC/File Provider Storage/Notes/File Provider Storage")) == "On My iPhone/Notes/File Provider Storage")
     }
 
     @Test func aWriteFromTheOldFolderDoesNotMarkTheNewFolderLost() throws {

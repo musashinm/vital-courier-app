@@ -181,8 +181,7 @@ public enum FolderDisplayPath {
             let appName = components[index].split(separator: "~").last.map { String($0).capitalized } ?? components[index]
             return ([appName] + components[(index + 2)...]).joined(separator: "/")
         }
-        if let index = components.firstIndex(of: "File Provider Storage"),
-           index >= 2, components[index - 2] == "AppGroup" {
+        if let index = components.indices.first(where: { $0 >= 2 && components[$0] == "File Provider Storage" && components[$0 - 2] == "AppGroup" }) {
             return ([onMyIPhone] + components[(index + 1)...]).joined(separator: "/")
         }
         return components.suffix(2).joined(separator: "/")
