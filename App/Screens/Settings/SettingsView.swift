@@ -156,7 +156,7 @@ struct SettingsView: View {
         }
         // Disabled while rebuilding and while clearing (round-4 nit, boards 28 and 30).
         .disabled(model.maintenance != .idle)
-        // On the row, not the List: iOS shows this dialog as a popover anchored to the view it's attached to.
+        // On the row, not the List: where iOS shows this dialog as a popover (regular width, and iPhone too on iOS 26), it points at the view it's attached to.
         .confirmationDialog("Rebuild every export?", isPresented: $confirmsRebuild, titleVisibility: .visible) {
             Button("Rebuild all") { model.rebuildAll() }
             Button("Cancel", role: .cancel) {}
