@@ -69,7 +69,7 @@ import VitalCourierCore
     }
 
     @Test func portugueseLabels() {
-        #expect(RunLabels.trigger("observerWake", in: .portuguese) == "Aviso do Saúde")
+        #expect(RunLabels.trigger("observerWake", in: .portuguese) == "Aviso do app Saúde")
         #expect(RunLabels.trigger("appOpen", in: .portuguese) == "App aberto")
         #expect(RunLabels.trigger("backgroundRefresh", in: .portuguese) == "Atualização em segundo plano")
         #expect(RunLabels.trigger("appIntent", in: .portuguese) == "Exportar agora")

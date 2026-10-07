@@ -51,7 +51,7 @@ import VitalCourierCore
     @Test func portugueseSummaries() {
         let wrote = run("2026-10-03T11:16:00Z", written: 3, trigger: .observerWake)
         #expect(HomeSummary.daysUpdated(run: wrote).text(formatter: portuguese, now: now).title == "3 dias atualizados")
-        #expect(HomeSummary.daysUpdated(run: wrote).text(formatter: portuguese, now: now).detail == "Hoje às 08:16 · Aviso do Saúde")
+        #expect(HomeSummary.daysUpdated(run: wrote).text(formatter: portuguese, now: now).detail == "Hoje às 08:16 · Aviso do app Saúde")
         #expect(HomeSummary.daysUpdated(run: run("2026-10-03T11:16:00Z", written: 1)).text(formatter: portuguese, now: now).title == "1 dia atualizado")
         #expect(HomeSummary.upToDate(run: run("2026-10-03T11:16:00Z")).text(formatter: portuguese, now: now).detail == "Verificado hoje às 08:16 · App aberto")
         #expect(HomeSummary.upToDate(run: run("2026-10-03T11:16:00Z")).text(formatter: portuguese, now: now).title == "Tudo em dia")
