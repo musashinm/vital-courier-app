@@ -104,12 +104,6 @@ struct SettingsView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Settings")
         .task { await model.sleepSources.load() }
-        .confirmationDialog("Rebuild every export?", isPresented: $confirmsRebuild, titleVisibility: .visible) {
-            Button("Rebuild all") { model.rebuildAll() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Vital Courier will reread all four data types and rewrite every day and month it knows about. Keep this iPhone unlocked. This can take a while.")
-        }
         .alert("Clear the local copy?", isPresented: $confirmsClear) {
             Button("Clear local copy", role: .destructive) { model.clearLocalCopy() }
             Button("Cancel", role: .cancel) {}
@@ -162,6 +156,13 @@ struct SettingsView: View {
         }
         // Disabled while rebuilding and while clearing (round-4 nit, boards 28 and 30).
         .disabled(model.maintenance != .idle)
+        // On the row, not the List: iOS shows this dialog as a popover anchored to the view it's attached to.
+        .confirmationDialog("Rebuild every export?", isPresented: $confirmsRebuild, titleVisibility: .visible) {
+            Button("Rebuild all") { model.rebuildAll() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Vital Courier will reread all four data types and rewrite every day and month it knows about. Keep this iPhone unlocked. This can take a while.")
+        }
     }
 
     private var clearRow: some View {
