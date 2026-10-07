@@ -43,13 +43,22 @@ enum RunLabels {
         return localization.string("\(run.daysWritten) written · \(run.daysFailed) failed")
     }
 
-    /// What the Export now App Intent says back to Shortcuts. English for now; Task 4 of the localization plan makes it a resource.
-    static func exportNowDialog(_ outcome: RunOutcome) -> String {
-        let daysWritten = outcome.daysWritten == 1 ? "1 day" : "\(outcome.daysWritten) days"
-        var text = "\(daysWritten) written, \(outcome.daysFailed) failed"
-        if outcome.daysPending > 0 { text += ", \(outcome.daysPending) pending" }
-        text += "."
-        if let firstError = outcome.errors.first { text += " \(firstError)" }
-        return text
+    /// What the Export now App Intent says back to Shortcuts. A resource, so the system resolves it in the request's language. The first error stays as saved (diagnostic text).
+    static func exportNowDialog(_ outcome: RunOutcome) -> LocalizedStringResource {
+        let errorSuffix = outcome.errors.first.map { " \($0)" } ?? ""
+        let written = outcome.daysWritten
+        let failed = outcome.daysFailed
+        let pending = outcome.daysPending
+        // Written and failed counts of 0 have their own keys (Portuguese plural rules put 0 with 1, spec Decision 7), hence the eight cases.
+        switch (written == 0, failed == 0, pending > 0) {
+        case (true, true, false): return LocalizedStringResource("0 days written, 0 failed.\(errorSuffix)")
+        case (true, true, true): return LocalizedStringResource("0 days written, 0 failed, \(pending) pending.\(errorSuffix)")
+        case (true, false, false): return LocalizedStringResource("0 days written, \(failed) failed.\(errorSuffix)")
+        case (true, false, true): return LocalizedStringResource("0 days written, \(failed) failed, \(pending) pending.\(errorSuffix)")
+        case (false, true, false): return LocalizedStringResource("\(written) days written, 0 failed.\(errorSuffix)")
+        case (false, true, true): return LocalizedStringResource("\(written) days written, 0 failed, \(pending) pending.\(errorSuffix)")
+        case (false, false, false): return LocalizedStringResource("\(written) days written, \(failed) failed.\(errorSuffix)")
+        case (false, false, true): return LocalizedStringResource("\(written) days written, \(failed) failed, \(pending) pending.\(errorSuffix)")
+        }
     }
 }

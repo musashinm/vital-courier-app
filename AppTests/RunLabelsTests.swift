@@ -37,9 +37,35 @@ import VitalCourierCore
         #expect(RunLabels.daysFailed(2, in: .english) == "2 days failed")
     }
 
+    /// The system resolves the dialog in the request's language; the test sets that language through the resource's locale.
+    func rendered(_ resource: LocalizedStringResource, _ localeIdentifier: String) -> String {
+        var resource = resource
+        resource.locale = Locale(identifier: localeIdentifier)
+        return String(localized: resource)
+    }
+
+    func outcome(written: Int, failed: Int = 0, pending: Int = 0, errors: [String] = []) -> RunOutcome {
+        RunOutcome(readOutcome: .notRequested, daysWritten: written, daysFailed: failed, daysPending: pending, errors: errors)
+    }
+
     @Test func theExportNowDialogSummarisesTheOutcome() {
-        #expect(RunLabels.exportNowDialog(RunOutcome(readOutcome: .notRequested, daysWritten: 3, daysFailed: 0, daysPending: 0, errors: [])) == "3 days written, 0 failed.")
-        #expect(RunLabels.exportNowDialog(RunOutcome(readOutcome: .notRequested, daysWritten: 1, daysFailed: 1, daysPending: 2, errors: ["json steps 2026-10: x", "note 2026-10-01: y"])) == "1 day written, 1 failed, 2 pending. json steps 2026-10: x")
+        #expect(rendered(RunLabels.exportNowDialog(outcome(written: 3)), "en_US") == "3 days written, 0 failed.")
+        #expect(rendered(RunLabels.exportNowDialog(outcome(written: 1, failed: 1, pending: 2, errors: ["json steps 2026-10: x", "note 2026-10-01: y"])), "en_US") == "1 day written, 1 failed, 2 pending. json steps 2026-10: x")
+        #expect(rendered(RunLabels.exportNowDialog(outcome(written: 3)), "pt_BR") == "3 dias gravados, 0 falhas.")
+        #expect(rendered(RunLabels.exportNowDialog(outcome(written: 1, failed: 1, pending: 2, errors: ["json steps 2026-10: x"])), "pt_BR") == "1 dia gravado, 1 falha, 2 pendentes. json steps 2026-10: x")
+        #expect(rendered(RunLabels.exportNowDialog(outcome(written: 3, failed: 2, pending: 1)), "pt_BR") == "3 dias gravados, 2 falhas, 1 pendente.")
+    }
+
+    /// Written and failed counts of 0 each branch to their own key (Portuguese plural rules put 0 with 1, so "0 falha" would be wrong).
+    @Test func theDialogHandlesZeroWrittenAndZeroFailedDays() {
+        #expect(rendered(RunLabels.exportNowDialog(outcome(written: 0)), "en_US") == "0 days written, 0 failed.")
+        #expect(rendered(RunLabels.exportNowDialog(outcome(written: 0, failed: 1, pending: 2)), "en_US") == "0 days written, 1 failed, 2 pending.")
+        #expect(rendered(RunLabels.exportNowDialog(outcome(written: 0)), "pt_BR") == "0 dias gravados, 0 falhas.")
+        #expect(rendered(RunLabels.exportNowDialog(outcome(written: 0, pending: 2)), "pt_BR") == "0 dias gravados, 0 falhas, 2 pendentes.")
+        #expect(rendered(RunLabels.exportNowDialog(outcome(written: 0, failed: 1)), "pt_BR") == "0 dias gravados, 1 falha.")
+        #expect(rendered(RunLabels.exportNowDialog(outcome(written: 0, failed: 1, pending: 2)), "pt_BR") == "0 dias gravados, 1 falha, 2 pendentes.")
+        #expect(rendered(RunLabels.exportNowDialog(outcome(written: 3, pending: 1)), "pt_BR") == "3 dias gravados, 0 falhas, 1 pendente.")
+        #expect(rendered(RunLabels.exportNowDialog(outcome(written: 3, failed: 2)), "pt_BR") == "3 dias gravados, 2 falhas.")
     }
 
     @Test func portugueseLabels() {
