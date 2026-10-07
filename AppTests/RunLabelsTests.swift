@@ -41,4 +41,29 @@ import VitalCourierCore
         #expect(RunLabels.exportNowDialog(RunOutcome(readOutcome: .notRequested, daysWritten: 3, daysFailed: 0, daysPending: 0, errors: [])) == "3 days written, 0 failed.")
         #expect(RunLabels.exportNowDialog(RunOutcome(readOutcome: .notRequested, daysWritten: 1, daysFailed: 1, daysPending: 2, errors: ["json steps 2026-10: x", "note 2026-10-01: y"])) == "1 day written, 1 failed, 2 pending. json steps 2026-10: x")
     }
+
+    @Test func portugueseLabels() {
+        #expect(RunLabels.trigger("observerWake", in: .portuguese) == "Aviso do Saúde")
+        #expect(RunLabels.trigger("appOpen", in: .portuguese) == "App aberto")
+        #expect(RunLabels.trigger("backgroundRefresh", in: .portuguese) == "Atualização em segundo plano")
+        #expect(RunLabels.trigger("appIntent", in: .portuguese) == "Exportar agora")
+        #expect(RunLabels.trigger("rebuildAll", in: .portuguese) == "Reconstruir tudo")
+        #expect(RunLabels.trigger(RunRecord.appEventTrigger, in: .portuguese) == "Evento do app")
+        #expect(RunLabels.trigger("somethingNew", in: .portuguese) == "somethingNew")
+        #expect(RunLabels.readOutcome("read", in: .portuguese) == "Lido")
+        #expect(RunLabels.readOutcome("skipped: locked", in: .portuguese) == "Pulado: bloqueado")
+        #expect(RunLabels.readOutcome("not requested", in: .portuguese) == "Não solicitado")
+        #expect(RunLabels.readOutcome("failed", in: .portuguese) == "Falhou")
+        #expect(RunLabels.dayCounts(run(written: 3), in: .portuguese) == "Gravados: 3 · Falhas: 0")
+        #expect(RunLabels.dayCounts(run(written: 1, failed: 1, pending: 2), in: .portuguese) == "Gravados: 1 · Falhas: 1 · Pendentes: 2")
+    }
+
+    @Test func portugueseZeroCountsUseTheirOwnKey() {
+        #expect(RunLabels.daysUpdated(0, in: .portuguese) == "0 dias atualizados")
+        #expect(RunLabels.daysUpdated(1, in: .portuguese) == "1 dia atualizado")
+        #expect(RunLabels.daysUpdated(2, in: .portuguese) == "2 dias atualizados")
+        #expect(RunLabels.daysFailed(0, in: .portuguese) == "0 dias falharam")
+        #expect(RunLabels.daysFailed(1, in: .portuguese) == "1 dia falhou")
+        #expect(RunLabels.daysFailed(2, in: .portuguese) == "2 dias falharam")
+    }
 }

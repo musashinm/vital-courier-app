@@ -1,13 +1,51 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ at %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ às %2$@"
+          }
+        }
+      }
+    },
     "%lld days failed" : {
       "localizations" : {
         "en" : {
           "variations" : {
             "plural" : {
-              "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld day failed" } },
-              "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld days failed" } }
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day failed"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days failed"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dia falhou"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dias falharam"
+                }
+              }
             }
           }
         }
@@ -18,24 +56,415 @@
         "en" : {
           "variations" : {
             "plural" : {
-              "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld day updated" } },
-              "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld days updated" } }
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day updated"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days updated"
+                }
+              }
             }
           }
         },
         "pt-BR" : {
           "variations" : {
             "plural" : {
-              "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld dia atualizado" } },
-              "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld dias atualizados" } }
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dia atualizado"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld dias atualizados"
+                }
+              }
             }
+          }
+        }
+      }
+    },
+    "%lld written · %lld failed" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gravados: %1$lld · Falhas: %2$lld"
+          }
+        }
+      }
+    },
+    "%lld written · %lld failed · %lld pending" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gravados: %1$lld · Falhas: %2$lld · Pendentes: %3$lld"
+          }
+        }
+      }
+    },
+    "0 days failed" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0 dias falharam"
+          }
+        }
+      }
+    },
+    "0 days updated" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0 dias atualizados"
+          }
+        }
+      }
+    },
+    "App event" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Evento do app"
+          }
+        }
+      }
+    },
+    "App open" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App aberto"
+          }
+        }
+      }
+    },
+    "Background refresh" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualização em segundo plano"
+          }
+        }
+      }
+    },
+    "Checked %@ · %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificado %1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "Checking for updates…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Procurando atualizações…"
+          }
+        }
+      }
+    },
+    "Daily summaries haven’t refreshed in 24 hours" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os resumos diários não são atualizados há 24 horas"
+          }
+        }
+      }
+    },
+    "Export now" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar agora"
+          }
+        }
+      }
+    },
+    "Failed" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falhou"
+          }
+        }
+      }
+    },
+    "Folder lost, pick it again" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasta perdida, escolha de novo"
+          }
+        }
+      }
+    },
+    "Health data can be read locally, but files need a destination." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os dados de saúde podem ser lidos no iPhone, mas os arquivos precisam de um destino."
+          }
+        }
+      }
+    },
+    "Health data hasn’t been read in 24 hours" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os dados de saúde não são lidos há 24 horas"
+          }
+        }
+      }
+    },
+    "Keep this iPhone unlocked and open Vital Courier. Your exported files remain in place." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deixe este iPhone desbloqueado e abra o Vital Courier. Seus arquivos exportados continuam onde estão."
+          }
+        }
+      }
+    },
+    "Keep your iPhone unlocked while Vital Courier reads the four data types." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deixe o iPhone desbloqueado enquanto o Vital Courier lê os quatro tipos de dados."
+          }
+        }
+      }
+    },
+    "Last completed %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Última conclusão: %@."
+          }
+        }
+      }
+    },
+    "Local data protection failed" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A proteção dos dados locais falhou"
+          }
+        }
+      }
+    },
+    "No data received in 7 days" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum dado recebido em 7 dias"
+          }
+        }
+      }
+    },
+    "No data yet" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum dado ainda"
+          }
+        }
+      }
+    },
+    "Not requested" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não solicitado"
+          }
+        }
+      }
+    },
+    "Observer wake" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aviso do Saúde"
+          }
+        }
+      }
+    },
+    "Pick a folder" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher uma pasta"
+          }
+        }
+      }
+    },
+    "Rebuild all" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconstruir tudo"
+          }
+        }
+      }
+    },
+    "Saving it to History failed. It is saved the next time the app can write." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não deu para salvar isso no Histórico. Vai ser salvo na próxima vez que o app conseguir gravar."
+          }
+        }
+      }
+    },
+    "Skipped: locked" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pulado: bloqueado"
+          }
+        }
+      }
+    },
+    "Unlock this iPhone and open Vital Courier to try again." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desbloqueie este iPhone e abra o Vital Courier para tentar de novo."
+          }
+        }
+      }
+    },
+    "Unlock this iPhone and open Vital Courier. Saved files remain in place." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desbloqueie este iPhone e abra o Vital Courier. Os arquivos salvos continuam onde estão."
+          }
+        }
+      }
+    },
+    "Up to date" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo em dia"
+          }
+        }
+      }
+    },
+    "Updated %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualizado %@"
+          }
+        }
+      }
+    },
+    "Updated %@ · %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atualizado %1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "Waiting for the first export" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aguardando a primeira exportação"
+          }
+        }
+      }
+    },
+    "Waiting to reread health data" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aguardando para ler os dados de saúde de novo"
+          }
+        }
+      }
+    },
+    "readOutcome.read" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lido"
           }
         }
       }
     },
     "today" : {
       "localizations" : {
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "hoje" } }
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hoje"
+          }
+        }
+      }
+    },
+    "yesterday" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ontem"
+          }
+        }
       }
     }
   },

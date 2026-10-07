@@ -6,6 +6,7 @@ import VitalCourierCore
 @Suite struct HomeSummaryTextTests {
     let now = date("2026-10-03T11:16:00Z")
     let english = StatusDateFormatter(localization: .english, timeZone: saoPaulo)
+    let portuguese = StatusDateFormatter(localization: .portuguese, timeZone: saoPaulo)
 
     func run(_ start: String, written: Int = 0, failed: Int = 0, errors: [String] = [], trigger: Trigger = .appOpen) -> RunRecord {
         RunRecord(startedAt: date(start), trigger: trigger.rawValue, readOutcome: ReadOutcome.read.rawValue, daysWritten: written, daysFailed: failed, daysPending: 0, errors: errors, id: 7)
@@ -45,5 +46,29 @@ import VitalCourierCore
         #expect(TypeRecency.updated(day("2026-09-24")).valueText(formatter: english, today: today, source: nil) == "Updated Sep 24")
         #expect(TypeRecency.silentForAWeek.valueText(formatter: english, today: today, source: "Apple Watch") == "No data received in 7 days")
         #expect(TypeRecency.noDataYet.valueText(formatter: english, today: today, source: nil) == "No data yet")
+    }
+
+    @Test func portugueseSummaries() {
+        let wrote = run("2026-10-03T11:16:00Z", written: 3, trigger: .observerWake)
+        #expect(HomeSummary.daysUpdated(run: wrote).text(formatter: portuguese, now: now).title == "3 dias atualizados")
+        #expect(HomeSummary.daysUpdated(run: wrote).text(formatter: portuguese, now: now).detail == "Hoje às 08:16 · Aviso do Saúde")
+        #expect(HomeSummary.daysUpdated(run: run("2026-10-03T11:16:00Z", written: 1)).text(formatter: portuguese, now: now).title == "1 dia atualizado")
+        #expect(HomeSummary.upToDate(run: run("2026-10-03T11:16:00Z")).text(formatter: portuguese, now: now).detail == "Verificado hoje às 08:16 · App aberto")
+        #expect(HomeSummary.upToDate(run: run("2026-10-03T11:16:00Z")).text(formatter: portuguese, now: now).title == "Tudo em dia")
+        #expect(HomeSummary.running(lastCompleted: date("2026-10-03T00:42:00Z")).text(formatter: portuguese, now: now).detail == "Última conclusão: ontem às 21:42.")
+        #expect(HomeSummary.writeFailure(run: run("2026-10-03T11:16:00Z", failed: 2)).text(formatter: portuguese, now: now).title == "2 dias falharam")
+        #expect(HomeSummary.writeFailure(run: run("2026-10-03T11:16:00Z", failed: 1)).text(formatter: portuguese, now: now).title == "1 dia falhou")
+        #expect(HomeSummary.noFolder.text(formatter: portuguese, now: now).title == "Escolher uma pasta")
+        #expect(HomeSummary.readOverdue.text(formatter: portuguese, now: now).title == "Os dados de saúde não são lidos há 24 horas")
+        #expect(HomeSummary.waitingForFirstExport.text(formatter: portuguese, now: now).detail == "Deixe o iPhone desbloqueado enquanto o Vital Courier lê os quatro tipos de dados.")
+    }
+
+    @Test func portugueseRecency() {
+        let today = day("2026-10-03")
+        #expect(TypeRecency.updated(today).valueText(formatter: portuguese, today: today, source: nil) == "Atualizado hoje")
+        #expect(TypeRecency.updated(today).valueText(formatter: portuguese, today: today, source: "Apple Watch") == "Atualizado hoje · Apple Watch")
+        #expect(TypeRecency.updated(day("2026-09-24")).valueText(formatter: portuguese, today: today, source: nil) == "Atualizado 24 de set.")
+        #expect(TypeRecency.silentForAWeek.valueText(formatter: portuguese, today: today, source: nil) == "Nenhum dado recebido em 7 dias")
+        #expect(TypeRecency.noDataYet.valueText(formatter: portuguese, today: today, source: nil) == "Nenhum dado ainda")
     }
 }
