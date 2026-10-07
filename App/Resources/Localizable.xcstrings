@@ -1,0 +1,31 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%lld days updated" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld day updated" } },
+              "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld days updated" } }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld dia atualizado" } },
+              "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld dias atualizados" } }
+            }
+          }
+        }
+      }
+    },
+    "today" : {
+      "localizations" : {
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "hoje" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -1,11 +1,12 @@
 ---
 name: verify
-description: Build and test Vital Courier end to end (VitalCourierCore package tests, Xcode project regeneration, and a simulator build of the app). Use before claiming a task is done, before committing, and before the final review.
+description: Build and test Vital Courier end to end (VitalCourierCore package tests, Xcode project regeneration, a simulator build of the app, and the app's unit tests). Use before claiming a task is done, before committing, and before the final review.
 allowed-tools:
   - Bash(swift test *)
   - Bash(scripts/generate-project.sh)
   - Bash(xcodebuild *)
   - Bash(xcrun simctl list devices available)
+  - Bash(scripts/check-translations.sh *)
 ---
 
 Run these from the repo root, in order, and stop at the first failure.
@@ -18,5 +19,7 @@ Run these from the repo root, in order, and stop at the first failure.
    `xcodebuild -project VitalCourier.xcodeproj -scheme VitalCourier -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -derivedDataPath build/DerivedData -quiet build`
 
    If the destination doesn't exist, run `xcrun simctl list devices available`, pick an available iPhone, and say which one you used.
+4. App unit tests (`AppTests/`, target `VitalCourierTests`, hosted by the app):
+   `xcodebuild test -project VitalCourier.xcodeproj -scheme VitalCourier -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -derivedDataPath build/DerivedData -only-testing:VitalCourierTests -quiet`
 
 Report each step as passed or failed. For a failure, quote the first error lines verbatim (file:line and message) and don't paraphrase them. Don't claim success for a step you didn't run.
