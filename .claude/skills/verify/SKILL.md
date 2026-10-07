@@ -21,5 +21,7 @@ Run these from the repo root, in order, and stop at the first failure.
    If the destination doesn't exist, run `xcrun simctl list devices available`, pick an available iPhone, and say which one you used.
 4. App unit tests (`AppTests/`, target `VitalCourierTests`, hosted by the app):
    `xcodebuild test -project VitalCourier.xcodeproj -scheme VitalCourier -destination 'platform=iOS Simulator,name=iPhone 18 Pro' -derivedDataPath build/DerivedData -only-testing:VitalCourierTests -quiet`
+5. Translations (every catalog entry has a translated pt-BR form, and the code uses no string the catalog lacks):
+   `scripts/check-translations.sh build/DerivedData`
 
 Report each step as passed or failed. For a failure, quote the first error lines verbatim (file:line and message) and don't paraphrase them. Don't claim success for a step you didn't run.

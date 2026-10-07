@@ -1,0 +1,12 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSHealthShareUsageDescription" : {
+      "comment" : "Apple Health read permission prompt",
+      "localizations" : {
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "O Vital Courier lê passos, frequência cardíaca em repouso, sono e peso do app Saúde para gravá-los na pasta que você escolher." } }
+      }
+    }
+  },
+  "version" : "1.0"
+}
