@@ -99,7 +99,10 @@ import Testing
         #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/private/var/mobile/Library/Mobile Documents/com~apple~CloudDocs/Notes/Health")) == "iCloud Drive/Notes/Health")
         #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/private/var/mobile/Library/Mobile Documents/com~apple~CloudDocs")) == "iCloud Drive")
         #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/private/var/mobile/Library/Mobile Documents/iCloud~md~obsidian/Documents/Vault/Health")) == "Obsidian/Vault/Health")
-        #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/private/var/mobile/Containers/Shared/AppGroup/ABC/File Provider Storage/Exports")) == "File Provider Storage/Exports")
+        #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/private/var/mobile/Containers/Shared/AppGroup/ABC/File Provider Storage/Exports")) == "On My iPhone/Exports")
+        #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/private/var/mobile/Containers/Shared/AppGroup/E5125041-52E5-4CC0-ABDA-B986B712A6A6/File Provider Storage")) == "On My iPhone")
+        #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/private/var/mobile/Containers/Shared/AppGroup/ABC/File Provider Storage/Health/Daily")) == "On My iPhone/Health/Daily")
+        #expect(FolderDisplayPath.make(from: URL(fileURLWithPath: "/Users/someone/File Provider Storage/Exports")) == "File Provider Storage/Exports")
     }
 
     @Test func aWriteFromTheOldFolderDoesNotMarkTheNewFolderLost() throws {
