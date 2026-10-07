@@ -56,7 +56,7 @@ struct ProminentActionStyle: ButtonStyle {
 
 /// A label and value that stack vertically when they don't fit side by side.
 struct DetailRow: View {
-    let label: String
+    let label: LocalizedStringKey
     let value: String
 
     var body: some View {
@@ -84,7 +84,7 @@ struct SilentTypeHint: View {
     }
 
     private static var reviewAccessLink: Text {
-        var label = AttributedString("Review access")
+        var label = AttributedString(localized: "Review access")
         label.underlineStyle = .single
         label.foregroundColor = Color.vcAccent
         if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
@@ -112,10 +112,10 @@ extension View {
 extension HealthType {
     var displayName: String {
         switch self {
-        case .steps: "Steps"
-        case .restingHeartRate: "Resting heart rate"
-        case .sleep: "Sleep"
-        case .weight: "Weight"
+        case .steps: String(localized: "Steps")
+        case .restingHeartRate: String(localized: "Resting heart rate")
+        case .sleep: String(localized: "Sleep")
+        case .weight: String(localized: "Weight")
         }
     }
 

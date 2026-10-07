@@ -49,7 +49,7 @@ struct HomeView: View {
         .folderPicker(isPresented: $isPickerPresented, onPick: { model.pickFolder($0) }, onError: { model.folderSave = .failed(errorText: $0) })
         .onChange(of: model.isAppOpenRunActive) { _, isActive in
             // Announce the start and the result once each; never the spinner (design, Accessibility).
-            let announcement = isActive ? "Checking for updates" : model.homeSummary.text(formatter: formatter, now: model.now).title
+            let announcement = isActive ? String(localized: "Checking for updates") : model.homeSummary.text(formatter: formatter, now: model.now).title
             AccessibilityNotification.Announcement(announcement).post()
         }
     }

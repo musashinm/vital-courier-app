@@ -19,7 +19,7 @@ enum AppEnvironmentError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .storeBlocked(let errorText): "Vital Courier couldn’t open its local data. \(errorText)"
+        case .storeBlocked(let errorText): String(localized: "Vital Courier couldn’t open its local data. \(errorText)")
         }
     }
 }

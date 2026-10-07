@@ -141,6 +141,14 @@ struct SettingsView: View {
         .disabled(model.folderSave == .saving)
     }
 
+    private var rebuildTitle: LocalizedStringKey {
+        model.maintenance == .rebuilding ? "Rebuilding…" : "Rebuild all"
+    }
+
+    private var clearTitle: LocalizedStringKey {
+        model.maintenance == .clearing ? "Clearing…" : "Clear local copy"
+    }
+
     private var rebuildRow: some View {
         Button {
             confirmsRebuild = true
@@ -148,7 +156,7 @@ struct SettingsView: View {
             HStack(spacing: 12) {
                 SymbolImage("arrow.clockwise.circle", size: SymbolSize.row, color: .vcAccent)
                     .accessibilityHidden(true)
-                Text(model.maintenance == .rebuilding ? "Rebuilding…" : "Rebuild all").foregroundStyle(Color.vcPrimaryText)
+                Text(rebuildTitle).foregroundStyle(Color.vcPrimaryText)
                 Spacer()
                 if model.maintenance == .rebuilding { ProgressView() }
             }
@@ -172,7 +180,7 @@ struct SettingsView: View {
             HStack(spacing: 12) {
                 SymbolImage("trash", size: SymbolSize.row, color: .vcError)
                     .accessibilityHidden(true)
-                Text(model.maintenance == .clearing ? "Clearing…" : "Clear local copy").foregroundStyle(Color.vcError)
+                Text(clearTitle).foregroundStyle(Color.vcError)
                 Spacer()
                 if model.maintenance == .clearing { ProgressView() }
             }
@@ -183,7 +191,7 @@ struct SettingsView: View {
 }
 
 private struct LinkRow: View {
-    let title: String
+    let title: LocalizedStringKey
 
     var body: some View {
         HStack(spacing: 12) {
