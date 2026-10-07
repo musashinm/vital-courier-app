@@ -32,7 +32,7 @@ struct HistoryView: View {
                             }
                         }
                     }
-                    let groups = formatter.monthGroups(history.runs)
+                    let groups = RunMonthGroup.groups(history.runs, timeZone: formatter.timeZone)
                     ForEach(groups) { group in
                         Section {
                             ForEach(group.runs, id: \.id) { run in
@@ -49,7 +49,7 @@ struct HistoryView: View {
                             }
                         } header: {
                             if groups.count > 1 {
-                                Text(group.title).foregroundStyle(Color.vcTertiaryText)
+                                Text(formatter.monthTitle(group.month)).foregroundStyle(Color.vcTertiaryText)
                             }
                         }
                     }
@@ -81,7 +81,7 @@ private struct RunRow: View {
                 Text(RunLabels.trigger(run.trigger))
                     .font(.headline)
                     .foregroundStyle(Color.vcPrimaryText)
-                Text(StatusDateFormatter.capitalizedFirst(formatter.moment(run.startedAt, now: now)))
+                Text(formatter.capitalizedFirst(formatter.moment(run.startedAt, now: now)))
                     .font(.subheadline)
                     .monospacedDigit()
                     .foregroundStyle(Color.vcSecondaryText)

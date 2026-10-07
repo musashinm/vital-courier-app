@@ -35,25 +35,6 @@ public enum HomeSummaryAction: Equatable, Sendable {
     case viewRecentRuns
 }
 
-public struct HomeSummaryText: Equatable, Sendable {
-    public var symbolName: String
-    public var title: String
-    public var detail: String?
-    /// The full saved error, shown monospaced below the summary.
-    public var errorText: String?
-    public var showsMoreErrorsNote: Bool
-    public var action: HomeSummaryAction
-
-    public init(symbolName: String, title: String, detail: String?, errorText: String?, showsMoreErrorsNote: Bool, action: HomeSummaryAction) {
-        self.symbolName = symbolName
-        self.title = title
-        self.detail = detail
-        self.errorText = errorText
-        self.showsMoreErrorsNote = showsMoreErrorsNote
-        self.action = action
-    }
-}
-
 /// The Home export summary (design iOS App v2, §3). The migration blocker is not a case: it replaces the whole root.
 public enum HomeSummary: Equatable, Sendable {
     case folderLost(errorText: String)
@@ -90,35 +71,6 @@ public enum HomeSummary: Equatable, Sendable {
         }
         return run.daysWritten > 0 ? .daysUpdated(run: run) : .upToDate(run: run)
     }
-
-    public func text(formatter: StatusDateFormatter, now: Date) -> HomeSummaryText {
-        switch self {
-        case .folderLost(let errorText):
-            HomeSummaryText(symbolName: "folder.badge.minus", title: "Folder lost, pick it again", detail: nil, errorText: errorText, showsMoreErrorsNote: false, action: .pickFolderAgain)
-        case .noFolder:
-            HomeSummaryText(symbolName: "folder.badge.questionmark", title: "Pick a folder", detail: "Health data can be read locally, but files need a destination.", errorText: nil, showsMoreErrorsNote: false, action: .pickFolder)
-        case .running(let lastCompleted):
-            HomeSummaryText(symbolName: "arrow.triangle.2.circlepath", title: "Checking for updates…", detail: lastCompleted.map { "Last completed \(formatter.moment($0, now: now))." }, errorText: nil, showsMoreErrorsNote: false, action: .none)
-        case .awaitingReread:
-            HomeSummaryText(symbolName: "arrow.clockwise.circle", title: "Waiting to reread health data", detail: "Keep this iPhone unlocked and open Vital Courier. Your exported files remain in place.", errorText: nil, showsMoreErrorsNote: false, action: .none)
-        case .protectionFailurePending(let errorText):
-            HomeSummaryText(symbolName: "lock.trianglebadge.exclamationmark", title: "Local data protection failed", detail: "Saving it to History failed. It is saved the next time the app can write.", errorText: RunRecord.fileProtectionErrorPrefix + errorText, showsMoreErrorsNote: false, action: .none)
-        case .protectionFailure(let run):
-            HomeSummaryText(symbolName: "lock.trianglebadge.exclamationmark", title: "Local data protection failed", detail: nil, errorText: run.errors.first { $0.hasPrefix(RunRecord.fileProtectionErrorPrefix) }, showsMoreErrorsNote: run.errors.count > 1, action: .runDetails)
-        case .writeFailure(let run):
-            HomeSummaryText(symbolName: "xmark.octagon.fill", title: "\(RunLabels.days(run.daysFailed)) failed", detail: nil, errorText: run.errors.first, showsMoreErrorsNote: run.errors.count > 1, action: .runDetails)
-        case .readOverdue:
-            HomeSummaryText(symbolName: "lock.trianglebadge.exclamationmark", title: "Health data hasn’t been read in 24 hours", detail: "Unlock this iPhone and open Vital Courier. Saved files remain in place.", errorText: nil, showsMoreErrorsNote: false, action: .viewRecentRuns)
-        case .dailyValuesOverdue:
-            HomeSummaryText(symbolName: "exclamationmark.arrow.triangle.2.circlepath", title: "Daily summaries haven’t refreshed in 24 hours", detail: "Unlock this iPhone and open Vital Courier to try again.", errorText: nil, showsMoreErrorsNote: false, action: .viewRecentRuns)
-        case .daysUpdated(let run):
-            HomeSummaryText(symbolName: "checkmark.circle.fill", title: "\(RunLabels.days(run.daysWritten)) updated", detail: "\(StatusDateFormatter.capitalizedFirst(formatter.moment(run.startedAt, now: now))) · \(RunLabels.trigger(run.trigger))", errorText: nil, showsMoreErrorsNote: false, action: .runDetails)
-        case .upToDate(let run):
-            HomeSummaryText(symbolName: "checkmark.circle.fill", title: "Up to date", detail: "Checked \(formatter.moment(run.startedAt, now: now)) · \(RunLabels.trigger(run.trigger))", errorText: nil, showsMoreErrorsNote: false, action: .runDetails)
-        case .waitingForFirstExport:
-            HomeSummaryText(symbolName: "clock.badge.questionmark", title: "Waiting for the first export", detail: "Keep your iPhone unlocked while Vital Courier reads the four data types.", errorText: nil, showsMoreErrorsNote: false, action: .none)
-        }
-    }
 }
 
 /// One Health data row (design §3): recency of stored data, never a health interpretation or a permission claim.
@@ -136,17 +88,5 @@ public enum TypeRecency: Equatable, Sendable {
         }
         if let setupDay, today >= setupDay.adding(days: silentDays) { return .silentForAWeek }
         return .noDataYet
-    }
-
-    public func valueText(formatter: StatusDateFormatter, today: DayKey, source: String?) -> String {
-        switch self {
-        case .updated(let day):
-            let updated = "Updated \(formatter.day(day, today: today))"
-            return source.map { "\(updated) · \($0)" } ?? updated
-        case .silentForAWeek:
-            return "No data received in 7 days"
-        case .noDataYet:
-            return "No data yet"
-        }
     }
 }

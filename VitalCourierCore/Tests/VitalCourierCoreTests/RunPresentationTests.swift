@@ -58,29 +58,10 @@ import Testing
         #expect(RunRecovery(run: run(.read, written: 2), folder: valid) == .none)
     }
 
-    @Test func labelsMapTheStoredNamesExactly() {
-        #expect(RunLabels.trigger("observerWake") == "Observer wake")
-        #expect(RunLabels.trigger("appOpen") == "App open")
-        #expect(RunLabels.trigger("backgroundRefresh") == "Background refresh")
-        #expect(RunLabels.trigger("appIntent") == "Export now")
-        #expect(RunLabels.trigger("rebuildAll") == "Rebuild all")
-        #expect(RunLabels.trigger(RunRecord.appEventTrigger) == "App event")
-        #expect(RunLabels.trigger("somethingNew") == "somethingNew")
-        #expect(RunLabels.readOutcome("read") == "Read")
-        #expect(RunLabels.readOutcome("skipped: locked") == "Skipped: locked")
-        #expect(RunLabels.readOutcome("not requested") == "Not requested")
-        #expect(RunLabels.readOutcome("failed") == "Failed")
-    }
-
-    @Test func dayCountsShowPendingOnlyWhenNonzero() {
-        #expect(RunLabels.dayCounts(run(.read, written: 3)) == "3 written · 0 failed")
-        #expect(RunLabels.dayCounts(run(.read, written: 1, failed: 1, pending: 2)) == "1 written · 1 failed · 2 pending")
-        #expect(RunLabels.days(1) == "1 day")
-        #expect(RunLabels.days(2) == "2 days")
-    }
-
-    @Test func theExportNowDialogSummarisesTheOutcome() {
-        #expect(RunLabels.exportNowDialog(RunOutcome(readOutcome: .notRequested, daysWritten: 3, daysFailed: 0, daysPending: 0, errors: [])) == "3 days written, 0 failed.")
-        #expect(RunLabels.exportNowDialog(RunOutcome(readOutcome: .notRequested, daysWritten: 1, daysFailed: 1, daysPending: 2, errors: ["json steps 2026-10: x", "note 2026-10-01: y"])) == "1 day written, 1 failed, 2 pending. json steps 2026-10: x")
+    @Test func aPortugueseDiskFullErrorIsClassifiedByItsCode() {
+        let portugueseDiskFull = NSError(domain: NSCocoaErrorDomain, code: NSFileWriteOutOfSpaceError, userInfo: [NSLocalizedDescriptionKey: "Não há espaço suficiente."])
+        let saved = "note 2026-10-01: " + String(describing: ExportFolderError.writeFailed(path: "Vital Courier/daily/2026-10-01.md", reason: BookmarkedFolder.describe(portugueseDiskFull)))
+        #expect(saved.contains("[NSCocoaErrorDomain 640]"))
+        #expect(RunErrorKind(error: saved) == .storageFull)
     }
 }

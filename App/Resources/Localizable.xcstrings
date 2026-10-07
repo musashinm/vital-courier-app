@@ -1,6 +1,18 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%lld days failed" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : { "stringUnit" : { "state" : "translated", "value" : "%lld day failed" } },
+              "other" : { "stringUnit" : { "state" : "translated", "value" : "%lld days failed" } }
+            }
+          }
+        }
+      }
+    },
     "%lld days updated" : {
       "localizations" : {
         "en" : {
