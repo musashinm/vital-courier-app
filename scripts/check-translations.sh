@@ -9,13 +9,14 @@ work_dir=$(mktemp -d)
 trap 'rm -rf "$work_dir"' EXIT
 
 if [ -n "$derived_data" ]; then
-    find "$derived_data" -path '*VitalCourier.build*' -name '*.stringsdata' > "$work_dir/stringsdata.txt"
-    if [ ! -s "$work_dir/stringsdata.txt" ]; then
+    find "$derived_data" -path '*VitalCourier.build*' -name '*.stringsdata' -exec printf -- '--stringsdata\0%s\0' {} + > "$work_dir/stringsdata-args"
+    if [ ! -s "$work_dir/stringsdata-args" ]; then
         echo "No .stringsdata files under $derived_data: build the app first." >&2
         exit 1
     fi
     cp App/Resources/Localizable.xcstrings "$work_dir/Localizable.xcstrings"
-    sed 's/^/--stringsdata /' "$work_dir/stringsdata.txt" | xargs xcrun xcstringstool sync "$work_dir/Localizable.xcstrings" --skip-marking-strings-stale
+    # NUL-separated so a DerivedData path with spaces survives.
+    xargs -0 xcrun xcstringstool sync "$work_dir/Localizable.xcstrings" --skip-marking-strings-stale < "$work_dir/stringsdata-args"
 fi
 
 python3 -I - "$work_dir" "$derived_data" <<'PY'
@@ -34,9 +35,8 @@ def leaves(node, path=""):
     if "stringUnit" in node:
         yield path, node["stringUnit"]
     for kind, cases in node.get("variations", {}).items():
-        for child in cases.values():
-            # Plural categories differ by language, so the path names the kind of variation, not the case.
-            yield from leaves(child, f"{path}/{kind}")
+        for case, child in cases.items():
+            yield from leaves(child, f"{path}/{kind}.{case}")
     for name, substitution in node.get("substitutions", {}).items():
         yield from leaves(substitution, f"{path}/substitution:{name}")
 
