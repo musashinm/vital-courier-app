@@ -63,6 +63,36 @@ import VitalCourierCore
         #expect(HomeSummary.waitingForFirstExport.text(formatter: portuguese, now: now).detail == "Deixe o iPhone desbloqueado enquanto o Vital Courier lê os quatro tipos de dados.")
     }
 
+    @Test func portugueseCoversEveryHomeCase() {
+        let failing = run("2026-10-03T10:00:00Z", failed: 1, errors: ["note 2026-10-01: x", "file protection: ProtectionFailed()"])
+        func text(_ summary: HomeSummary) -> HomeSummaryText { summary.text(formatter: portuguese, now: now) }
+
+        #expect(text(.folderLost(errorText: "gone")).title == "Pasta perdida, escolha de novo")
+        #expect(text(.folderLost(errorText: "gone")).detail == nil)
+        #expect(text(.noFolder).title == "Escolher uma pasta")
+        #expect(text(.noFolder).detail == "Os dados de saúde podem ser lidos no iPhone, mas os arquivos precisam de um destino.")
+        #expect(text(.running(lastCompleted: nil)).title == "Procurando atualizações…")
+        #expect(text(.running(lastCompleted: nil)).detail == nil)
+        #expect(text(.running(lastCompleted: date("2026-10-03T00:42:00Z"))).title == "Procurando atualizações…")
+        #expect(text(.awaitingReread).title == "Aguardando para ler os dados de saúde de novo")
+        #expect(text(.awaitingReread).detail == "Deixe este iPhone desbloqueado e abra o Vital Courier. Seus arquivos exportados continuam onde estão.")
+        #expect(text(.protectionFailurePending(errorText: "ProtectionFailed()")).title == "A proteção dos dados locais falhou")
+        #expect(text(.protectionFailurePending(errorText: "ProtectionFailed()")).detail == "Não deu para salvar isso no Histórico. Vai ser salvo na próxima vez que o app conseguir gravar.")
+        #expect(text(.protectionFailure(run: failing)).title == "A proteção dos dados locais falhou")
+        #expect(text(.protectionFailure(run: failing)).detail == nil)
+        #expect(text(.writeFailure(run: failing)).title == "1 dia falhou")
+        #expect(text(.writeFailure(run: failing)).detail == nil)
+        #expect(text(.writeFailure(run: run("2026-10-03T11:16:00Z"))).title == "0 dias falharam")
+        #expect(text(.readOverdue).title == "Os dados de saúde não são lidos há 24 horas")
+        #expect(text(.readOverdue).detail == "Desbloqueie este iPhone e abra o Vital Courier. Os arquivos salvos continuam onde estão.")
+        #expect(text(.dailyValuesOverdue).title == "Os resumos diários não são atualizados há 24 horas")
+        #expect(text(.dailyValuesOverdue).detail == "Desbloqueie este iPhone e abra o Vital Courier para tentar de novo.")
+        #expect(text(.daysUpdated(run: run("2026-10-03T11:16:00Z", written: 0))).title == "0 dias atualizados")
+        #expect(text(.upToDate(run: run("2026-10-03T11:16:00Z"))).title == "Tudo em dia")
+        #expect(text(.waitingForFirstExport).title == "Aguardando a primeira exportação")
+        #expect(text(.waitingForFirstExport).detail == "Deixe o iPhone desbloqueado enquanto o Vital Courier lê os quatro tipos de dados.")
+    }
+
     @Test func portugueseRecency() {
         let today = day("2026-10-03")
         #expect(TypeRecency.updated(today).valueText(formatter: portuguese, today: today, source: nil) == "Atualizado hoje")
@@ -70,5 +100,8 @@ import VitalCourierCore
         #expect(TypeRecency.updated(day("2026-09-24")).valueText(formatter: portuguese, today: today, source: nil) == "Atualizado 24 de set.")
         #expect(TypeRecency.silentForAWeek.valueText(formatter: portuguese, today: today, source: nil) == "Nenhum dado recebido em 7 dias")
         #expect(TypeRecency.noDataYet.valueText(formatter: portuguese, today: today, source: nil) == "Nenhum dado ainda")
+        #expect(TypeRecency.updated(day("2026-10-02")).valueText(formatter: portuguese, today: today, source: nil) == "Atualizado ontem")
+        #expect(TypeRecency.silentForAWeek.valueText(formatter: portuguese, today: today, source: "Apple Watch") == "Nenhum dado recebido em 7 dias")
+        #expect(TypeRecency.noDataYet.valueText(formatter: portuguese, today: today, source: "Apple Watch") == "Nenhum dado ainda")
     }
 }
