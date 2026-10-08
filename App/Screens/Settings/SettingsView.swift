@@ -110,6 +110,12 @@ struct SettingsView: View {
         } message: {
             Text("This removes Vital Courier’s protected local health-data database. It does not delete Apple Health data or exported files. Run history, settings, and your folder choice remain. The next unlocked run rereads the four data types.")
         }
+        .alert("Rebuild every export?", isPresented: $confirmsRebuild) {
+            Button("Rebuild all") { model.rebuildAll() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Vital Courier will reread all four data types and rewrite every day and month it knows about. Keep this iPhone unlocked. This can take a while.")
+        }
         .folderPicker(isPresented: $isPickerPresented, onPick: { model.pickFolder($0) }, onError: { model.folderSave = .failed(errorText: $0) })
     }
 
@@ -164,13 +170,6 @@ struct SettingsView: View {
         }
         // Disabled while rebuilding and while clearing (round-4 nit, boards 28 and 30).
         .disabled(model.maintenance != .idle)
-        // On the row, not the List: where iOS shows this dialog as a popover (regular width, and iPhone too on iOS 26), it points at the view it's attached to.
-        .confirmationDialog("Rebuild every export?", isPresented: $confirmsRebuild, titleVisibility: .visible) {
-            Button("Rebuild all") { model.rebuildAll() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Vital Courier will reread all four data types and rewrite every day and month it knows about. Keep this iPhone unlocked. This can take a while.")
-        }
     }
 
     private var clearRow: some View {
