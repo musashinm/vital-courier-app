@@ -151,7 +151,7 @@ private struct FolderStep: View {
                 HStack(spacing: 12) {
                     SymbolImage("checkmark.circle.fill", size: SymbolSize.status, color: .vcSuccess)
                         .accessibilityHidden(true)
-                    Text(displayPath).font(.headline).foregroundStyle(Color.vcPrimaryText)
+                    Text(FolderPathText.localized(displayPath)).font(.headline).foregroundStyle(Color.vcPrimaryText)
                 }
                 .accessibilityElement(children: .combine)
             case .failed(let errorText):

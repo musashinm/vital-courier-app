@@ -1182,6 +1182,16 @@
         }
       }
     },
+    "On My iPhone" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Meu iPhone"
+          }
+        }
+      }
+    },
     "Opens a write transaction that changes the database, lists the files while it is open (the rollback journal exists only now), then rolls it back. The -journal line must carry the same class as the database." : {
       "shouldTranslate" : false
     },

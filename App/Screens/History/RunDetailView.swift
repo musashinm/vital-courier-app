@@ -50,7 +50,7 @@ struct RunDetailView: View {
                     switch model.folderSave {
                     case .idle: EmptyView()
                     case .saving: ProgressView()
-                    case .saved(let displayPath): Text(displayPath).foregroundStyle(Color.vcPrimaryText)
+                    case .saved(let displayPath): Text(FolderPathText.localized(displayPath)).foregroundStyle(Color.vcPrimaryText)
                     case .failed(let errorText):
                         Text("Folder couldn’t be saved").font(.headline).foregroundStyle(Color.vcPrimaryText)
                         ErrorTextView(text: errorText)

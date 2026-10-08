@@ -167,8 +167,10 @@ struct ObservedFolderDestination: ExportDestination {
     }
 }
 
-/// A short path the person recognises from the Files app.
+/// A short path the person recognises from the Files app. The roots it names (`iCloud Drive`, `On My iPhone`) are English sentinels the App translates.
 public enum FolderDisplayPath {
+    public static let onMyIPhone = "On My iPhone"
+
     public static func make(from url: URL) -> String {
         let components = url.standardizedFileURL.pathComponents
         if let index = components.firstIndex(of: "com~apple~CloudDocs") {
@@ -178,6 +180,9 @@ public enum FolderDisplayPath {
            components.count > index + 1, components[index + 1] == "Documents" {
             let appName = components[index].split(separator: "~").last.map { String($0).capitalized } ?? components[index]
             return ([appName] + components[(index + 2)...]).joined(separator: "/")
+        }
+        if let index = components.indices.first(where: { $0 >= 2 && components[$0] == "File Provider Storage" && components[$0 - 2] == "AppGroup" }) {
+            return ([onMyIPhone] + components[(index + 1)...]).joined(separator: "/")
         }
         return components.suffix(2).joined(separator: "/")
     }
