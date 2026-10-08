@@ -126,7 +126,7 @@ struct SettingsView: View {
                     case .none:
                         Text("Pick a folder").font(.subheadline).foregroundStyle(Color.vcAccent)
                     case .valid(let displayPath):
-                        Text(displayPath).font(.subheadline).foregroundStyle(Color.vcSecondaryText)
+                        Text(FolderPathText.localized(displayPath)).font(.subheadline).foregroundStyle(Color.vcSecondaryText)
                     case .lost:
                         Text("Pick again").font(.subheadline).foregroundStyle(Color.vcError)
                     }
