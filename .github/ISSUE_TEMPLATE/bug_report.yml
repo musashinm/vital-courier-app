@@ -1,0 +1,83 @@
+name: Bug report
+description: Something in the app doesn't work the way it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, including any error message or notification text, word for word.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the app
+        2. Tap Export now
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: run-started-by
+    attributes:
+      label: Trigger shown in History
+      description: The run's trigger on the History screen.
+      options:
+        - Observer wake
+        - App open
+        - Background refresh
+        - Export now
+        - Rebuild all
+        - App event
+        - Not sure
+    validations:
+      required: true
+  - type: checkboxes
+    id: data-types
+    attributes:
+      label: Data types involved
+      options:
+        - label: Steps
+        - label: Resting heart rate
+        - label: Sleep
+        - label: Weight
+  - type: dropdown
+    id: export-folder
+    attributes:
+      label: Export folder
+      options:
+        - On My iPhone
+        - iCloud Drive
+        - Another app or drive (Dropbox, USB drive...)
+        - Not sure
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Settings shows it as Version, for example 0.1.0 (1).
+    validations:
+      required: true
+  - type: input
+    id: ios-version
+    attributes:
+      label: iOS version
+      placeholder: "27.0"
+    validations:
+      required: true
+  - type: input
+    id: iphone-model
+    attributes:
+      label: iPhone model
+      placeholder: iPhone 18 Pro
+  - type: textarea
+    id: history
+    attributes:
+      label: History entry
+      description: Describe the matching row on the History screen (time, trigger, result). If it shows an error, paste the error text.
+      render: text
