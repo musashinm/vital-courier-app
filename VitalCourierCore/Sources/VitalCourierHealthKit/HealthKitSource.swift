@@ -16,8 +16,8 @@ public final class HealthKitSource: HealthSource {
         self.protectedDataAvailable = protectedDataAvailable
     }
 
-    public func requestReadAuthorization(sharing shareTypes: Set<HKSampleType> = []) async throws {
-        try await healthStore.requestAuthorization(toShare: shareTypes, read: HealthKitMapping.readTypes)
+    public func requestReadAuthorization() async throws {
+        try await healthStore.requestAuthorization(toShare: [], read: HealthKitMapping.readTypes)
     }
 
     public func isReadable() async -> Bool {

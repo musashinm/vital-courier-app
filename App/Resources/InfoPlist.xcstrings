@@ -6,6 +6,12 @@
       "localizations" : {
         "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "O Vital Courier lê passos, frequência cardíaca em repouso, sono e peso do app Saúde para gravá-los na pasta que você escolher." } }
       }
+    },
+    "NSHealthUpdateUsageDescription" : {
+      "comment" : "Apple Health write permission prompt; the app never asks to write",
+      "localizations" : {
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "O Vital Courier só lê dados do app Saúde e nunca grava nada nele." } }
+      }
     }
   },
   "version" : "1.0"

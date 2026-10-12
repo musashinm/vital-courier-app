@@ -834,9 +834,6 @@
     "Debug" : {
       "shouldTranslate" : false
     },
-    "Delete midnight test sample" : {
-      "shouldTranslate" : false
-    },
     "Diagnostics" : {
       "shouldTranslate" : false
     },
@@ -1095,9 +1092,6 @@
           }
         }
       }
-    },
-    "Midnight split release gate" : {
-      "shouldTranslate" : false
     },
     "More errors in run details" : {
       "localizations" : {
@@ -1729,12 +1723,6 @@
           }
         }
       }
-    },
-    "Write midnight test sample" : {
-      "shouldTranslate" : false
-    },
-    "Writes one 600-step sample from 23:30 two days ago to 00:30 yesterday, tagged VCTestSample. Compare vc_steps on both days with the Health app, then delete it." : {
-      "shouldTranslate" : false
     },
     "Writes the health data Vital Courier has already saved to your folder. It doesn’t read new data." : {
       "localizations" : {
