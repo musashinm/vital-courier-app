@@ -10,6 +10,8 @@ extension Color {
     static let vcWarning = Color("VCWarning")
     static let vcError = Color("VCError")
     static let vcAppBackground = Color(uiColor: .systemGroupedBackground)
+    /// Static launch screen and BootView canvas (design App Icon v2). Real screens keep `vcAppBackground`.
+    static let vcLaunchBackground = Color("VCLaunchBackground")
 }
 
 /// SF Symbol sizes at the Large text size (design, Spacing): scaled with Dynamic Type by `SymbolImage`.
