@@ -14,5 +14,14 @@
     <string>Vital Courier reads steps, resting heart rate, sleep and weight from Apple Health to write them to the folder you choose.</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
+    <key>UILaunchScreen</key>
+    <dict>
+        <key>UIColorName</key>
+        <string>VCLaunchBackground</string>
+        <key>UIImageName</key>
+        <string>LaunchCircuit</string>
+        <key>UIImageRespectsSafeAreaInsets</key>
+        <false/>
+    </dict>
 </dict>
 </plist>
