@@ -80,4 +80,16 @@ Database migrations on `main` are frozen. Change the schema by adding a new migr
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+The source code is MIT licensed. See [LICENSE](LICENSE).
+
+### Reserved artwork
+
+The MIT license does not grant rights to the Vital Courier app artwork below. Copyright 2026 Kleber Kihara, all rights reserved:
+
+- `App/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png` (the existing icon path, now holding the Circuit icon)
+- `App/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-Dark.png`
+- `App/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-Tinted.png`
+- `App/Resources/Assets.xcassets/LaunchCircuit.imageset/LaunchCircuit@2x.png`
+- `App/Resources/Assets.xcassets/LaunchCircuit.imageset/LaunchCircuit@3x.png`
+- `App/Resources/Assets.xcassets/LaunchCircuit.imageset/LaunchCircuit-Dark@2x.png`
+- `App/Resources/Assets.xcassets/LaunchCircuit.imageset/LaunchCircuit-Dark@3x.png`
