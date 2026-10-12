@@ -1,5 +1,4 @@
 import Foundation
-import HealthKit
 import Observation
 import VitalCourierCore
 
@@ -164,13 +163,9 @@ final class AppModel {
         if history.hasLoadedOnce { await history.reload() }
     }
 
-    /// Debug builds also ask to write steps, for the midnight-split test sample (Task 16). Release builds ask to read only.
+    /// Asks to read only; no build writes to Apple Health.
     func requestHealthAuthorization() async throws {
-        #if DEBUG
-        try await environment.health.requestReadAuthorization(sharing: [HKQuantityType(.stepCount)])
-        #else
         try await environment.health.requestReadAuthorization()
-        #endif
     }
 
     func pickFolder(_ url: URL) {

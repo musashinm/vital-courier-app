@@ -1,15 +1,13 @@
 #if DEBUG
-import HealthKit
 import SwiftUI
 
-/// What the On-device checklist reads. Debug builds only; Release builds never ask to write health data.
+/// What the On-device checklist reads. Debug builds only.
 struct DiagnosticsView: View {
     @Environment(AppModel.self) private var model
     @State private var protectionLines: [String] = []
     @State private var protectionError: String?
     @State private var duringWriteLines: [String] = []
     @State private var duringWriteError: String?
-    @State private var sampleStatus: String?
 
     var body: some View {
         List {
@@ -48,15 +46,6 @@ struct DiagnosticsView: View {
             } header: {
                 Text("Setup errors")
             }
-            Section {
-                Button("Write midnight test sample", action: writeSample)
-                Button("Delete midnight test sample", role: .destructive, action: deleteSample)
-                if let sampleStatus { ErrorTextView(text: sampleStatus) }
-            } header: {
-                Text("Midnight split release gate")
-            } footer: {
-                Text("Writes one 600-step sample from 23:30 two days ago to 00:30 yesterday, tagged VCTestSample. Compare vc_steps on both days with the Health app, then delete it.")
-            }
         }
         .navigationTitle("Diagnostics")
         .onAppear(perform: loadProtection)
@@ -82,30 +71,6 @@ struct DiagnosticsView: View {
             duringWriteError = String(describing: error)
         }
     }
-
-    private func writeSample() {
-        let healthStore = model.environment.health.healthStore
-        Task {
-            do {
-                let window = try await MidnightTestSample.write(healthStore: healthStore, now: Date())
-                sampleStatus = "Written: \(window.start.formatted()) – \(window.end.formatted())"
-            } catch {
-                sampleStatus = String(describing: error)
-            }
-        }
-    }
-
-    private func deleteSample() {
-        let healthStore = model.environment.health.healthStore
-        Task {
-            do {
-                let deletedCount = try await MidnightTestSample.delete(healthStore: healthStore)
-                sampleStatus = "Deleted \(deletedCount) sample(s)"
-            } catch {
-                sampleStatus = String(describing: error)
-            }
-        }
-    }
 }
 
 enum ProtectionReport {
@@ -122,34 +87,6 @@ enum ProtectionReport {
     private static func protection(of url: URL) throws -> String {
         let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
         return (attributes[.protectionKey] as? FileProtectionType)?.rawValue ?? "none"
-    }
-}
-
-/// A step sample crossing midnight, for the spec's midnight-split release gate.
-enum MidnightTestSample {
-    static let metadataKey = "VCTestSample"
-
-    static func window(now: Date, calendar: Calendar = .current) -> DateInterval {
-        let todayStart = calendar.startOfDay(for: now)
-        let yesterdayStart = calendar.date(byAdding: .day, value: -1, to: todayStart) ?? todayStart.addingTimeInterval(-24 * 60 * 60)
-        return DateInterval(start: yesterdayStart.addingTimeInterval(-30 * 60), end: yesterdayStart.addingTimeInterval(30 * 60))
-    }
-
-    static func write(healthStore: HKHealthStore, now: Date) async throws -> DateInterval {
-        let sampleWindow = window(now: now)
-        let sample = HKQuantitySample(
-            type: HKQuantityType(.stepCount),
-            quantity: HKQuantity(unit: .count(), doubleValue: 600),
-            start: sampleWindow.start,
-            end: sampleWindow.end,
-            metadata: [metadataKey: true]
-        )
-        try await healthStore.save(sample)
-        return sampleWindow
-    }
-
-    static func delete(healthStore: HKHealthStore) async throws -> Int {
-        try await healthStore.deleteObjects(of: HKQuantityType(.stepCount), predicate: HKQuery.predicateForObjects(withMetadataKey: metadataKey))
     }
 }
 #endif

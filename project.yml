@@ -40,6 +40,7 @@ targets:
         INFOPLIST_FILE: Config/Info.plist
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Vital Courier
+        INFOPLIST_KEY_NSHealthUpdateUsageDescription: "Vital Courier only reads from Apple Health and never writes to it."
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
         CODE_SIGN_ENTITLEMENTS: Config/VitalCourier.entitlements
@@ -48,9 +49,6 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_EMIT_LOC_STRINGS: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
-      configs:
-        Debug:
-          INFOPLIST_KEY_NSHealthUpdateUsageDescription: "Debug builds write one test step sample for the midnight check and delete it afterwards."
   VitalCourierTests:
     type: bundle.unit-test
     platform: iOS
