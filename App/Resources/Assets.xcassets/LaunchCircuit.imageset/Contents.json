@@ -1,0 +1,9 @@
+{
+  "images" : [
+    { "filename" : "LaunchCircuit@2x.png", "idiom" : "universal", "scale" : "2x" },
+    { "filename" : "LaunchCircuit@3x.png", "idiom" : "universal", "scale" : "3x" },
+    { "appearances" : [{ "appearance" : "luminosity", "value" : "dark" }], "filename" : "LaunchCircuit-Dark@2x.png", "idiom" : "universal", "scale" : "2x" },
+    { "appearances" : [{ "appearance" : "luminosity", "value" : "dark" }], "filename" : "LaunchCircuit-Dark@3x.png", "idiom" : "universal", "scale" : "3x" }
+  ],
+  "info" : { "author" : "xcode", "version" : 1 }
+}
