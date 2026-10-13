@@ -1020,6 +1020,9 @@
         }
       }
     },
+    "https://vitalcourier.app/privacy" : {
+      "shouldTranslate" : false
+    },
     "JSON and daily Markdown" : {
       "localizations" : {
         "pt-BR" : {
@@ -1268,6 +1271,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Política de privacidade"
+          }
+        }
+      }
+    },
+    "privacyPolicy.url" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "https://vitalcourier.app/privacy"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "https://vitalcourier.app/pt-br/privacy"
           }
         }
       }
