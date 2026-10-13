@@ -2,8 +2,10 @@ import SwiftUI
 import VitalCourierCore
 
 enum AppLinks {
-    /// Design open question 1. If the final route differs, change the URL, not the label.
-    static let privacyPolicy = URL(string: "https://vitalcourier.app/privacy")
+    /// The site's page in the app's UI language. Each URL lives in the string catalog under `privacyPolicy.url`.
+    static func privacyPolicy(in localization: AppLocalization = .system) -> URL? {
+        URL(string: localization.string("privacyPolicy.url", defaultValue: "https://vitalcourier.app/privacy"))
+    }
     static let sourceCode = URL(string: "https://github.com/musashinm/vital-courier-app")
     /// Design open question 2: hidden while the repository is private.
     static let showsSourceCode = false
@@ -78,7 +80,7 @@ struct SettingsView: View {
             }
 
             Section {
-                if let privacyPolicy = AppLinks.privacyPolicy {
+                if let privacyPolicy = AppLinks.privacyPolicy() {
                     Link(destination: privacyPolicy) {
                         LinkRow(title: "Privacy policy")
                     }
