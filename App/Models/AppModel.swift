@@ -35,6 +35,7 @@ final class AppModel {
     let environment: AppEnvironment
     let history: HistoryModel
     let sleepSources: SleepSourceModel
+    let foregroundEntry: ForegroundEntry
     var phase: Phase = .booting
     var showsBootProgress = false
     var isRetryingStore = false
@@ -56,7 +57,13 @@ final class AppModel {
         self.environment = environment
         history = HistoryModel(environment: environment)
         sleepSources = SleepSourceModel(environment: environment)
+        foregroundEntry = ForegroundEntry(
+            authorizationRequestStatus: { try await environment.health.readAuthorizationRequestStatus(for: environment.enabledTypes) },
+            requestAuthorization: { try await environment.health.requestReadAuthorization(for: environment.enabledTypes) },
+            recordError: { errorText in Task.detached { environment.recordSetupError(errorText) } }
+        )
         sleepSources.onSaved = { [weak self] in self?.requestAppOpenRun() }
+        foregroundEntry.requestAppOpenRun = { [weak self] in self?.requestAppOpenRun() }
     }
 
     var homeSummary: HomeSummary {
@@ -108,9 +115,14 @@ final class AppModel {
                 phase = .ready
                 ObserverRegistration.start(environment: environment)
                 await refreshStatus()
-                requestAppOpenRun()
+                // Asks Health about new types before the app-open run, and only on a foreground launch.
+                await foregroundEntry.bootReachedReady()
             }
         }
+    }
+
+    func sceneActivityChanged(isActive: Bool) {
+        foregroundEntry.sceneActivityChanged(isActive: isActive)
     }
 
     func sceneBecameActive() {
@@ -120,7 +132,7 @@ final class AppModel {
         Task {
             folderState = await Task.detached { environment.refreshFolderRecordingLoss() }.value
         }
-        requestAppOpenRun()
+        Task { await foregroundEntry.sceneBecameActive() }
     }
 
     func sceneEnteredBackground() {
@@ -190,6 +202,7 @@ final class AppModel {
         folderSave = .idle
         phase = .ready
         ObserverRegistration.start(environment: environment)
+        foregroundEntry.setupCompleted()
         requestAppOpenRun()
     }
 

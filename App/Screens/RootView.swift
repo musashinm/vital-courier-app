@@ -30,7 +30,9 @@ struct RootView: View {
             syncBootPresentation(newPhase: newPhase, isInitial: oldPhase == newPhase)
         }
         .task { await model.boot() }
-        .onChange(of: scenePhase) { oldPhase, newPhase in
+        .onChange(of: scenePhase, initial: true) { oldPhase, newPhase in
+            // Initial too: on a cold launch the scene is usually active before boot is ready, and no later transition fires.
+            model.sceneActivityChanged(isActive: newPhase == .active)
             if newPhase == .active && oldPhase != .active { model.sceneBecameActive() }
             if newPhase == .background { model.sceneEnteredBackground() }
         }
