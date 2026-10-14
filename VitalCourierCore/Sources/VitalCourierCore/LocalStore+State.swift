@@ -111,24 +111,29 @@ extension LocalStore {
         }
     }
 
-    /// "Rebuild all": every (type, day) that has stored samples becomes dirty and not fresh. `statisticsZone` is the zone the daily statistics are queried in.
-    public func markAllDirty(statisticsZone: TimeZone) throws {
+    /// "Rebuild all": every (type, day) of `types` that has stored samples becomes dirty and not fresh. `statisticsZone` is the zone the daily statistics are queried in. The runner passes the enabled types, so a switched-off type is never rebuilt.
+    public func markAllDirty(statisticsZone: TimeZone, types: [HealthType] = HealthType.allCases) throws {
+        let typeNames = types.map(\.rawValue)
         try write { db in
             try db.execute(sql: """
-                INSERT INTO dirty (type, day, fresh) SELECT DISTINCT type, day, 0 FROM sample WHERE true
+                INSERT INTO dirty (type, day, fresh) SELECT DISTINCT type, day, 0 FROM sample WHERE type IN (\(databaseQuestionMarks(count: typeNames.count)))
                 ON CONFLICT(type, day) DO UPDATE SET fresh = 0
-                """)
-            try Self.markEverySleepWakeDayDirty(db)
-            try Self.markEveryOverlappedDayDirty(db, statisticsZone: statisticsZone)
+                """, arguments: StatementArguments(typeNames))
+            if types.contains(.sleep) {
+                try Self.markEverySleepWakeDayDirty(db)
+            }
+            try Self.markEveryOverlappedDayDirty(db, statisticsZone: statisticsZone, types: types)
         }
     }
 
-    /// Dirties every day each stored steps and resting heart rate sample overlaps, in its stored zone and in `statisticsZone`. The stored-day marks of `markAllDirty` miss the later days of a sample that crosses midnight.
-    static func markEveryOverlappedDayDirty(_ db: Database, statisticsZone: TimeZone) throws {
+    /// Dirties every day each stored steps and resting heart rate sample overlaps, in its stored zone and in `statisticsZone`, for those of the two in `types`. The stored-day marks of `markAllDirty` miss the later days of a sample that crosses midnight.
+    static func markEveryOverlappedDayDirty(_ db: Database, statisticsZone: TimeZone, types: [HealthType]) throws {
+        let statisticsTypeNames = [HealthType.steps, .restingHeartRate].filter(types.contains).map(\.rawValue)
+        guard !statisticsTypeNames.isEmpty else { return }
         let rows = try Row.fetchAll(
             db,
-            sql: "SELECT type, zone, startTime, endTime FROM sample WHERE type IN (?, ?)",
-            arguments: [HealthType.steps.rawValue, HealthType.restingHeartRate.rawValue]
+            sql: "SELECT type, zone, startTime, endTime FROM sample WHERE type IN (\(databaseQuestionMarks(count: statisticsTypeNames.count)))",
+            arguments: StatementArguments(statisticsTypeNames)
         )
         for row in rows {
             let typeRaw: String = row["type"]
@@ -215,6 +220,7 @@ extension LocalStore {
                 DELETE FROM anchor;
                 DELETE FROM dirty;
                 DELETE FROM dailyValue;
+                DELETE FROM cycleDailyValue;
                 """)
         }
     }

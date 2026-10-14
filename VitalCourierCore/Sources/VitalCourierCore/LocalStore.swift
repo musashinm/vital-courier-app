@@ -199,6 +199,17 @@ public final class LocalStore: Sendable {
                 );
                 """)
         }
+        // Cycle Tracking Spec, Storage: one row per day holds both cycle types. SQL inlined on purpose: later code must never change what this migration does.
+        migrator.registerMigration("v2-cycleDailyValue") { db in
+            try db.execute(sql: """
+                CREATE TABLE cycleDailyValue (
+                    day TEXT PRIMARY KEY NOT NULL,
+                    flow TEXT,
+                    periodStart INTEGER,
+                    spotting INTEGER
+                );
+                """)
+        }
         return migrator
     }
 
