@@ -61,7 +61,7 @@ public final class HealthKitSource: HealthSource {
 
     public func earliestSampleDate() async throws -> Date? {
         var earliest: Date?
-        for type in HealthType.allCases {
+        for type in HealthType.baseTypes {
             let descriptor = HKSampleQueryDescriptor(
                 predicates: [Self.predicate(for: type, matching: nil)],
                 sortDescriptors: [SortDescriptor(\.startDate)],
@@ -125,7 +125,7 @@ public final class HealthKitSource: HealthSource {
         case let quantitySample as HKQuantitySample:
             value = .quantity(try HealthKitMapping.storedValue(quantitySample.quantity, for: type))
         case let categorySample as HKCategorySample:
-            value = .category(HealthKitMapping.sleepValueName(rawValue: categorySample.value))
+            value = .category(HealthKitMapping.categoryValueName(rawValue: categorySample.value, for: type))
         default:
             throw HealthKitMappingError.unexpectedSampleClass(String(describing: Swift.type(of: sample)))
         }

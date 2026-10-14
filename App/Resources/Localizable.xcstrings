@@ -1096,6 +1096,16 @@
         }
       }
     },
+    "Menstrual flow" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fluxo menstrual"
+          }
+        }
+      }
+    },
     "More errors in run details" : {
       "localizations" : {
         "pt-BR" : {
@@ -1456,6 +1466,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Código-fonte"
+          }
+        }
+      }
+    },
+    "Spotting" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sangramento de escape"
           }
         }
       }

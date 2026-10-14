@@ -116,6 +116,8 @@ extension HealthType {
         case .restingHeartRate: String(localized: "Resting heart rate")
         case .sleep: String(localized: "Sleep")
         case .weight: String(localized: "Weight")
+        case .menstrualFlow: String(localized: "Menstrual flow")
+        case .spotting: String(localized: "Spotting")
         }
     }
 
@@ -125,6 +127,8 @@ extension HealthType {
         case .restingHeartRate: "heart.fill"
         case .sleep: "bed.double.fill"
         case .weight: "scalemass.fill"
+        case .menstrualFlow: "drop.fill"
+        case .spotting: "drop"
         }
     }
 }

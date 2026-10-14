@@ -11,7 +11,7 @@ enum ObserverRegistration {
         guard environment.markObserversStarted() else { return }
         let application = UIApplication.shared
         let healthStore = environment.health.healthStore
-        let descriptors = HealthType.allCases.map { HKQueryDescriptor(sampleType: HealthKitMapping.sampleType(for: $0), predicate: nil) }
+        let descriptors = HealthType.baseTypes.map { HKQueryDescriptor(sampleType: HealthKitMapping.sampleType(for: $0), predicate: nil) }
         let query = HKObserverQuery(queryDescriptors: descriptors) { _, _, completionHandler, error in
             // Nothing here may block: HealthKit runs this handler on its serial store-client queue, and delivers the run's own query results on that same queue (logged on a device on 2026-10-04). The read is started under background time and HealthKit is acknowledged at once; a run cut short resumes from its last committed anchor on the next trigger. Setup errors go through a Task because recording one can write the store.
             if let error {
@@ -32,7 +32,7 @@ enum ObserverRegistration {
             completionHandler()
         }
         healthStore.execute(query)
-        for type in HealthType.allCases {
+        for type in HealthType.baseTypes {
             healthStore.enableBackgroundDelivery(for: HealthKitMapping.sampleType(for: type), frequency: .immediate) { succeeded, error in
                 if !succeeded {
                     environment.recordSetupError("background delivery \(type.rawValue): \(error.map { String(describing: $0) } ?? "not enabled")")

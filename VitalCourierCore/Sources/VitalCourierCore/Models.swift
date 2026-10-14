@@ -5,6 +5,18 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
     case restingHeartRate
     case sleep
     case weight
+    case menstrualFlow
+    case spotting
+
+    /// The four types every install exports.
+    public static let baseTypes: [HealthType] = [.steps, .restingHeartRate, .sleep, .weight]
+    /// Exported only while Cycle tracking is on (Cycle Tracking Spec).
+    public static let cycleTypes: [HealthType] = [.menstrualFlow, .spotting]
+
+    /// The types the app reads, observes, exports and lists.
+    public static func enabledTypes(cycleTrackingEnabled: Bool) -> [HealthType] {
+        cycleTrackingEnabled ? baseTypes + cycleTypes : baseTypes
+    }
 
     /// Folder name under `Vital Courier/json/`.
     public var folderName: String {
@@ -13,6 +25,8 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
         case .restingHeartRate: "resting-heart-rate"
         case .sleep: "sleep"
         case .weight: "weight"
+        case .menstrualFlow: "menstrual-flow"
+        case .spotting: "spotting"
         }
     }
 
@@ -21,7 +35,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
         switch self {
         case .steps: "count"
         case .restingHeartRate: "count/s"
-        case .sleep: "category"
+        case .sleep, .menstrualFlow, .spotting: "category"
         case .weight: "kg"
         }
     }

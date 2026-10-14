@@ -32,7 +32,7 @@ struct HomeView: View {
                 Text("What happens next").foregroundStyle(Color.vcTertiaryText)
             }
             Section {
-                ForEach(HealthType.allCases, id: \.self) { type in
+                ForEach(HealthType.baseTypes, id: \.self) { type in
                     let recency = TypeRecency.resolve(latestDay: model.snapshot?.latestDailyValueDays[type], setupDay: setupDay, today: today)
                     HealthRow(
                         type: type,

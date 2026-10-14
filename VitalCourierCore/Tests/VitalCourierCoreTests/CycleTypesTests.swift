@@ -1,0 +1,18 @@
+import Foundation
+import Testing
+@testable import VitalCourierCore
+
+@Suite struct CycleTypesTests {
+    @Test func cycleTypesJoinTheEnabledSetOnlyWhenSwitchedOn() {
+        #expect(HealthType.enabledTypes(cycleTrackingEnabled: false) == [.steps, .restingHeartRate, .sleep, .weight])
+        #expect(HealthType.enabledTypes(cycleTrackingEnabled: true) == [.steps, .restingHeartRate, .sleep, .weight, .menstrualFlow, .spotting])
+        #expect(HealthType.baseTypes + HealthType.cycleTypes == HealthType.allCases)
+    }
+
+    @Test func cycleTypesAreCategoriesInTheirOwnFolders() {
+        #expect(HealthType.menstrualFlow.folderName == "menstrual-flow")
+        #expect(HealthType.spotting.folderName == "spotting")
+        #expect(HealthType.menstrualFlow.siUnit == "category")
+        #expect(HealthType.spotting.siUnit == "category")
+    }
+}

@@ -74,7 +74,7 @@ public final class ExportRunner: Sendable {
 
     func readStep(options: RunOptions, zone: TimeZone, errors: inout [String]) async -> ReadOutcome {
         do {
-            for type in HealthType.allCases {
+            for type in HealthType.baseTypes {
                 var hasMore = true
                 while hasMore {
                     if Task.isCancelled { return .read }
@@ -116,7 +116,7 @@ public final class ExportRunner: Sendable {
             return
         }
         let interval = DateInterval(start: start, end: end)
-        for type in HealthType.allCases {
+        for type in HealthType.baseTypes {
             if Task.isCancelled { return }
             do {
                 let remote = try await health.samples(for: type, in: interval)
@@ -175,6 +175,9 @@ public final class ExportRunner: Sendable {
             let nights = SleepAggregator.nights(from: samples, preferredSource: preferredSleepSource, fallback: zone)
             guard let night = nights[entry.day] else { return nil }
             return DailyValue(value: night.asleepHours, deepHours: night.deepHours, remHours: night.remHours, source: night.source)
+        case .menstrualFlow, .spotting:
+            // Cycle days have no numeric value; they get their own row (Task 3).
+            return nil
         }
     }
 
