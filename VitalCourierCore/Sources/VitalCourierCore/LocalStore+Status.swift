@@ -12,14 +12,22 @@ public struct StoreStatusSnapshot: Equatable, Sendable {
     public var latestDailyValueDays: [HealthType: DayKey]
     /// The source of the newest sleep daily value, for "Updated today · Apple Watch".
     public var latestSleepSource: String?
+    /// The newest day with a logged flow, and that flow (Cycle Tracking Spec, UI). Read whatever the switch says; Home shows them only while it is on.
+    public var latestFlowDay: DayKey?
+    public var latestFlow: String?
+    /// The newest day with spotting logged.
+    public var latestSpottingDay: DayKey?
 
-    public init(latestRun: RunRecord?, latestAppEvent: RunRecord? = nil, lastSuccessfulReadAt: Date?, dailyValuesFailureStreakStart: Date?, latestDailyValueDays: [HealthType: DayKey], latestSleepSource: String?) {
+    public init(latestRun: RunRecord?, latestAppEvent: RunRecord? = nil, lastSuccessfulReadAt: Date?, dailyValuesFailureStreakStart: Date?, latestDailyValueDays: [HealthType: DayKey], latestSleepSource: String?, latestFlowDay: DayKey? = nil, latestFlow: String? = nil, latestSpottingDay: DayKey? = nil) {
         self.latestRun = latestRun
         self.latestAppEvent = latestAppEvent
         self.lastSuccessfulReadAt = lastSuccessfulReadAt
         self.dailyValuesFailureStreakStart = dailyValuesFailureStreakStart
         self.latestDailyValueDays = latestDailyValueDays
         self.latestSleepSource = latestSleepSource
+        self.latestFlowDay = latestFlowDay
+        self.latestFlow = latestFlow
+        self.latestSpottingDay = latestSpottingDay
     }
 }
 
@@ -27,6 +35,11 @@ extension LocalStore {
     public func statusSnapshot() throws -> StoreStatusSnapshot {
         try dbQueue.read { db in
             let newestRow = try Self.runs(db, before: nil, limit: 1).first
+            // Cycle days have no `dailyValue` rows, so their recency comes from `cycleDailyValue`.
+            let latestFlowRow = try Row.fetchOne(db, sql: "SELECT day, flow FROM cycleDailyValue WHERE flow IS NOT NULL ORDER BY day DESC LIMIT 1")
+            let latestFlowDay = try latestFlowRow.map { row in try Self.cycleDayKey(row["day"]) }
+            let latestFlow: String? = latestFlowRow?["flow"]
+            let latestSpottingDay = try String.fetchOne(db, sql: "SELECT day FROM cycleDailyValue WHERE spotting = 1 ORDER BY day DESC LIMIT 1").map(Self.cycleDayKey)
             return StoreStatusSnapshot(
                 latestRun: try Self.latestRunSkippingAppEvents(db),
                 latestAppEvent: newestRow?.trigger == RunRecord.appEventTrigger ? newestRow : nil,
@@ -37,9 +50,17 @@ extension LocalStore {
                     db,
                     sql: "SELECT source FROM dailyValue WHERE type = ? ORDER BY day DESC LIMIT 1",
                     arguments: [HealthType.sleep.rawValue]
-                )
+                ),
+                latestFlowDay: latestFlowDay,
+                latestFlow: latestFlow,
+                latestSpottingDay: latestSpottingDay
             )
         }
+    }
+
+    static func cycleDayKey(_ text: String) throws -> DayKey {
+        guard let day = DayKey(text) else { throw LocalStoreError.corruptRow("cycleDailyValue \(text)") }
+        return day
     }
 
     /// Newest first. Pass the last record of the previous page as `cursor`; new runs arriving meanwhile never shift or repeat rows.

@@ -114,4 +114,25 @@ import Testing
         #expect(snapshot.latestDailyValueDays == [.sleep: day("2026-09-30")])
         #expect(snapshot.latestSleepSource == "Apple Watch")
     }
+
+    @Test func theSnapshotHasTheLatestFlowAndSpottingDays() throws {
+        let store = try LocalStore.inMemory()
+        let empty = try store.statusSnapshot()
+        #expect(empty.latestFlowDay == nil)
+        #expect(empty.latestFlow == nil)
+        #expect(empty.latestSpottingDay == nil)
+
+        try store.saveCycleDay(.spotting(true), day: day("2026-10-08"))
+        try store.saveCycleDay(.flow("heavy", periodStart: true), day: day("2026-10-10"))
+        // A later day with spotting only must not replace the latest flow day.
+        try store.saveCycleDay(.spotting(true), day: day("2026-10-12"))
+        // A later flow that was cleared again leaves no row.
+        try store.saveCycleDay(.flow("light", periodStart: false), day: day("2026-10-13"))
+        try store.saveCycleDay(.flow(nil, periodStart: false), day: day("2026-10-13"))
+
+        let snapshot = try store.statusSnapshot()
+        #expect(snapshot.latestFlowDay == day("2026-10-10"))
+        #expect(snapshot.latestFlow == "heavy")
+        #expect(snapshot.latestSpottingDay == day("2026-10-12"))
+    }
 }
