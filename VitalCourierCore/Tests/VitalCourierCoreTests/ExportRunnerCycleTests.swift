@@ -77,6 +77,8 @@ import Testing
         try store.deleteDirtyMarks(types: HealthType.allCases)
         let log = EventLog()
         let health = FakeHealthSource(log: log)
+        // Verify's all-dates path returns early without an earliest date; the stored flow sample doesn't count while tracking is off.
+        await health.setEarliest(date("2026-10-01T00:00:00Z"))
         let destination = FakeDestination()
 
         _ = await makeRunner(store: store, health: health, destination: destination, cycleTrackingEnabled: false).run(trigger: .rebuildAll, options: .forTrigger(.rebuildAll)) {}
