@@ -12,8 +12,6 @@ final class ForegroundEntry {
     private var isSceneActive = false
     private var isReady = false
     private var isEntering = false
-    /// The Health sheet was answered while the scene was not active, so the run waits for the next active transition.
-    private var hasPendingRun = false
 
     init(
         authorizationRequestStatus: @escaping @MainActor () async throws -> HKAuthorizationRequestStatus,
@@ -48,18 +46,15 @@ final class ForegroundEntry {
 
     /// Asks Health first and requests the run only once the sheet is answered: a read started earlier would miss the new types, and nothing would retry it. A second call while one is running returns at once, so one sheet shows.
     ///
-    /// The Health sheet can itself move the scene to inactive and back. Both orders end in one run: a transition that lands while `isEntering` is true returns at once and the in-flight entry runs the request, if the scene is active again by then; an answer that lands while the scene is inactive leaves `hasPendingRun` set, and the next active transition calls `enter()` again. That second call asks Health again, gets `.unnecessary` because the sheet was answered, shows no second sheet, and requests the run.
+    /// The Health sheet can itself move the scene to inactive and back. Both orders end in one run: a transition that lands while `isEntering` is true returns at once and the in-flight entry runs the request, if the scene is active again by then; an answer that lands while the scene is inactive requests nothing, and the next active transition calls `enter()` again. That second call asks Health again, gets `.unnecessary` because the sheet was answered, shows no second sheet, and requests the run.
     func enter() async {
         guard !isEntering else { return }
         isEntering = true
         defer { isEntering = false }
         await askForTypesNotAskedYet()
+        // With the scene inactive or in the background, nothing is requested here: the next active transition's `enter()` requests the run, so no read starts from the background.
         if isSceneActive {
-            hasPendingRun = false
             requestAppOpenRun()
-        } else {
-            // The scene went inactive or to the background while the sheet was up. The next active transition enters again and runs, so no read starts from the background.
-            hasPendingRun = true
         }
     }
 
