@@ -59,9 +59,9 @@ public final class HealthKitSource: HealthSource {
         return try samples.map { try Self.healthSample(from: $0, type: type) }
     }
 
-    public func earliestSampleDate() async throws -> Date? {
+    public func earliestSampleDate(types: [HealthType]) async throws -> Date? {
         var earliest: Date?
-        for type in HealthType.baseTypes {
+        for type in types {
             let descriptor = HKSampleQueryDescriptor(
                 predicates: [Self.predicate(for: type, matching: nil)],
                 sortDescriptors: [SortDescriptor(\.startDate)],

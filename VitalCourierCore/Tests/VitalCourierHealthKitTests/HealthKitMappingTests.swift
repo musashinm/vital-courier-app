@@ -127,4 +127,9 @@ private func date(_ iso: String) -> Date {
         #expect(HealthKitMapping.categoryValueName(rawValue: HKCategoryValue.notApplicable.rawValue, for: .spotting) == "notApplicable")
         #expect(HealthKitMapping.categoryValueName(rawValue: HKCategoryValueSleepAnalysis.asleepREM.rawValue, for: .sleep) == "asleepREM")
     }
+
+    @Test func theCycleStartFlagIsStoredAsOne() {
+        #expect(CycleDayRule.menstrualCycleStartMetadataKey == HKMetadataKeyMenstrualCycleStart)
+        #expect(HealthKitMapping.stringMetadata([HKMetadataKeyMenstrualCycleStart: NSNumber(value: true)])[HKMetadataKeyMenstrualCycleStart] == "1")
+    }
 }
