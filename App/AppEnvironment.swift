@@ -93,16 +93,23 @@ final class AppEnvironment: Sendable {
     }
 
     /// Cycle tracking turned off: drops pending cycle marks once no run is active, so a run already past its read can't write them after the switch.
+    /// The switch is read again inside the exclusive section: if tracking came back on while this waited, that run's marks are the only record of its cycle data and stay.
     func deleteCycleDirtyMarks() async throws {
         switch storeStateNow {
         case .ready(let store, let coordinator):
             try await coordinator.exclusive {
-                try store.deleteDirtyMarks(types: HealthType.cycleTypes)
+                try Self.deleteCycleDirtyMarks(in: store, unlessTrackingIsEnabled: { self.settings.cycleTrackingEnabled })
                 self.recordProtectionFailures(in: store)
             }
         case .blocked(let errorText):
             throw AppEnvironmentError.storeBlocked(errorText)
         }
+    }
+
+    /// Deletes the cycle dirty marks unless `isTrackingEnabled` says tracking is on again. Called inside the coordinator's exclusive section.
+    static func deleteCycleDirtyMarks(in store: LocalStore, unlessTrackingIsEnabled isTrackingEnabled: () -> Bool) throws {
+        guard !isTrackingEnabled() else { return }
+        try store.deleteDirtyMarks(types: HealthType.cycleTypes)
     }
 
     /// Every trigger goes through here. With a blocked store, `onReadCommitted` runs at once (an observer completion handler must never be held) and the call throws.
