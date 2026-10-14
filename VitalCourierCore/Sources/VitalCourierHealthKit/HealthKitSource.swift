@@ -20,6 +20,16 @@ public final class HealthKitSource: HealthSource {
         try await healthStore.requestAuthorization(toShare: [], read: HealthKitMapping.readTypes)
     }
 
+    /// Asks to read `types`. iOS lists only the types not asked about before.
+    public func requestReadAuthorization(for types: [HealthType]) async throws {
+        try await healthStore.requestAuthorization(toShare: [], read: HealthKitMapping.readTypes(for: types))
+    }
+
+    /// Whether asking to read `types` would show the Health sheet. `.unnecessary` only means every type was asked about before, never that reading was allowed (HealthKit hides read denial).
+    public func readAuthorizationRequestStatus(for types: [HealthType]) async throws -> HKAuthorizationRequestStatus {
+        try await healthStore.statusForAuthorizationRequest(toShare: [], read: HealthKitMapping.readTypes(for: types))
+    }
+
     public func isReadable() async -> Bool {
         await protectedDataAvailable()
     }

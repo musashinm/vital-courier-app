@@ -3,16 +3,42 @@ import UIKit
 import VitalCourierCore
 import VitalCourierHealthKit
 
-/// One HealthKit observer query for the four types, with background delivery (spec, Triggers: Observer wake; Observer Acknowledgement Spec).
+/// One HealthKit observer query for the enabled types, with background delivery (spec, Triggers: Observer wake; Observer Acknowledgement Spec; Cycle Tracking Spec, Observer lifecycle). Main actor because it reads `UIApplication.shared` and keeps the running query.
+@MainActor
 enum ObserverRegistration {
-    /// Call at every launch once setup is done, and when setup completes. Queries die with the process; iOS relaunches the app in the background for types with background delivery on, and the query must be running again by the end of `didFinishLaunching`. Main actor because it reads `UIApplication.shared`.
-    @MainActor
+    /// The running query and the types it was built with; nil until `start`.
+    private static var running: (query: HKObserverQuery, types: [HealthType])?
+
+    /// Call at every launch once setup is done, and when setup completes. Queries die with the process; iOS relaunches the app in the background for types with background delivery on, and the query must be running again by the end of `didFinishLaunching`.
     static func start(environment: AppEnvironment) {
         guard environment.markObserversStarted() else { return }
+        let types = environment.enabledTypes
+        execute(types: types, environment: environment)
+        setBackgroundDelivery(enable: types, disable: [], environment: environment)
+    }
+
+    /// Cycle tracking changed: rebuild the query for the enabled types and switch background delivery for the types that changed. Before `start` it does nothing, since `start` reads the switch itself.
+    static func update(environment: AppEnvironment) {
+        guard let current = running else { return }
+        let types = environment.enabledTypes
+        guard types != current.types else { return }
+        environment.health.healthStore.stop(current.query)
+        execute(types: types, environment: environment)
+        let changes = deliveryChanges(from: current.types, to: types)
+        setBackgroundDelivery(enable: changes.enable, disable: changes.disable, environment: environment)
+    }
+
+    static func descriptors(for types: [HealthType]) -> [HKQueryDescriptor] {
+        types.map { HKQueryDescriptor(sampleType: HealthKitMapping.sampleType(for: $0), predicate: nil) }
+    }
+
+    static func deliveryChanges(from oldTypes: [HealthType], to newTypes: [HealthType]) -> (enable: [HealthType], disable: [HealthType]) {
+        (newTypes.filter { !oldTypes.contains($0) }, oldTypes.filter { !newTypes.contains($0) })
+    }
+
+    private static func execute(types: [HealthType], environment: AppEnvironment) {
         let application = UIApplication.shared
-        let healthStore = environment.health.healthStore
-        let descriptors = HealthType.baseTypes.map { HKQueryDescriptor(sampleType: HealthKitMapping.sampleType(for: $0), predicate: nil) }
-        let query = HKObserverQuery(queryDescriptors: descriptors) { _, _, completionHandler, error in
+        let query = HKObserverQuery(queryDescriptors: descriptors(for: types)) { _, _, completionHandler, error in
             // Nothing here may block: HealthKit runs this handler on its serial store-client queue, and delivers the run's own query results on that same queue (logged on a device on 2026-10-04). The read is started under background time and HealthKit is acknowledged at once; a run cut short resumes from its last committed anchor on the next trigger. Setup errors go through a Task because recording one can write the store.
             if let error {
                 Task { environment.recordSetupError("observer: \(error)") }
@@ -31,11 +57,23 @@ enum ObserverRegistration {
             )
             completionHandler()
         }
-        healthStore.execute(query)
-        for type in HealthType.baseTypes {
+        environment.health.healthStore.execute(query)
+        running = (query, types)
+    }
+
+    private static func setBackgroundDelivery(enable typesToEnable: [HealthType], disable typesToDisable: [HealthType], environment: AppEnvironment) {
+        let healthStore = environment.health.healthStore
+        for type in typesToEnable {
             healthStore.enableBackgroundDelivery(for: HealthKitMapping.sampleType(for: type), frequency: .immediate) { succeeded, error in
                 if !succeeded {
                     environment.recordSetupError("background delivery \(type.rawValue): \(error.map { String(describing: $0) } ?? "not enabled")")
+                }
+            }
+        }
+        for type in typesToDisable {
+            healthStore.disableBackgroundDelivery(for: HealthKitMapping.sampleType(for: type)) { succeeded, error in
+                if !succeeded {
+                    environment.recordSetupError("disable background delivery \(type.rawValue): \(error.map { String(describing: $0) } ?? "not disabled")")
                 }
             }
         }

@@ -9,6 +9,7 @@ public struct AppSettings: Sendable {
         static let setupCompletedAt = "setupCompletedAt"
         static let awaitingRereadAfterClear = "awaitingRereadAfterClear"
         static let pendingSetupErrors = "pendingSetupErrors"
+        static let cycleTrackingEnabled = "cycleTrackingEnabled"
     }
 
     let storage: any KeyValueStorage
@@ -42,6 +43,12 @@ public struct AppSettings: Sendable {
     public var awaitingRereadAfterClear: Bool {
         get { string(forKey: Key.awaitingRereadAfterClear) == "1" }
         nonmutating set { setString(newValue ? "1" : nil, forKey: Key.awaitingRereadAfterClear) }
+    }
+
+    /// The Settings switch for menstrual flow and spotting (Cycle Tracking Spec). Off by default.
+    public var cycleTrackingEnabled: Bool {
+        get { string(forKey: Key.cycleTrackingEnabled) == "1" }
+        nonmutating set { setString(newValue ? "1" : nil, forKey: Key.cycleTrackingEnabled) }
     }
 
     /// Setup errors not yet saved to run history, kept outside `LocalStore` so a process exit does not lose them. Stored as a JSON array; stored data that cannot be decoded is returned as one visible entry, never dropped.
