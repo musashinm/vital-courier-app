@@ -6,7 +6,7 @@ The app isn't released yet. It is heading to TestFlight first.
 
 ## What it exports
 
-Four types: steps, resting heart rate, sleep and weight. Everything goes into a `Vital Courier` folder inside the folder you pick:
+Four types: steps, resting heart rate, sleep and weight. Two more, menstrual flow and spotting, are exported when Cycle tracking is on in Settings. Everything goes into a `Vital Courier` folder inside the folder you pick:
 
 ```
 Vital Courier/
@@ -15,7 +15,7 @@ Vital Courier/
   daily/<YYYY-MM-DD>.md         one note per day, with that day's values as properties
 ```
 
-The JSON is an export of each stored sample, with its source name, device name and metadata (metadata values are saved as text). The daily notes hold that day's values in YAML frontmatter, always metric, so Obsidian Bases or Dataview can query them. The keys are `date`, `vc_steps`, `vc_resting_hr_bpm`, `vc_sleep_hours`, `vc_sleep_deep_hours`, `vc_sleep_rem_hours`, `vc_sleep_source`, `vc_weight_kg` and `vc_schema`. `date` and `vc_schema` are always there; a health key is left out when the day has no value for it. The file names match Obsidian's daily notes.
+The JSON is an export of each stored sample, with its source name, device name and metadata (metadata values are saved as text). The daily notes hold that day's values in YAML frontmatter, always metric, so Obsidian Bases or Dataview can query them. The keys are `date`, `vc_steps`, `vc_resting_hr_bpm`, `vc_sleep_hours`, `vc_sleep_deep_hours`, `vc_sleep_rem_hours`, `vc_sleep_source`, `vc_weight_kg`, `vc_menstrual_flow`, `vc_period_start`, `vc_spotting` and `vc_schema`. `date` and `vc_schema` are always there; a health key is left out when the day has no value for it. The two cycle flags are written only when true. The file names match Obsidian's daily notes.
 
 ## When it runs
 
@@ -25,7 +25,7 @@ The JSON is an export of each stored sample, with its source name, device name a
 | App open | Reads new data and checks the last 30 days against HealthKit for deletions. |
 | Background refresh | The same as App open, when iOS gives the app background time. HealthKit can't be read while the phone is locked, so a locked run only writes days already saved. |
 | Export now | An App Intent for Shortcuts. Writes days already saved, without reading HealthKit, so it works on a locked phone. |
-| Rebuild all | In Settings. Rereads all four data types and rewrites every day and month the app knows about. The phone must be unlocked for the full rebuild. While it is locked, the HealthKit read is skipped, only the saved monthly JSON files are rewritten, and the daily notes wait until the phone is unlocked. |
+| Rebuild all | In Settings. Rereads every enabled data type and rewrites every day and month the app knows about. The phone must be unlocked for the full rebuild. While it is locked, the HealthKit read is skipped, only the saved monthly JSON files are rewritten, and the daily notes wait until the phone is unlocked. |
 
 The History screen lists every run with its trigger and result.
 

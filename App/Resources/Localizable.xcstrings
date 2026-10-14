@@ -791,6 +791,16 @@
         }
       }
     },
+    "Cycle tracking" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monitoramento do ciclo"
+          }
+        }
+      }
+    },
     "Daily summaries haven’t refreshed in 24 hours" : {
       "localizations" : {
         "pt-BR" : {
@@ -990,6 +1000,16 @@
         }
       }
     },
+    "Heavy" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intenso"
+          }
+        }
+      }
+    },
     "History" : {
       "localizations" : {
         "pt-BR" : {
@@ -1043,12 +1063,12 @@
         }
       }
     },
-    "Keep your iPhone unlocked while Vital Courier reads the four data types." : {
+    "Keep your iPhone unlocked while Vital Courier reads your Health data." : {
       "localizations" : {
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deixe o iPhone desbloqueado enquanto o Vital Courier lê os quatro tipos de dados."
+            "value" : "Deixe o iPhone desbloqueado enquanto o Vital Courier lê seus dados do app Saúde."
           }
         }
       }
@@ -1059,6 +1079,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Última conclusão: %@."
+          }
+        }
+      }
+    },
+    "Light" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leve"
           }
         }
       }
@@ -1092,6 +1122,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Manutenção"
+          }
+        }
+      }
+    },
+    "Medium" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Médio"
           }
         }
       }
@@ -1136,12 +1176,32 @@
         }
       }
     },
+    "No entries yet" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum registro ainda"
+          }
+        }
+      }
+    },
     "No errors" : {
       "localizations" : {
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nenhum erro"
+          }
+        }
+      }
+    },
+    "No flow" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem fluxo"
           }
         }
       }
@@ -1520,12 +1580,12 @@
         }
       }
     },
-    "This removes Vital Courier’s protected local health-data database. It does not delete Apple Health data or exported files. Run history, settings, and your folder choice remain. The next unlocked run rereads the four data types." : {
+    "This removes Vital Courier’s protected local health-data database. It does not delete Apple Health data or exported files. Run history, settings, and your folder choice remain. The next unlocked run rereads your Health data." : {
       "localizations" : {
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Isso apaga o banco de dados local e protegido do Vital Courier. Não apaga dados do app Saúde nem arquivos exportados. O histórico de execuções, os ajustes e a pasta escolhida continuam. A próxima execução com o iPhone desbloqueado lê de novo os quatro tipos de dados."
+            "value" : "Isso apaga o banco de dados local e protegido do Vital Courier. Não apaga dados do app Saúde nem arquivos exportados. O histórico de execuções, os ajustes e a pasta escolhida continuam. A próxima execução com o iPhone desbloqueado lê de novo seus dados do app Saúde."
           }
         }
       }
@@ -1560,6 +1620,16 @@
         }
       }
     },
+    "Turning this off stops reading cycle data. What’s already exported stays. To remove Health access, go to Settings > Health." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ao desativar, o Vital Courier para de ler dados do ciclo. O que já foi exportado continua. Para remover o acesso ao app Saúde, vá em Ajustes > Saúde."
+          }
+        }
+      }
+    },
     "Unlock this iPhone and open Vital Courier to try again." : {
       "localizations" : {
         "pt-BR" : {
@@ -1576,6 +1646,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Desbloqueie este iPhone e abra o Vital Courier. Os arquivos salvos continuam onde estão."
+          }
+        }
+      }
+    },
+    "Unspecified" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não especificado"
           }
         }
       }
@@ -1683,12 +1763,12 @@
         }
       }
     },
-    "Vital Courier will reread all four data types and rewrite every day and month it knows about. Keep this iPhone unlocked. This can take a while." : {
+    "Vital Courier will reread your Health data and rewrite every day and month it knows about. Keep this iPhone unlocked. This can take a while." : {
       "localizations" : {
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Vital Courier vai ler de novo os quatro tipos de dados e regravar todos os dias e meses que conhece. Deixe este iPhone desbloqueado. Isso pode demorar."
+            "value" : "O Vital Courier vai ler de novo seus dados do app Saúde e regravar todos os dias e meses que conhece. Deixe este iPhone desbloqueado. Isso pode demorar."
           }
         }
       }

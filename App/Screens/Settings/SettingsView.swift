@@ -38,6 +38,16 @@ struct SettingsView: View {
             }
 
             Section {
+                Toggle("Cycle tracking", isOn: Binding(get: { model.cycleTrackingEnabled }, set: { model.setCycleTracking($0) }))
+                    .frame(minHeight: 44)
+            } header: {
+                Text("Health data").foregroundStyle(Color.vcTertiaryText)
+            } footer: {
+                Text("Turning this off stops reading cycle data. What’s already exported stays. To remove Health access, go to Settings > Health.")
+                    .foregroundStyle(Color.vcTertiaryText)
+            }
+
+            Section {
                 folderRow
                 if case .lost(let errorText) = model.folderState {
                     ErrorTextView(text: errorText)
@@ -110,13 +120,13 @@ struct SettingsView: View {
             Button("Clear local copy", role: .destructive) { model.clearLocalCopy() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This removes Vital Courier’s protected local health-data database. It does not delete Apple Health data or exported files. Run history, settings, and your folder choice remain. The next unlocked run rereads the four data types.")
+            Text("This removes Vital Courier’s protected local health-data database. It does not delete Apple Health data or exported files. Run history, settings, and your folder choice remain. The next unlocked run rereads your Health data.")
         }
         .alert("Rebuild every export?", isPresented: $confirmsRebuild) {
             Button("Rebuild all") { model.rebuildAll() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Vital Courier will reread all four data types and rewrite every day and month it knows about. Keep this iPhone unlocked. This can take a while.")
+            Text("Vital Courier will reread your Health data and rewrite every day and month it knows about. Keep this iPhone unlocked. This can take a while.")
         }
         .folderPicker(isPresented: $isPickerPresented, onPick: { model.pickFolder($0) }, onError: { model.folderSave = .failed(errorText: $0) })
     }

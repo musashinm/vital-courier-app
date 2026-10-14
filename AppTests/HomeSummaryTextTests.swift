@@ -29,7 +29,7 @@ import VitalCourierCore
         #expect(HomeSummary.readOverdue.text(formatter: english, now: now) == HomeSummaryText(symbolName: "lock.trianglebadge.exclamationmark", title: "Health data hasn’t been read in 24 hours", detail: "Unlock this iPhone and open Vital Courier. Saved files remain in place.", errorText: nil, showsMoreErrorsNote: false, action: .viewRecentRuns))
         #expect(HomeSummary.dailyValuesOverdue.text(formatter: english, now: now) == HomeSummaryText(symbolName: "exclamationmark.arrow.triangle.2.circlepath", title: "Daily summaries haven’t refreshed in 24 hours", detail: "Unlock this iPhone and open Vital Courier to try again.", errorText: nil, showsMoreErrorsNote: false, action: .viewRecentRuns))
         #expect(HomeSummary.awaitingReread.text(formatter: english, now: now) == HomeSummaryText(symbolName: "arrow.clockwise.circle", title: "Waiting to reread health data", detail: "Keep this iPhone unlocked and open Vital Courier. Your exported files remain in place.", errorText: nil, showsMoreErrorsNote: false, action: .none))
-        #expect(HomeSummary.waitingForFirstExport.text(formatter: english, now: now) == HomeSummaryText(symbolName: "clock.badge.questionmark", title: "Waiting for the first export", detail: "Keep your iPhone unlocked while Vital Courier reads the four data types.", errorText: nil, showsMoreErrorsNote: false, action: .none))
+        #expect(HomeSummary.waitingForFirstExport.text(formatter: english, now: now) == HomeSummaryText(symbolName: "clock.badge.questionmark", title: "Waiting for the first export", detail: "Keep your iPhone unlocked while Vital Courier reads your Health data.", errorText: nil, showsMoreErrorsNote: false, action: .none))
         #expect(HomeSummary.running(lastCompleted: nil).text(formatter: english, now: now).title == "Checking for updates…")
     }
 
@@ -60,7 +60,7 @@ import VitalCourierCore
         #expect(HomeSummary.writeFailure(run: run("2026-10-03T11:16:00Z", failed: 1)).text(formatter: portuguese, now: now).title == "1 dia falhou")
         #expect(HomeSummary.noFolder.text(formatter: portuguese, now: now).title == "Escolher uma pasta")
         #expect(HomeSummary.readOverdue.text(formatter: portuguese, now: now).title == "Os dados de saúde não são lidos há 24 horas")
-        #expect(HomeSummary.waitingForFirstExport.text(formatter: portuguese, now: now).detail == "Deixe o iPhone desbloqueado enquanto o Vital Courier lê os quatro tipos de dados.")
+        #expect(HomeSummary.waitingForFirstExport.text(formatter: portuguese, now: now).detail == "Deixe o iPhone desbloqueado enquanto o Vital Courier lê seus dados do app Saúde.")
     }
 
     @Test func portugueseCoversEveryHomeCase() {
@@ -90,7 +90,7 @@ import VitalCourierCore
         #expect(text(.daysUpdated(run: run("2026-10-03T11:16:00Z", written: 0))).title == "0 dias atualizados")
         #expect(text(.upToDate(run: run("2026-10-03T11:16:00Z"))).title == "Tudo em dia")
         #expect(text(.waitingForFirstExport).title == "Aguardando a primeira exportação")
-        #expect(text(.waitingForFirstExport).detail == "Deixe o iPhone desbloqueado enquanto o Vital Courier lê os quatro tipos de dados.")
+        #expect(text(.waitingForFirstExport).detail == "Deixe o iPhone desbloqueado enquanto o Vital Courier lê seus dados do app Saúde.")
     }
 
     @Test func portugueseRecency() {

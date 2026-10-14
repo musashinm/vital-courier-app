@@ -39,7 +39,7 @@ extension HomeSummary {
         case .upToDate(let run):
             HomeSummaryText(symbolName: "checkmark.circle.fill", title: localization.string("Up to date"), detail: localization.string("Checked \(formatter.moment(run.startedAt, now: now)) · \(RunLabels.trigger(run.trigger, in: localization))"), errorText: nil, showsMoreErrorsNote: false, action: .runDetails)
         case .waitingForFirstExport:
-            HomeSummaryText(symbolName: "clock.badge.questionmark", title: localization.string("Waiting for the first export"), detail: localization.string("Keep your iPhone unlocked while Vital Courier reads the four data types."), errorText: nil, showsMoreErrorsNote: false, action: .none)
+            HomeSummaryText(symbolName: "clock.badge.questionmark", title: localization.string("Waiting for the first export"), detail: localization.string("Keep your iPhone unlocked while Vital Courier reads your Health data."), errorText: nil, showsMoreErrorsNote: false, action: .none)
         }
     }
 }
