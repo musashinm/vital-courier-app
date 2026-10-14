@@ -36,6 +36,7 @@ final class AppEnvironment: Sendable {
     /// Guards read-modify-write of the durable queue `settings.pendingSetupErrors` (setup errors not yet saved to run history). The Bool is true while one drain is running.
     private let setupErrorQueue = Mutex(false)
     private let observersStarted = Mutex(false)
+    private let cycleTrackingTransition = CycleTrackingTransition()
 
     init() {
         let settings = AppSettings(storage: StandardUserDefaultsStorage())
@@ -92,24 +93,23 @@ final class AppEnvironment: Sendable {
         HealthType.enabledTypes(cycleTrackingEnabled: settings.cycleTrackingEnabled)
     }
 
+    /// The only way the app changes the Cycle tracking switch, so it can't land between `deleteCycleDirtyMarks`'s check and its deletion.
+    func setCycleTrackingEnabled(_ isEnabled: Bool) {
+        cycleTrackingTransition.setEnabled(isEnabled, in: settings)
+    }
+
     /// Cycle tracking turned off: drops pending cycle marks once no run is active, so a run already past its read can't write them after the switch.
-    /// The switch is read again inside the exclusive section: if tracking came back on while this waited, that run's marks are the only record of its cycle data and stay.
+    /// The switch is checked again under the transition lock inside the exclusive section: if tracking came back on while this waited, that run's marks stay.
     func deleteCycleDirtyMarks() async throws {
         switch storeStateNow {
         case .ready(let store, let coordinator):
             try await coordinator.exclusive {
-                try Self.deleteCycleDirtyMarks(in: store, unlessTrackingIsEnabled: { self.settings.cycleTrackingEnabled })
+                try self.cycleTrackingTransition.deleteMarksIfStillOff(in: store, settings: self.settings)
                 self.recordProtectionFailures(in: store)
             }
         case .blocked(let errorText):
             throw AppEnvironmentError.storeBlocked(errorText)
         }
-    }
-
-    /// Deletes the cycle dirty marks unless `isTrackingEnabled` says tracking is on again. Called inside the coordinator's exclusive section.
-    static func deleteCycleDirtyMarks(in store: LocalStore, unlessTrackingIsEnabled isTrackingEnabled: () -> Bool) throws {
-        guard !isTrackingEnabled() else { return }
-        try store.deleteDirtyMarks(types: HealthType.cycleTypes)
     }
 
     /// Every trigger goes through here. With a blocked store, `onReadCommitted` runs at once (an observer completion handler must never be held) and the call throws.
