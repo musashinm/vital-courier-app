@@ -263,7 +263,8 @@ public final class ExportRunner: Sendable {
                 continue
             }
             do {
-                let summary = DailySummary(day: day, values: try store.dailyValues(day: day))
+                // Stored cycle keys are kept whatever the switch says, so a note doesn't change with when it was last rewritten.
+                let summary = DailySummary(day: day, values: try store.dailyValues(day: day), cycle: try store.cycleDay(day: day))
                 try destination.write(MarkdownWriter.note(for: summary), to: Self.notePath(day: day))
             } catch {
                 everyFileWritten = false

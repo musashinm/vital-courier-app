@@ -89,4 +89,51 @@ import Testing
         #expect(try store.samples(type: .menstrualFlow, month: "2026-10").count == 1)
         #expect(await health.earliestRequestedTypes == [HealthType.baseTypes])
     }
+
+    @Test func withTrackingOnTheNoteCarriesTheCycleKeys() async throws {
+        let store = try LocalStore.inMemory()
+        let health = FakeHealthSource()
+        let destination = FakeDestination()
+        await health.queue(HealthChanges(added: [flowSample("medium", start: "2026-10-12T11:00:00Z", cycleStart: true)]), for: .menstrualFlow)
+
+        _ = await makeRunner(store: store, health: health, destination: destination, cycleTrackingEnabled: true).run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        let note = try #require(destination.text(at: note12))
+        #expect(note.contains("vc_menstrual_flow: medium\nvc_period_start: true\nvc_schema: 1"))
+    }
+
+    @Test func aNoteRewrittenWhileTrackingIsOffKeepsItsStoredCycleKeys() async throws {
+        let store = try LocalStore.inMemory()
+        try store.saveCycleDay(.flow("medium", periodStart: true), day: day("2026-10-12"))
+        try store.deleteDirtyMarks(types: HealthType.cycleTypes)
+        let health = FakeHealthSource()
+        await health.queue(HealthChanges(added: [makeSample(start: "2026-10-12T12:00:00Z")]), for: .steps)
+        await health.setStatistic(812, for: .steps, day: day("2026-10-12"))
+        let destination = FakeDestination()
+
+        _ = await makeRunner(store: store, health: health, destination: destination, cycleTrackingEnabled: false).run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        let note = try #require(destination.text(at: note12))
+        #expect(note.contains("vc_steps: 812"))
+        #expect(note.contains("vc_menstrual_flow: medium"))
+        #expect(note.contains("vc_period_start: true"))
+        #expect(!destination.paths.contains(flowJSON))
+    }
+
+    @Test func deletingTheOnlyFlowSampleRemovesTheKeyFromTheNote() async throws {
+        let store = try LocalStore.inMemory()
+        let health = FakeHealthSource()
+        let destination = FakeDestination()
+        let logged = flowSample("light", start: "2026-10-12T11:00:00Z")
+        await health.queue(HealthChanges(added: [logged]), for: .menstrualFlow)
+        let runner = makeRunner(store: store, health: health, destination: destination, cycleTrackingEnabled: true)
+        _ = await runner.run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+        #expect(destination.text(at: note12)?.contains("vc_menstrual_flow: light") == true)
+
+        await health.queue(HealthChanges(deletedUUIDs: [logged.uuid]), for: .menstrualFlow)
+        _ = await runner.run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        #expect(try store.cycleDay(day: day("2026-10-12")) == nil)
+        #expect(destination.text(at: note12)?.contains("vc_menstrual_flow") == false)
+    }
 }
