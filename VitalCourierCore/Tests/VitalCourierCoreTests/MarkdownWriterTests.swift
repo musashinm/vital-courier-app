@@ -10,6 +10,7 @@ import Testing
     @Test func writesEveryKeyInOrder() {
         var summary = DailySummary(day: day("2026-09-27"))
         summary.steps = 8412.4
+        summary.exerciseMinutes = 34.9
         summary.restingHeartRateBPM = 58.46
         summary.sleepHours = 7.2
         summary.sleepDeepHours = 1.1
@@ -21,6 +22,7 @@ import Testing
             ---
             date: 2026-09-27
             vc_steps: 8412
+            vc_exercise_minutes: 34
             vc_resting_hr_bpm: 58.5
             vc_sleep_hours: 7.20
             vc_sleep_deep_hours: 1.10
@@ -133,5 +135,23 @@ import Testing
         #expect(summary.periodStart)
         #expect(!summary.spotting)
         #expect(DailySummary(day: day("2026-10-12"), values: [:]).menstrualFlow == nil)
+    }
+
+    @Test func truncatesExerciseMinutesAndPlacesThemAfterSteps() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.steps = 812
+        summary.exerciseMinutes = 29.99
+        #expect(text(summary).contains("vc_steps: 812\nvc_exercise_minutes: 29\n"))
+    }
+
+    @Test func leavesOutExerciseMinutesWhenThereAreNone() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.steps = 812
+        #expect(!text(summary).contains("vc_exercise_minutes"))
+    }
+
+    @Test func theSummaryTakesExerciseMinutesFromTheStoredDailyValue() {
+        let summary = DailySummary(day: day("2026-09-27"), values: [.exerciseMinutes: DailyValue(value: 34)])
+        #expect(summary.exerciseMinutes == 34)
     }
 }

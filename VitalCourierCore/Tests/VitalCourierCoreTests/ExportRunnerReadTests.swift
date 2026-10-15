@@ -246,4 +246,25 @@ import Testing
         #expect(RunOptions.forTrigger(.rebuildAll) == RunOptions(read: true, verify: .allDates, markAllDirty: true))
         #expect(RunOptions.forTrigger(.appIntent).merged(with: .forTrigger(.appOpen)) == RunOptions(read: true, verify: .last30Days, markAllDirty: false))
     }
+
+    @Test func anExerciseDayStoresTheStatisticSumInMinutes() async throws {
+        let store = try LocalStore.inMemory()
+        let health = FakeHealthSource()
+        await health.queue(HealthChanges(added: [makeSample(type: .exerciseMinutes, start: "2026-09-27T12:00:00Z", end: "2026-09-27T12:01:00Z", value: .quantity(60))]), for: .exerciseMinutes)
+        await health.setStatistic(34.9, for: .exerciseMinutes, day: day("2026-09-27"))
+
+        _ = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        #expect(try store.dailyValues(day: day("2026-09-27")) == [.exerciseMinutes: DailyValue(value: 34.9)])
+    }
+
+    @Test func aDayWithoutAnExerciseStatisticHasNoValue() async throws {
+        let store = try LocalStore.inMemory()
+        let health = FakeHealthSource()
+        await health.queue(HealthChanges(added: [makeSample(type: .exerciseMinutes, start: "2026-09-27T12:00:00Z", end: "2026-09-27T12:01:00Z", value: .quantity(60))]), for: .exerciseMinutes)
+
+        _ = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        #expect(try store.dailyValues(day: day("2026-09-27"))[.exerciseMinutes] == nil)
+    }
 }
