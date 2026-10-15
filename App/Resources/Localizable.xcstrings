@@ -870,6 +870,16 @@
     "Every file and the folder should report NSFileProtectionCompleteUntilFirstUserAuthentication, and the folder excludedFromBackup=true. A -journal, -wal, -shm or temp file listed here must carry it too." : {
       "shouldTranslate" : false
     },
+    "Exercise minutes" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minutos de exercício"
+          }
+        }
+      }
+    },
     "Export folder" : {
       "localizations" : {
         "pt-BR" : {

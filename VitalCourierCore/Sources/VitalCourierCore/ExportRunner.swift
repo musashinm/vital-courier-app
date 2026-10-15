@@ -179,7 +179,7 @@ public final class ExportRunner: Sendable {
 
     func dailyValue(for entry: DirtyEntry, zone: TimeZone, preferredSleepSource: String?) async throws -> DailyValue? {
         switch entry.type {
-        case .steps, .restingHeartRate:
+        case .steps, .exerciseMinutes, .restingHeartRate:
             return try await health.dailyStatistic(for: entry.type, day: entry.day, timeZone: zone).map { DailyValue(value: $0) }
         case .weight:
             let latest = try store.samples(type: .weight, fromDay: entry.day, toDay: entry.day).max { $0.end < $1.end }

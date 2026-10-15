@@ -190,4 +190,55 @@ import Testing
         // Stored zone Sao Paulo splits the sample across the 27th and 28th; Lisbon alone would keep it on the 28th.
         #expect(try dirtyDays(store, type: .steps) == [day("2026-09-27"), day("2026-09-28")])
     }
+
+    @Test func addingAnExerciseSampleAcrossMidnightDirtiesBothDays() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(type: .exerciseMinutes, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .exerciseMinutes, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .exerciseMinutes) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func deletingAnExerciseSampleAcrossMidnightDirtiesBothDays() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(type: .exerciseMinutes, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .exerciseMinutes, fallbackTimeZone: saoPaulo)
+        for entry in try store.dirtyEntries() { try store.clearDirty(type: entry.type, day: entry.day) }
+
+        try store.applyChanges(HealthChanges(deletedUUIDs: [sample.uuid]), for: .exerciseMinutes, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .exerciseMinutes) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func anExerciseSampleInAnotherStoredZoneDirtiesTheQueryZoneDays() throws {
+        let store = try LocalStore.inMemory()
+        // 03:30 to 04:30 in Lisbon is 23:30 on the 27th to 00:30 on the 28th in Sao Paulo, where the statistics are queried.
+        let sample = makeSample(type: .exerciseMinutes, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z", zone: "Europe/Lisbon")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .exerciseMinutes, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .exerciseMinutes) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func rebuildAllDirtiesBothDaysOfAStoredCrossingExerciseSample() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(type: .exerciseMinutes, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z", zone: "UTC")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .exerciseMinutes, fallbackTimeZone: saoPaulo)
+        for entry in try store.dirtyEntries() { try store.clearDirty(type: entry.type, day: entry.day) }
+
+        try store.markAllDirty(statisticsZone: saoPaulo)
+
+        // Stored zone UTC keeps the sample on the 28th only; Sao Paulo, the statistics zone, adds the 27th.
+        #expect(try dirtyDays(store, type: .exerciseMinutes) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func rebuildAllLimitedToOtherTypesLeavesExerciseClean() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(type: .exerciseMinutes, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z", zone: "UTC")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .exerciseMinutes, fallbackTimeZone: saoPaulo)
+        for entry in try store.dirtyEntries() { try store.clearDirty(type: entry.type, day: entry.day) }
+
+        try store.markAllDirty(statisticsZone: saoPaulo, types: [.steps])
+
+        #expect(try dirtyDays(store, type: .exerciseMinutes).isEmpty)
+    }
 }

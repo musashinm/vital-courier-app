@@ -113,6 +113,7 @@ extension HealthType {
     var displayName: String {
         switch self {
         case .steps: String(localized: "Steps")
+        case .exerciseMinutes: String(localized: "Exercise minutes")
         case .restingHeartRate: String(localized: "Resting heart rate")
         case .sleep: String(localized: "Sleep")
         case .weight: String(localized: "Weight")
@@ -124,6 +125,7 @@ extension HealthType {
     var symbolName: String {
         switch self {
         case .steps: "figure.walk"
+        case .exerciseMinutes: "figure.run"
         case .restingHeartRate: "heart.fill"
         case .sleep: "bed.double.fill"
         case .weight: "scalemass.fill"

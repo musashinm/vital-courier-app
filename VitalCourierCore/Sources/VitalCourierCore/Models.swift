@@ -2,14 +2,15 @@ import Foundation
 
 public enum HealthType: String, CaseIterable, Sendable, Codable {
     case steps
+    case exerciseMinutes
     case restingHeartRate
     case sleep
     case weight
     case menstrualFlow
     case spotting
 
-    /// The four types every install exports.
-    public static let baseTypes: [HealthType] = [.steps, .restingHeartRate, .sleep, .weight]
+    /// The five types every install exports.
+    public static let baseTypes: [HealthType] = [.steps, .exerciseMinutes, .restingHeartRate, .sleep, .weight]
     /// Exported only while Cycle tracking is on (Cycle Tracking Spec).
     public static let cycleTypes: [HealthType] = [.menstrualFlow, .spotting]
 
@@ -22,6 +23,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
     public var folderName: String {
         switch self {
         case .steps: "steps"
+        case .exerciseMinutes: "exercise-minutes"
         case .restingHeartRate: "resting-heart-rate"
         case .sleep: "sleep"
         case .weight: "weight"
@@ -34,11 +36,29 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
     public var siUnit: String {
         switch self {
         case .steps: "count"
+        case .exerciseMinutes: "s"
         case .restingHeartRate: "count/s"
         case .sleep, .menstrualFlow, .spotting: "category"
         case .weight: "kg"
         }
     }
+
+    /// How the daily value is built from HealthKit's statistics query; nil for types that don't use it. One exhaustive switch, so a new type has to be classified to compile (Exercise Minutes Spec, Statistics query).
+    public var statisticsAggregation: StatisticsAggregation? {
+        switch self {
+        case .steps, .exerciseMinutes: .sum
+        case .restingHeartRate: .average
+        case .sleep, .weight, .menstrualFlow, .spotting: nil
+        }
+    }
+
+    /// The statistics query splits a sample across every day it overlaps, so these types dirty every overlapped day.
+    public var usesStatisticsQuery: Bool { statisticsAggregation != nil }
+}
+
+public enum StatisticsAggregation: Sendable, Equatable {
+    case sum
+    case average
 }
 
 public enum SampleValue: Sendable, Equatable {
