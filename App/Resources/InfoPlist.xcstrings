@@ -4,7 +4,7 @@
     "NSHealthShareUsageDescription" : {
       "comment" : "Apple Health read permission prompt",
       "localizations" : {
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "O Vital Courier lê passos, minutos de exercício, frequência cardíaca em repouso, sono e peso do app Saúde, além de fluxo menstrual e sangramento se você ativar o Monitoramento do ciclo, para gravá-los na pasta que você escolher." } }
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "O Vital Courier lê os dados do app Saúde que você permitir, e dados do ciclo só se você ativar o Monitoramento do ciclo, para gravá-los na pasta que você escolher." } }
       }
     },
     "NSHealthUpdateUsageDescription" : {

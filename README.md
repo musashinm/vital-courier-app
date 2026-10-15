@@ -6,7 +6,7 @@ The app isn't released yet. It is heading to TestFlight first.
 
 ## What it exports
 
-Five types: steps, exercise minutes, resting heart rate, sleep and weight. Two more, menstrual flow and spotting, are exported when Cycle tracking is on in Settings. Everything goes into a `Vital Courier` folder inside the folder you pick:
+It exports the Apple Health data you allow, plus cycle data when Cycle tracking is on in Settings. Everything goes into a `Vital Courier` folder inside the folder you pick:
 
 ```
 Vital Courier/

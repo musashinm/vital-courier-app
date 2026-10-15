@@ -9,7 +9,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
     case menstrualFlow
     case spotting
 
-    /// The five types every install exports.
+    /// The types every install exports.
     public static let baseTypes: [HealthType] = [.steps, .exerciseMinutes, .restingHeartRate, .sleep, .weight]
     /// Exported only while Cycle tracking is on (Cycle Tracking Spec).
     public static let cycleTypes: [HealthType] = [.menstrualFlow, .spotting]

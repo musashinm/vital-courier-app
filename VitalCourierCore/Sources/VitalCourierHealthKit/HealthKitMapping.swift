@@ -22,12 +22,12 @@ public enum HealthKitMapping {
         }
     }
 
-    /// The types Vital Courier asks to read: the base five, plus the cycle types while Cycle tracking is on. Nothing else (design §2; HIG HealthKit page).
+    /// The types Vital Courier asks to read: the base types, plus the cycle types while Cycle tracking is on. Nothing else (design §2; HIG HealthKit page).
     public static func readTypes(for types: [HealthType]) -> Set<HKObjectType> {
         Set(types.map { sampleType(for: $0) })
     }
 
-    /// The base five, asked for during onboarding.
+    /// The base types, asked for during onboarding.
     public static var readTypes: Set<HKObjectType> {
         readTypes(for: HealthType.baseTypes)
     }
