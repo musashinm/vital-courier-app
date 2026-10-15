@@ -267,4 +267,100 @@ import Testing
 
         #expect(try store.dailyValues(day: day("2026-09-27"))[.exerciseMinutes] == nil)
     }
+
+    func makeRunnerThatHasNotAskedAboutExerciseMinutes(store: LocalStore, health: FakeHealthSource) -> ExportRunner {
+        let fixedNow = now
+        return ExportRunner(
+            store: store,
+            health: health,
+            destination: { nil },
+            now: { fixedNow },
+            timeZone: { saoPaulo },
+            readableTypes: { HealthType.baseTypes.filter { $0 != .exerciseMinutes } }
+        )
+    }
+
+    @Test func aRunNeverAsksHealthKitAboutATypeItHasNotAskedFor() async throws {
+        let store = try LocalStore.inMemory()
+        let log = EventLog()
+        let health = FakeHealthSource(log: log)
+        await health.queue(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")], newAnchor: Data([7])), for: .steps)
+        await health.setStatistic(8412, for: .steps, day: day("2026-09-27"))
+        // HealthKit refuses a type the app hasn't asked about (Code 5); before this task the refusal failed the whole read.
+        await health.failChanges(for: .exerciseMinutes)
+
+        let outcome = await makeRunnerThatHasNotAskedAboutExerciseMinutes(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        #expect(outcome.readOutcome == .read)
+        #expect(outcome.errors == ["no folder picked"])
+        #expect(!log.all.contains { $0.contains(HealthType.exerciseMinutes.rawValue) })
+        #expect(try store.anchor(for: .steps) == Data([7]))
+        #expect(try store.dailyValues(day: day("2026-09-27")) == [.steps: DailyValue(value: 8412)])
+    }
+
+    @Test func aRebuildLeavesATypeItHasNotAskedForOutOfVerify() async throws {
+        let store = try LocalStore.inMemory()
+        let log = EventLog()
+        let health = FakeHealthSource(log: log)
+        await health.setEarliest(date("2026-09-01T12:00:00Z"))
+
+        _ = await makeRunnerThatHasNotAskedAboutExerciseMinutes(store: store, health: health).run(trigger: .rebuildAll, options: .forTrigger(.rebuildAll)) {}
+
+        let requested = await health.earliestRequestedTypes
+        #expect(!requested.isEmpty)
+        #expect(requested.allSatisfy { !$0.contains(.exerciseMinutes) })
+        #expect(log.all.contains("samples \(HealthType.steps.rawValue)"))
+        #expect(!log.all.contains { $0.contains(HealthType.exerciseMinutes.rawValue) })
+    }
+
+    @Test func aDirtyDayOfATypeItHasNotAskedForIsNotQueriedAndStaysDirty() async throws {
+        let store = try LocalStore.inMemory()
+        let log = EventLog()
+        let health = FakeHealthSource(log: log)
+        try store.applyChanges(HealthChanges(added: [makeSample(type: .exerciseMinutes, start: "2026-09-27T12:00:00Z")]), for: .exerciseMinutes, fallbackTimeZone: saoPaulo)
+        await health.queue(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps)
+        await health.setStatistic(8412, for: .steps, day: day("2026-09-27"))
+
+        let outcome = await makeRunnerThatHasNotAskedAboutExerciseMinutes(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        #expect(outcome.errors == ["no folder picked"])
+        #expect(!log.all.contains { $0.contains(HealthType.exerciseMinutes.rawValue) })
+        #expect(try store.dirtyEntries().contains { $0.type == .exerciseMinutes && $0.day == day("2026-09-27") })
+        #expect(try store.dailyValues(day: day("2026-09-27")) == [.steps: DailyValue(value: 8412)])
+    }
+
+    @Test func aSkippedFreshDayOfATypeItHasNotAskedForIsMarkedNotFreshAndHoldsTheNote() async throws {
+        let store = try LocalStore.inMemory()
+        let health = FakeHealthSource()
+        let destination = FakeDestination()
+        // An earlier run calculated this day's exercise minutes, so its dirty mark is fresh, but the write failed and the mark stayed.
+        try store.applyChanges(HealthChanges(added: [makeSample(type: .exerciseMinutes, start: "2026-09-27T12:00:00Z")]), for: .exerciseMinutes, fallbackTimeZone: saoPaulo)
+        try store.saveDailyValue(DailyValue(value: 30), type: .exerciseMinutes, day: day("2026-09-27"))
+        #expect(try store.dirtyEntries() == [DirtyEntry(type: .exerciseMinutes, day: day("2026-09-27"), fresh: true)])
+        // A same-day steps update makes that day's run reach the note.
+        await health.queue(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps)
+        await health.setStatistic(8412, for: .steps, day: day("2026-09-27"))
+        let fixedNow = now
+        let runner = ExportRunner(
+            store: store,
+            health: health,
+            destination: { destination },
+            now: { fixedNow },
+            timeZone: { saoPaulo },
+            readableTypes: { HealthType.baseTypes.filter { $0 != .exerciseMinutes } }
+        )
+
+        let outcome = await runner.run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        // writeStep holds a day with any not-fresh entry as pending: no note, no cleared marks.
+        #expect(outcome.daysWritten == 0)
+        #expect(outcome.daysPending == 1)
+        #expect(destination.text(at: "Vital Courier/daily/2026-09-27.md") == nil)
+        #expect(Set(try store.dirtyEntries()) == [
+            DirtyEntry(type: .exerciseMinutes, day: day("2026-09-27"), fresh: false),
+            DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: true)
+        ])
+        // The old stored value is left alone for the run that can read the type again.
+        #expect(try store.dailyValues(day: day("2026-09-27"))[.exerciseMinutes] == DailyValue(value: 30))
+    }
 }
