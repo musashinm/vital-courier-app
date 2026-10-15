@@ -920,6 +920,16 @@
         }
       }
     },
+    "Five data types" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cinco tipos de dados"
+          }
+        }
+      }
+    },
     "Folder" : {
       "localizations" : {
         "pt-BR" : {
@@ -946,16 +956,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pasta perdida, escolha de novo"
-          }
-        }
-      }
-    },
-    "Four data types" : {
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quatro tipos de dados"
           }
         }
       }
@@ -1753,12 +1753,12 @@
         }
       }
     },
-    "Vital Courier reads steps, resting heart rate, sleep, and weight from the Apple Health app. It sends nothing to an account or server." : {
+    "Vital Courier reads steps, exercise minutes, resting heart rate, sleep, and weight from the Apple Health app. It sends nothing to an account or server." : {
       "localizations" : {
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Vital Courier lê passos, frequência cardíaca em repouso, sono e peso do app Saúde. Ele não envia nada para nenhuma conta ou servidor."
+            "value" : "O Vital Courier lê passos, minutos de exercício, frequência cardíaca em repouso, sono e peso do app Saúde. Ele não envia nada para nenhuma conta ou servidor."
           }
         }
       }
