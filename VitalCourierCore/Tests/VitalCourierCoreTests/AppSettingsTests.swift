@@ -60,4 +60,46 @@ import Testing
         settings.cycleTrackingEnabled = false
         #expect(AppSettings(storage: storage).cycleTrackingEnabled == false)
     }
+
+    @Test func healthTypesAskedAboutDefaultsToTheFourOriginalTypesWhateverTheSwitch() {
+        let settings = AppSettings(storage: InMemoryStorage())
+        #expect(settings.healthTypesAskedAbout == [.steps, .restingHeartRate, .sleep, .weight])
+
+        settings.cycleTrackingEnabled = true
+
+        #expect(settings.healthTypesAskedAbout == [.steps, .restingHeartRate, .sleep, .weight])
+    }
+
+    @Test func recordingHealthTypesAddsAndNeverRemoves() {
+        let storage = InMemoryStorage()
+        let settings = AppSettings(storage: storage)
+
+        settings.recordHealthTypesAskedAbout([.exerciseMinutes])
+        settings.recordHealthTypesAskedAbout([.steps])
+
+        #expect(AppSettings(storage: storage).healthTypesAskedAbout == [.steps, .exerciseMinutes, .restingHeartRate, .sleep, .weight])
+    }
+
+    @Test func unknownAskedTypesAreIgnoredAndUnreadableDataFallsBackToTheDefault() throws {
+        let storage = InMemoryStorage()
+        let settings = AppSettings(storage: storage)
+
+        storage.set(try JSONEncoder().encode(["steps", "aTypeFromALaterVersion"]), forKey: AppSettings.Key.healthTypesAskedAbout)
+        #expect(settings.healthTypesAskedAbout == [.steps])
+
+        storage.set(Data("not json".utf8), forKey: AppSettings.Key.healthTypesAskedAbout)
+        #expect(settings.healthTypesAskedAbout == [.steps, .restingHeartRate, .sleep, .weight])
+    }
+
+    @Test func concurrentRecordingsOfDifferentTypesAllSurvive() async {
+        let settings = AppSettings(storage: InMemoryStorage())
+
+        await withTaskGroup(of: Void.self) { group in
+            for type in HealthType.allCases {
+                group.addTask { settings.recordHealthTypesAskedAbout([type]) }
+            }
+        }
+
+        #expect(settings.healthTypesAskedAbout == Set(HealthType.allCases))
+    }
 }

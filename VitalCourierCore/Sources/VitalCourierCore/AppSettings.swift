@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 /// The app's own small state (design iOS App v2, §5 and §6). Health data never goes here; it stays in the backup-excluded `LocalStore`.
 public struct AppSettings: Sendable {
@@ -10,6 +11,7 @@ public struct AppSettings: Sendable {
         static let awaitingRereadAfterClear = "awaitingRereadAfterClear"
         static let pendingSetupErrors = "pendingSetupErrors"
         static let cycleTrackingEnabled = "cycleTrackingEnabled"
+        static let healthTypesAskedAbout = "healthTypesAskedAbout"
     }
 
     let storage: any KeyValueStorage
@@ -50,6 +52,33 @@ public struct AppSettings: Sendable {
         get { string(forKey: Key.cycleTrackingEnabled) == "1" }
         nonmutating set { setString(newValue ? "1" : nil, forKey: Key.cycleTrackingEnabled) }
     }
+
+    /// The types Health has been asked to read, so the observer never watches a type whose authorization isn't determined (Exercise Minutes Spec, Launch observer). Stored as a JSON array of raw values; values a later version wrote are ignored.
+    public var healthTypesAskedAbout: Set<HealthType> {
+        guard let data = storage.data(forKey: Key.healthTypesAskedAbout) else { return Self.typesAskedAboutBeforeThisSetting }
+        do {
+            return Set(try JSONDecoder().decode([String].self, from: data).compactMap(HealthType.init(rawValue:)))
+        } catch {
+            return Self.typesAskedAboutBeforeThisSetting
+        }
+    }
+
+    /// Adds `types` to the asked set. A type is never removed: Health doesn't forget it was asked either. The read, union and write hold one lock, so two recordings can't drop each other's types.
+    public func recordHealthTypesAskedAbout(_ types: some Sequence<HealthType>) {
+        Self.healthTypesAskedAboutLock.withLock { _ in
+            let asked = healthTypesAskedAbout.union(types)
+            do {
+                storage.set(try JSONEncoder().encode(asked.map(\.rawValue).sorted()), forKey: Key.healthTypesAskedAbout)
+            } catch {
+                pendingSetupErrors.append("health types asked about could not be encoded: \(error)")
+            }
+        }
+    }
+
+    /// What 0.2.0 and earlier asked for at onboarding. Never the cycle types: 0.2.0 turns the switch on before asking and keeps it on if the request throws, so the switch proves nothing. Written out, not `HealthType.baseTypes`, which grows with later types.
+    static let typesAskedAboutBeforeThisSetting: Set<HealthType> = [.steps, .restingHeartRate, .sleep, .weight]
+
+    private static let healthTypesAskedAboutLock = Mutex(())
 
     /// Setup errors not yet saved to run history, kept outside `LocalStore` so a process exit does not lose them. Stored as a JSON array; stored data that cannot be decoded is returned as one visible entry, never dropped.
     public var pendingSetupErrors: [String] {

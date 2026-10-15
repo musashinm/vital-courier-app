@@ -19,6 +19,11 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
         cycleTrackingEnabled ? baseTypes + cycleTypes : baseTypes
     }
 
+    /// The enabled types Health has been asked about, in enabled order: the ones the observer may watch.
+    public static func observedTypes(enabled: [HealthType], askedAbout: Set<HealthType>) -> [HealthType] {
+        enabled.filter(askedAbout.contains)
+    }
+
     /// Folder name under `Vital Courier/json/`.
     public var folderName: String {
         switch self {

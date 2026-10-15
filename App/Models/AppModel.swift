@@ -66,6 +66,10 @@ final class AppModel {
         )
         sleepSources.onSaved = { [weak self] in self?.requestAppOpenRun() }
         foregroundEntry.requestAppOpenRun = { [weak self] in self?.requestAppOpenRun() }
+        foregroundEntry.typesWereAsked = {
+            environment.settings.recordHealthTypesAskedAbout(environment.enabledTypes)
+            ObserverRegistration.update(environment: environment)
+        }
     }
 
     var homeSummary: HomeSummary {
@@ -96,6 +100,7 @@ final class AppModel {
             if isOn {
                 do {
                     try await environment.health.requestReadAuthorization(for: environment.enabledTypes)
+                    environment.settings.recordHealthTypesAskedAbout(environment.enabledTypes)
                 } catch {
                     let errorText = "cycle tracking authorization: \(error)"
                     await Task.detached { environment.recordSetupError(errorText) }.value
@@ -214,9 +219,10 @@ final class AppModel {
         if history.hasLoadedOnce { await history.reload() }
     }
 
-    /// Asks to read only; no build writes to Apple Health.
+    /// Asks to read only; no build writes to Apple Health. Records the base types as asked before setup completes and starts the observer.
     func requestHealthAuthorization() async throws {
         try await environment.health.requestReadAuthorization()
+        environment.settings.recordHealthTypesAskedAbout(HealthType.baseTypes)
     }
 
     func pickFolder(_ url: URL) {

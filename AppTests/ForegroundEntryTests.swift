@@ -10,6 +10,8 @@ private final class ForegroundEntryProbe {
     var events: [String] = []
     var status: Result<HKAuthorizationRequestStatus, any Error> = .success(.unnecessary)
     var holdsSheet = false
+    var recordsAskedTypes = false
+    var requestFails = false
     private var sheetContinuation: CheckedContinuation<Void, Never>?
 
     func makeEntry() -> ForegroundEntry {
@@ -21,10 +23,14 @@ private final class ForegroundEntryProbe {
             requestAuthorization: { [unowned self] in
                 events.append("request")
                 if holdsSheet { await withCheckedContinuation { sheetContinuation = $0 } }
+                if requestFails { throw ProbeError() }
             },
             recordError: { [unowned self] in events.append("error \($0)") }
         )
         entry.requestAppOpenRun = { [unowned self] in events.append("run") }
+        entry.typesWereAsked = { [unowned self] in
+            if recordsAskedTypes { events.append("asked") }
+        }
         return entry
     }
 
@@ -144,5 +150,40 @@ private final class ForegroundEntryProbe {
         await entry.sceneBecameActive()
 
         #expect(probe.events == ["status", "request", "status", "run"])
+    }
+
+    @Test func theAskedTypesAreRecordedBeforeTheRun() async {
+        let cases: [(HKAuthorizationRequestStatus, [String])] = [
+            (.shouldRequest, ["status", "request", "asked", "run"]),
+            (.unnecessary, ["status", "asked", "run"]),
+        ]
+        for (status, expected) in cases {
+            let probe = ForegroundEntryProbe()
+            probe.recordsAskedTypes = true
+            probe.status = .success(status)
+            let entry = probe.makeEntry()
+            entry.sceneActivityChanged(isActive: true)
+            await entry.enter()
+            #expect(probe.events == expected)
+        }
+    }
+
+    @Test func aFailedOrUnknownCheckRecordsNothing() async {
+        let unknown = ForegroundEntryProbe()
+        unknown.recordsAskedTypes = true
+        unknown.status = .success(.unknown)
+        let unknownEntry = unknown.makeEntry()
+        unknownEntry.sceneActivityChanged(isActive: true)
+        await unknownEntry.enter()
+        #expect(!unknown.events.contains("asked"))
+
+        let failedRequest = ForegroundEntryProbe()
+        failedRequest.recordsAskedTypes = true
+        failedRequest.status = .success(.shouldRequest)
+        failedRequest.requestFails = true
+        let failedEntry = failedRequest.makeEntry()
+        failedEntry.sceneActivityChanged(isActive: true)
+        await failedEntry.enter()
+        #expect(failedRequest.events == ["status", "request", "error health authorization: ProbeError()", "run"])
     }
 }
