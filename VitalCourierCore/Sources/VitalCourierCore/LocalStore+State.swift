@@ -2,18 +2,23 @@ import Foundation
 import GRDB
 
 public struct DailyValue: Equatable, Sendable {
-    /// Steps: count. Exercise: minutes. Resting heart rate: beats per minute. Weight: kg. Sleep: asleep hours.
+    /// Steps: count. Exercise: minutes. Resting heart rate: beats per minute. Respiratory rate: breaths per minute (the day's average). Weight: kg. Sleep: asleep hours.
     public var value: Double
     public var deepHours: Double?
     public var remHours: Double?
     /// Sleep only: the source the night's totals came from.
     public var source: String?
+    /// Respiratory rate only: the day's lowest and highest reading, in the same unit as `value`.
+    public var minimum: Double?
+    public var maximum: Double?
 
-    public init(value: Double, deepHours: Double? = nil, remHours: Double? = nil, source: String? = nil) {
+    public init(value: Double, deepHours: Double? = nil, remHours: Double? = nil, source: String? = nil, minimum: Double? = nil, maximum: Double? = nil) {
         self.value = value
         self.deepHours = deepHours
         self.remHours = remHours
         self.source = source
+        self.minimum = minimum
+        self.maximum = maximum
     }
 }
 
@@ -48,11 +53,12 @@ extension LocalStore {
         try write { db in
             if let value {
                 try db.execute(sql: """
-                    INSERT INTO dailyValue (type, day, value, deepHours, remHours, source) VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO dailyValue (type, day, value, deepHours, remHours, source, minValue, maxValue) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(type, day) DO UPDATE SET
                         value = excluded.value, deepHours = excluded.deepHours,
-                        remHours = excluded.remHours, source = excluded.source
-                    """, arguments: [type.rawValue, day.description, value.value, value.deepHours, value.remHours, value.source])
+                        remHours = excluded.remHours, source = excluded.source,
+                        minValue = excluded.minValue, maxValue = excluded.maxValue
+                    """, arguments: [type.rawValue, day.description, value.value, value.deepHours, value.remHours, value.source, value.minimum, value.maximum])
             } else {
                 try db.execute(sql: "DELETE FROM dailyValue WHERE type = ? AND day = ?", arguments: [type.rawValue, day.description])
             }
@@ -76,7 +82,7 @@ extension LocalStore {
                 guard let type = HealthType(rawValue: typeRaw) else {
                     throw LocalStoreError.corruptRow("dailyValue \(typeRaw) \(day)")
                 }
-                values[type] = DailyValue(value: row["value"], deepHours: row["deepHours"], remHours: row["remHours"], source: row["source"])
+                values[type] = DailyValue(value: row["value"], deepHours: row["deepHours"], remHours: row["remHours"], source: row["source"], minimum: row["minValue"], maximum: row["maxValue"])
             }
             return values
         }
