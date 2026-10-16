@@ -7,9 +7,10 @@ import VitalCourierCore
     @Test func theQueryWatchesTheEnabledTypes() {
         let off = ObserverRegistration.descriptors(for: HealthType.enabledTypes(cycleTrackingEnabled: false)).map(\.sampleType)
         let on = ObserverRegistration.descriptors(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).map(\.sampleType)
-        #expect(off.count == 4)
+        #expect(off.count == 5)
+        #expect(off.contains(HKQuantityType(.appleExerciseTime)))
         #expect(!off.contains(HKCategoryType(.menstrualFlow)))
-        #expect(on.count == 6)
+        #expect(on.count == 7)
         #expect(on.contains(HKCategoryType(.menstrualFlow)))
         #expect(on.contains(HKCategoryType(.intermenstrualBleeding)))
     }
@@ -25,5 +26,32 @@ import VitalCourierCore
         let turningOff = ObserverRegistration.deliveryChanges(from: on, to: off)
         #expect(turningOff.enable.isEmpty)
         #expect(turningOff.disable == [.menstrualFlow, .spotting])
+    }
+
+    @Test func theObserverWatchesOnlyTheTypesHealthHasBeenAskedAbout() {
+        let settings = AppSettings(storage: InMemoryStorage())
+        settings.cycleTrackingEnabled = true
+
+        // Switch on, but nothing beyond the four original types was asked: no exercise, no cycle types.
+        #expect(ObserverRegistration.typesToObserve(settings: settings) == [.steps, .restingHeartRate, .sleep, .weight])
+
+        settings.recordHealthTypesAskedAbout(HealthType.enabledTypes(cycleTrackingEnabled: true))
+
+        #expect(ObserverRegistration.typesToObserve(settings: settings) == HealthType.enabledTypes(cycleTrackingEnabled: true))
+    }
+
+    @Test func recordingANewTypeAddsOnlyThatTypeToTheObserver() {
+        let settings = AppSettings(storage: InMemoryStorage())
+        let beforeAsking = ObserverRegistration.typesToObserve(settings: settings)
+        #expect(!ObserverRegistration.descriptors(for: beforeAsking).map(\.sampleType).contains(HKQuantityType(.appleExerciseTime)))
+
+        settings.recordHealthTypesAskedAbout([.exerciseMinutes])
+        let afterAsking = ObserverRegistration.typesToObserve(settings: settings)
+
+        // A changed set is what lets `update` past its unchanged-types guard.
+        #expect(afterAsking != beforeAsking)
+        let changes = ObserverRegistration.deliveryChanges(from: beforeAsking, to: afterAsking)
+        #expect(changes.enable == [.exerciseMinutes])
+        #expect(changes.disable.isEmpty)
     }
 }

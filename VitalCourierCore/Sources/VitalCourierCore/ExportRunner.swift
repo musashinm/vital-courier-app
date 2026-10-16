@@ -10,6 +10,8 @@ public final class ExportRunner: Sendable {
     let now: @Sendable () -> Date
     let timeZone: @Sendable () -> TimeZone
     let enabledTypes: @Sendable () -> [HealthType]
+    /// The enabled types HealthKit has already been asked about. Only these are queried; the rest wait in the store (Exercise Minutes Spec, Launch read).
+    let readableTypes: @Sendable () -> [HealthType]
 
     public init(
         store: LocalStore,
@@ -17,7 +19,8 @@ public final class ExportRunner: Sendable {
         destination: @escaping @Sendable () -> (any ExportDestination)?,
         now: @escaping @Sendable () -> Date = { Date() },
         timeZone: @escaping @Sendable () -> TimeZone = { TimeZone.current },
-        enabledTypes: @escaping @Sendable () -> [HealthType] = { HealthType.baseTypes }
+        enabledTypes: @escaping @Sendable () -> [HealthType] = { HealthType.baseTypes },
+        readableTypes: (@Sendable () -> [HealthType])? = nil
     ) {
         self.store = store
         self.health = health
@@ -25,6 +28,7 @@ public final class ExportRunner: Sendable {
         self.now = now
         self.timeZone = timeZone
         self.enabledTypes = enabledTypes
+        self.readableTypes = readableTypes ?? enabledTypes
     }
 
     /// `onReadCommitted` is called exactly once, right after the read step, whether it read, was skipped or failed. The HealthKit observer completion handler goes here, never after file writes.
@@ -33,6 +37,7 @@ public final class ExportRunner: Sendable {
         let zone = timeZone()
         // Read once, so the switch can't change mid-run between steps.
         let types = enabledTypes()
+        let readable = readableTypes().filter(types.contains)
         var errors: [String] = []
         var readOutcome = ReadOutcome.notRequested
         // Rebuild all marks every stored day dirty first, so it works even while HealthKit is locked.
@@ -45,7 +50,7 @@ public final class ExportRunner: Sendable {
         }
         if options.read {
             if await health.isReadable() {
-                readOutcome = await readStep(types: types, zone: zone, errors: &errors)
+                readOutcome = await readStep(types: readable, zone: zone, errors: &errors)
             } else {
                 readOutcome = .skippedLocked
             }
@@ -53,8 +58,8 @@ public final class ExportRunner: Sendable {
         onReadCommitted()
         // HealthKit was readable for this run, even when one type's read failed part way.
         if readOutcome == .read || readOutcome == .failed {
-            await verifyStep(scope: options.verify, types: types, zone: zone, errors: &errors)
-            await dailyValuesStep(types: types, zone: zone, errors: &errors)
+            await verifyStep(scope: options.verify, types: readable, zone: zone, errors: &errors)
+            await dailyValuesStep(types: types, readable: readable, zone: zone, errors: &errors)
         }
         let counts = writeStep(types: types, zone: zone, errors: &errors)
         do {
@@ -138,7 +143,7 @@ public final class ExportRunner: Sendable {
     }
 
     /// Runs after Verify, so stored values never lag behind samples Verify added or removed. Entries of a type that isn't enabled are left alone.
-    func dailyValuesStep(types: [HealthType], zone: TimeZone, errors: inout [String]) async {
+    func dailyValuesStep(types: [HealthType], readable: [HealthType], zone: TimeZone, errors: inout [String]) async {
         let enabled = Set(types)
         let dirtyEntries: [DirtyEntry]
         let preferredSleepSource: String?
@@ -152,6 +157,16 @@ public final class ExportRunner: Sendable {
         // Every dirty entry, fresh or not: a day left dirty by a skipped or failed write must not keep stale values.
         for entry in dirtyEntries {
             if Task.isCancelled { return }
+            // A statistics type HealthKit hasn't been asked about can't be queried yet; its day stays dirty for a later run.
+            if entry.type.usesStatisticsQuery && !readable.contains(entry.type) {
+                // An earlier run may have left this mark fresh after a failed write. Without this, writeStep would write the old stored value and clear the day's marks.
+                do {
+                    try store.markNotFresh(type: entry.type, day: entry.day)
+                } catch {
+                    errors.append("daily values \(entry.type.rawValue) \(entry.day) invalidate: \(error)")
+                }
+                continue
+            }
             do {
                 if HealthType.cycleTypes.contains(entry.type) {
                     try store.saveCycleDay(try cycleDayUpdate(for: entry), day: entry.day)
@@ -179,7 +194,7 @@ public final class ExportRunner: Sendable {
 
     func dailyValue(for entry: DirtyEntry, zone: TimeZone, preferredSleepSource: String?) async throws -> DailyValue? {
         switch entry.type {
-        case .steps, .restingHeartRate:
+        case .steps, .exerciseMinutes, .restingHeartRate:
             return try await health.dailyStatistic(for: entry.type, day: entry.day, timeZone: zone).map { DailyValue(value: $0) }
         case .weight:
             let latest = try store.samples(type: .weight, fromDay: entry.day, toDay: entry.day).max { $0.end < $1.end }

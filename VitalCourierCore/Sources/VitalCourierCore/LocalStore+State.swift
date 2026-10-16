@@ -2,7 +2,7 @@ import Foundation
 import GRDB
 
 public struct DailyValue: Equatable, Sendable {
-    /// Steps: count. Resting heart rate: beats per minute. Weight: kg. Sleep: asleep hours.
+    /// Steps: count. Exercise: minutes. Resting heart rate: beats per minute. Weight: kg. Sleep: asleep hours.
     public var value: Double
     public var deepHours: Double?
     public var remHours: Double?
@@ -126,9 +126,9 @@ extension LocalStore {
         }
     }
 
-    /// Dirties every day each stored steps and resting heart rate sample overlaps, in its stored zone and in `statisticsZone`, for those of the two in `types`. The stored-day marks of `markAllDirty` miss the later days of a sample that crosses midnight.
+    /// Dirties every day each stored sample of a statistics type (`HealthType.usesStatisticsQuery`) in `types` overlaps, in its stored zone and in `statisticsZone`. The stored-day marks of `markAllDirty` miss the later days of a sample that crosses midnight.
     static func markEveryOverlappedDayDirty(_ db: Database, statisticsZone: TimeZone, types: [HealthType]) throws {
-        let statisticsTypeNames = [HealthType.steps, .restingHeartRate].filter(types.contains).map(\.rawValue)
+        let statisticsTypeNames = types.filter(\.usesStatisticsQuery).map(\.rawValue)
         guard !statisticsTypeNames.isEmpty else { return }
         let rows = try Row.fetchAll(
             db,

@@ -6,7 +6,7 @@ The app isn't released yet. It is heading to TestFlight first.
 
 ## What it exports
 
-Four types: steps, resting heart rate, sleep and weight. Two more, menstrual flow and spotting, are exported when Cycle tracking is on in Settings. Everything goes into a `Vital Courier` folder inside the folder you pick:
+It exports the Apple Health data you allow, plus cycle data when Cycle tracking is on in Settings. Everything goes into a `Vital Courier` folder inside the folder you pick:
 
 ```
 Vital Courier/
@@ -15,7 +15,7 @@ Vital Courier/
   daily/<YYYY-MM-DD>.md         one note per day, with that day's values as properties
 ```
 
-The JSON is an export of each stored sample, with its source name, device name and metadata (metadata values are saved as text). The daily notes hold that day's values in YAML frontmatter, always metric, so Obsidian Bases or Dataview can query them. The keys are `date`, `vc_steps`, `vc_resting_hr_bpm`, `vc_sleep_hours`, `vc_sleep_deep_hours`, `vc_sleep_rem_hours`, `vc_sleep_source`, `vc_weight_kg`, `vc_menstrual_flow`, `vc_period_start`, `vc_spotting` and `vc_schema`. `date` and `vc_schema` are always there; a health key is left out when the day has no value for it. The two cycle flags are written only when true. The file names match Obsidian's daily notes.
+The JSON is an export of each stored sample, with its source name, device name and metadata (metadata values are saved as text). The daily notes hold that day's values in YAML frontmatter, always metric, so Obsidian Bases or Dataview can query them. The keys are `date`, `vc_steps`, `vc_exercise_minutes`, `vc_resting_hr_bpm`, `vc_sleep_hours`, `vc_sleep_deep_hours`, `vc_sleep_rem_hours`, `vc_sleep_source`, `vc_weight_kg`, `vc_menstrual_flow`, `vc_period_start`, `vc_spotting` and `vc_schema`. `date` and `vc_schema` are always there; a health key is left out when the day has no value for it. The two cycle flags are written only when true. The file names match Obsidian's daily notes.
 
 ## When it runs
 

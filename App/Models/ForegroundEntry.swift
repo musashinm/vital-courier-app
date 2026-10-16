@@ -9,6 +9,8 @@ final class ForegroundEntry {
     private let recordError: @MainActor (String) -> Void
     /// Set by `AppModel` once it is initialized.
     var requestAppOpenRun: @MainActor () -> Void = {}
+    /// Set by `AppModel`: records the enabled types as asked and rebuilds the observer (Exercise Minutes Spec, Launch observer).
+    var typesWereAsked: @MainActor () -> Void = {}
     private var isSceneActive = false
     private var isReady = false
     private var isEntering = false
@@ -64,9 +66,11 @@ final class ForegroundEntry {
             switch try await authorizationRequestStatus() {
             case .shouldRequest:
                 try await requestAuthorization()
+                // Allowed, denied or dismissed: Health won't show this sheet again, so every enabled type now counts as asked.
+                typesWereAsked()
             case .unnecessary:
                 // Every type was asked about before. This says nothing about whether reading was allowed.
-                break
+                typesWereAsked()
             case .unknown:
                 recordError("health authorization status unknown")
             @unknown default:

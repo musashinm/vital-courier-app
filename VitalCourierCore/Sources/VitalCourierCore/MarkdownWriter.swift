@@ -3,6 +3,7 @@ import Foundation
 public struct DailySummary: Equatable, Sendable {
     public var day: DayKey
     public var steps: Double?
+    public var exerciseMinutes: Double?
     public var restingHeartRateBPM: Double?
     public var sleepHours: Double?
     public var sleepDeepHours: Double?
@@ -20,6 +21,7 @@ public struct DailySummary: Equatable, Sendable {
     public init(day: DayKey, values: [HealthType: DailyValue], cycle: CycleDay? = nil) {
         self.day = day
         steps = values[.steps]?.value
+        exerciseMinutes = values[.exerciseMinutes]?.value
         restingHeartRateBPM = values[.restingHeartRate]?.value
         sleepHours = values[.sleep]?.value
         sleepDeepHours = values[.sleep]?.deepHours
@@ -49,6 +51,7 @@ public enum MarkdownWriter {
         var lines = ["---", "date: \(summary.day)"]
         // Truncated, not rounded: the Health app shows a fractional de-duplicated step sum without its fraction.
         if let steps = summary.steps { lines.append("vc_steps: \(Int(steps.rounded(.towardZero)))") }
+        if let minutes = summary.exerciseMinutes { lines.append("vc_exercise_minutes: \(Int(minutes.rounded(.towardZero)))") }
         if let bpm = summary.restingHeartRateBPM { lines.append("vc_resting_hr_bpm: \(oneDecimal(bpm))") }
         if let hours = summary.sleepHours { lines.append("vc_sleep_hours: \(twoDecimals(hours))") }
         if let hours = summary.sleepDeepHours { lines.append("vc_sleep_deep_hours: \(twoDecimals(hours))") }

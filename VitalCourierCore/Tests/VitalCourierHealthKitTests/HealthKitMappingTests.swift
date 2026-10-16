@@ -9,12 +9,12 @@ private func date(_ iso: String) -> Date {
 }
 
 @Suite struct HealthKitMappingTests {
-    @Test func theFourTypesMapToTheirHealthKitTypes() {
+    @Test func theBaseTypesMapToTheirHealthKitTypes() {
         #expect(HealthKitMapping.sampleType(for: .steps) == HKQuantityType(.stepCount))
         #expect(HealthKitMapping.sampleType(for: .restingHeartRate) == HKQuantityType(.restingHeartRate))
         #expect(HealthKitMapping.sampleType(for: .sleep) == HKCategoryType(.sleepAnalysis))
         #expect(HealthKitMapping.sampleType(for: .weight) == HKQuantityType(.bodyMass))
-        #expect(HealthKitMapping.readTypes.count == 4)
+        #expect(HealthKitMapping.readTypes.count == 5)
     }
 
     @Test func samplesAreStoredInSIUnits() throws {
@@ -106,10 +106,22 @@ private func date(_ iso: String) -> Date {
     @Test func cycleTypesMapToTheirHealthKitTypes() {
         #expect(HealthKitMapping.sampleType(for: .menstrualFlow) == HKCategoryType(.menstrualFlow))
         #expect(HealthKitMapping.sampleType(for: .spotting) == HKCategoryType(.intermenstrualBleeding))
-        #expect(HealthKitMapping.readTypes.count == 4)
-        #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 6)
+        #expect(HealthKitMapping.readTypes.count == 5)
+        #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 7)
         #expect(HealthKitMapping.storedUnit(for: .menstrualFlow) == nil)
         #expect(HealthKitMapping.statisticUnit(for: .spotting) == nil)
+    }
+
+    @Test func exerciseMinutesMapsToAppleExerciseTime() {
+        #expect(HealthKitMapping.sampleType(for: .exerciseMinutes) == HKQuantityType(.appleExerciseTime))
+        #expect(HealthKitMapping.storedUnit(for: .exerciseMinutes) == .second())
+        #expect(HealthKitMapping.statisticUnit(for: .exerciseMinutes) == .minute())
+        #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.appleExerciseTime)))
+    }
+
+    @Test func anExerciseQuantityIsStoredInSeconds() throws {
+        let halfHour = HKQuantity(unit: .minute(), doubleValue: 30)
+        #expect(try HealthKitMapping.storedValue(halfHour, for: .exerciseMinutes) == 1800)
     }
 
     @Test func flowValuesBecomeTheirNames() {

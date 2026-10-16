@@ -90,14 +90,15 @@ public final class HealthKitSource: HealthSource {
         return earliest
     }
 
-    /// Steps: `cumulativeSum`; resting heart rate: `discreteAverage` in beats per minute. One day-long bucket anchored at the day's local midnight. Other types return nil.
+    /// Sum types (steps, exercise minutes) use `cumulativeSum`; resting heart rate uses `discreteAverage` in beats per minute. One day-long bucket anchored at the day's local midnight. Other types return nil.
     public func dailyStatistic(for type: HealthType, day: DayKey, timeZone: TimeZone) async throws -> Double? {
-        guard let unit = HealthKitMapping.statisticUnit(for: type),
+        guard let aggregation = type.statisticsAggregation,
+              let unit = HealthKitMapping.statisticUnit(for: type),
               let quantityType = HealthKitMapping.sampleType(for: type) as? HKQuantityType else { return nil }
         let interval = day.interval(in: timeZone)
         let descriptor = HKStatisticsCollectionQueryDescriptor(
             predicate: .quantitySample(type: quantityType, predicate: HKQuery.predicateForSamples(withStart: interval.start, end: interval.end)),
-            options: type == .steps ? .cumulativeSum : .discreteAverage,
+            options: Self.statisticsOptions(for: aggregation),
             anchorDate: interval.start,
             intervalComponents: DateComponents(day: 1)
         )
@@ -108,8 +109,23 @@ public final class HealthKitSource: HealthSource {
             throw Self.mapped(error)
         }
         guard let statistics = collection.statistics(for: interval.start) else { return nil }
-        let quantity = type == .steps ? statistics.sumQuantity() : statistics.averageQuantity()
+        let quantity = Self.chosenQuantity(for: aggregation, sum: statistics.sumQuantity(), average: statistics.averageQuantity())
         return quantity.map { $0.doubleValue(for: unit) }
+    }
+
+    static func statisticsOptions(for aggregation: StatisticsAggregation) -> HKStatisticsOptions {
+        switch aggregation {
+        case .sum: .cumulativeSum
+        case .average: .discreteAverage
+        }
+    }
+
+    /// Pure, so the choice is tested on the Mac: `HKStatistics` can't be built in a test.
+    static func chosenQuantity(for aggregation: StatisticsAggregation, sum: HKQuantity?, average: HKQuantity?) -> HKQuantity? {
+        switch aggregation {
+        case .sum: sum
+        case .average: average
+        }
     }
 
     /// A locked phone's Health database is inaccessible: that is a refused read, retried on the next trigger (spec, Error handling).

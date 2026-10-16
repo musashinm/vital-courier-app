@@ -66,11 +66,11 @@ private struct HealthPermissionStep: View {
             Text("Your health data, in your folder.")
                 .font(.title2.weight(.bold))
                 .foregroundStyle(Color.vcPrimaryText)
-            Text("Vital Courier reads steps, resting heart rate, sleep, and weight from the Apple Health app. It sends nothing to an account or server.")
+            Text("Vital Courier reads the health data you allow in the Apple Health app. It sends nothing to an account or server.")
                 .font(.body)
                 .foregroundStyle(Color.vcSecondaryText)
             VStack(alignment: .leading, spacing: 16) {
-                FactRow(symbol: "heart.fill", text: "Four data types")
+                FactRow(symbol: "heart.fill", text: "Your Apple Health data")
                 FactRow(symbol: "doc.text.fill", text: "JSON and daily Markdown")
                 FactRow(symbol: "folder.fill", text: "A folder you choose in Files")
             }

@@ -60,7 +60,8 @@ final class AppEnvironment: Sendable {
                 store: store,
                 health: health,
                 destination: { folderAccess.destination() },
-                enabledTypes: { HealthType.enabledTypes(cycleTrackingEnabled: settings.cycleTrackingEnabled) }
+                enabledTypes: { HealthType.enabledTypes(cycleTrackingEnabled: settings.cycleTrackingEnabled) },
+                readableTypes: { HealthType.observedTypes(enabled: HealthType.enabledTypes(cycleTrackingEnabled: settings.cycleTrackingEnabled), askedAbout: settings.healthTypesAskedAbout) }
             )
             return .ready(store: store, coordinator: TriggerCoordinator(runner: runner))
         } catch {

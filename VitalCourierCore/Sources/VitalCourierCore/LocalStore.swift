@@ -286,7 +286,7 @@ public final class LocalStore: Sendable {
         return days
     }
 
-    /// Marks the stored day of a sample dirty and, for sleep, its wake day too. For steps and resting heart rate, whose daily value comes from HealthKit's statistics query, which splits a sample across every day it overlaps, it marks every day the sample overlaps in its stored zone and in the query zone (`fallbackTimeZone`). Does nothing for an unknown UUID.
+    /// Marks the stored day of a sample dirty and, for sleep, its wake day too. For the types whose daily value comes from HealthKit's statistics query (`HealthType.usesStatisticsQuery`), which splits a sample across every day it overlaps, it marks every day the sample overlaps in its stored zone and in the query zone (`fallbackTimeZone`). Does nothing for an unknown UUID.
     static func markTouched(_ db: Database, uuid: UUID, fallbackTimeZone: TimeZone) throws {
         guard let row = try Row.fetchOne(
             db,
@@ -316,7 +316,7 @@ public final class LocalStore: Sendable {
     }
 
     /// The types whose daily value is a HealthKit statistics query, which splits a sample across the days it overlaps.
-    static let statisticsTypeRawValues: Set<String> = [HealthType.steps.rawValue, HealthType.restingHeartRate.rawValue]
+    static let statisticsTypeRawValues: Set<String> = Set(HealthType.allCases.filter(\.usesStatisticsQuery).map(\.rawValue))
 
     /// Every stored sleep sample in whole nights around `from...to`: the range is widened by the night gap and then again around whatever that finds, until it stops growing. It ends on its own: the range only widens when a stored asleep sample reaches past it, and the store holds finitely many samples. There is deliberately no cap, because a capped search would return a truncated night as if it were complete.
     static func sleepSamples(_ db: Database, from seedStart: Date, to seedEnd: Date) throws -> [HealthSample] {

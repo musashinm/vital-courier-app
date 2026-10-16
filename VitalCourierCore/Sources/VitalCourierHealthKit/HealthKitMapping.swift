@@ -13,6 +13,7 @@ public enum HealthKitMapping {
     public static func sampleType(for type: HealthType) -> HKSampleType {
         switch type {
         case .steps: HKQuantityType(.stepCount)
+        case .exerciseMinutes: HKQuantityType(.appleExerciseTime)
         case .restingHeartRate: HKQuantityType(.restingHeartRate)
         case .sleep: HKCategoryType(.sleepAnalysis)
         case .weight: HKQuantityType(.bodyMass)
@@ -21,12 +22,12 @@ public enum HealthKitMapping {
         }
     }
 
-    /// The types Vital Courier asks to read: the base four, plus the cycle types while Cycle tracking is on. Nothing else (design §2; HIG HealthKit page).
+    /// The types Vital Courier asks to read: the base types, plus the cycle types while Cycle tracking is on. Nothing else (design §2; HIG HealthKit page).
     public static func readTypes(for types: [HealthType]) -> Set<HKObjectType> {
         Set(types.map { sampleType(for: $0) })
     }
 
-    /// The base four, asked for during onboarding.
+    /// The base types, asked for during onboarding.
     public static var readTypes: Set<HKObjectType> {
         readTypes(for: HealthType.baseTypes)
     }
@@ -35,16 +36,18 @@ public enum HealthKitMapping {
     public static func storedUnit(for type: HealthType) -> HKUnit? {
         switch type {
         case .steps: .count()
+        case .exerciseMinutes: .second()
         case .restingHeartRate: .count().unitDivided(by: .second())
         case .weight: .gramUnit(with: .kilo)
         case .sleep, .menstrualFlow, .spotting: nil
         }
     }
 
-    /// Daily values (spec, Daily values): steps as a count, resting heart rate in beats per minute.
+    /// Daily values (spec, Daily values): steps as a count, exercise in minutes, resting heart rate in beats per minute.
     public static func statisticUnit(for type: HealthType) -> HKUnit? {
         switch type {
         case .steps: .count()
+        case .exerciseMinutes: .minute()
         case .restingHeartRate: .count().unitDivided(by: .minute())
         case .weight, .sleep, .menstrualFlow, .spotting: nil
         }
@@ -77,7 +80,7 @@ public enum HealthKitMapping {
         switch type {
         case .menstrualFlow: menstrualFlowValueName(rawValue: rawValue)
         case .spotting: rawValue == HKCategoryValue.notApplicable.rawValue ? "notApplicable" : "unknown(\(rawValue))"
-        case .steps, .restingHeartRate, .sleep, .weight: sleepValueName(rawValue: rawValue)
+        case .steps, .exerciseMinutes, .restingHeartRate, .sleep, .weight: sleepValueName(rawValue: rawValue)
         }
     }
 

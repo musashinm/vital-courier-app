@@ -870,6 +870,16 @@
     "Every file and the folder should report NSFileProtectionCompleteUntilFirstUserAuthentication, and the folder excludedFromBackup=true. A -journal, -wal, -shm or temp file listed here must carry it too." : {
       "shouldTranslate" : false
     },
+    "Exercise minutes" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minutos de exercício"
+          }
+        }
+      }
+    },
     "Export folder" : {
       "localizations" : {
         "pt-BR" : {
@@ -936,16 +946,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pasta perdida, escolha de novo"
-          }
-        }
-      }
-    },
-    "Four data types" : {
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quatro tipos de dados"
           }
         }
       }
@@ -1743,12 +1743,12 @@
         }
       }
     },
-    "Vital Courier reads steps, resting heart rate, sleep, and weight from the Apple Health app. It sends nothing to an account or server." : {
+    "Vital Courier reads the health data you allow in the Apple Health app. It sends nothing to an account or server." : {
       "localizations" : {
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O Vital Courier lê passos, frequência cardíaca em repouso, sono e peso do app Saúde. Ele não envia nada para nenhuma conta ou servidor."
+            "value" : "O Vital Courier lê os dados de saúde que você permitir no app Saúde. Ele não envia nada para nenhuma conta ou servidor."
           }
         }
       }
@@ -1849,6 +1849,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Grava na sua pasta os dados de saúde que o Vital Courier já salvou. Não lê dados novos."
+          }
+        }
+      }
+    },
+    "Your Apple Health data" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seus dados do app Saúde"
           }
         }
       }
