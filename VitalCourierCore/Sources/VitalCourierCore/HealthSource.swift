@@ -7,6 +7,19 @@ public enum HealthSourceError: Error, Equatable {
     case anchorDidNotAdvance(HealthType)
 }
 
+/// A day's statistic in the type's statistic unit. `minimum` and `maximum` are set only for respiratory rate (Respiratory Rate Spec, Statistics query).
+public struct DailyStatistic: Equatable, Sendable {
+    public var value: Double
+    public var minimum: Double?
+    public var maximum: Double?
+
+    public init(value: Double, minimum: Double? = nil, maximum: Double? = nil) {
+        self.value = value
+        self.minimum = minimum
+        self.maximum = maximum
+    }
+}
+
 /// Everything the core needs from HealthKit. The HealthKit-backed implementation lives in `VitalCourierHealthKit` (Task 8).
 public protocol HealthSource: Sendable {
     /// True when protected data is available. A read can still be refused; that throws `readRefused`.
@@ -17,6 +30,6 @@ public protocol HealthSource: Sendable {
     func samples(for type: HealthType, in interval: DateInterval) async throws -> [HealthSample]
     /// The earliest sample start across `types`; nil when there are none.
     func earliestSampleDate(types: [HealthType]) async throws -> Date?
-    /// Sum types (steps: count, exercise: minutes) use `cumulativeSum`; resting heart rate uses `discreteAverage` (beats per minute). Nil when there is no data.
-    func dailyStatistic(for type: HealthType, day: DayKey, timeZone: TimeZone) async throws -> Double?
+    /// Sum types (steps: count, exercise: minutes) use `cumulativeSum`; resting heart rate uses `discreteAverage` (beats per minute); respiratory rate uses the average, minimum and maximum (breaths per minute). Nil when there is no data.
+    func dailyStatistic(for type: HealthType, day: DayKey, timeZone: TimeZone) async throws -> DailyStatistic?
 }

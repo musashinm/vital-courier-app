@@ -15,6 +15,7 @@ public enum HealthKitMapping {
         case .steps: HKQuantityType(.stepCount)
         case .exerciseMinutes: HKQuantityType(.appleExerciseTime)
         case .restingHeartRate: HKQuantityType(.restingHeartRate)
+        case .respiratoryRate: HKQuantityType(.respiratoryRate)
         case .sleep: HKCategoryType(.sleepAnalysis)
         case .weight: HKQuantityType(.bodyMass)
         case .menstrualFlow: HKCategoryType(.menstrualFlow)
@@ -37,18 +38,18 @@ public enum HealthKitMapping {
         switch type {
         case .steps: .count()
         case .exerciseMinutes: .second()
-        case .restingHeartRate: .count().unitDivided(by: .second())
+        case .restingHeartRate, .respiratoryRate: .count().unitDivided(by: .second())
         case .weight: .gramUnit(with: .kilo)
         case .sleep, .menstrualFlow, .spotting: nil
         }
     }
 
-    /// Daily values (spec, Daily values): steps as a count, exercise in minutes, resting heart rate in beats per minute.
+    /// Daily values (spec, Daily values): steps as a count, exercise in minutes, resting heart rate in beats per minute, respiratory rate in breaths per minute (average, minimum and maximum).
     public static func statisticUnit(for type: HealthType) -> HKUnit? {
         switch type {
         case .steps: .count()
         case .exerciseMinutes: .minute()
-        case .restingHeartRate: .count().unitDivided(by: .minute())
+        case .restingHeartRate, .respiratoryRate: .count().unitDivided(by: .minute())
         case .weight, .sleep, .menstrualFlow, .spotting: nil
         }
     }
@@ -80,7 +81,7 @@ public enum HealthKitMapping {
         switch type {
         case .menstrualFlow: menstrualFlowValueName(rawValue: rawValue)
         case .spotting: rawValue == HKCategoryValue.notApplicable.rawValue ? "notApplicable" : "unknown(\(rawValue))"
-        case .steps, .exerciseMinutes, .restingHeartRate, .sleep, .weight: sleepValueName(rawValue: rawValue)
+        case .steps, .exerciseMinutes, .restingHeartRate, .respiratoryRate, .sleep, .weight: sleepValueName(rawValue: rawValue)
         }
     }
 

@@ -18,7 +18,7 @@ actor FakeHealthSource: HealthSource {
     var receivedAnchors: [HealthType: [Data?]] = [:]
     var cancelOnNextChanges = false
     var storedSamples: [HealthType: [HealthSample]] = [:]
-    var statistics: [String: Double] = [:]
+    var statistics: [String: DailyStatistic] = [:]
     var failingStatistics: Set<String> = []
     var failingChangeTypes: Set<HealthType> = []
     var earliest: Date?
@@ -31,7 +31,8 @@ actor FakeHealthSource: HealthSource {
     func queue(_ changes: HealthChanges, for type: HealthType) { queuedChanges[type, default: []].append(changes) }
     func cancelCurrentTaskOnNextChanges() { cancelOnNextChanges = true }
     func setSamples(_ samples: [HealthSample], for type: HealthType) { storedSamples[type] = samples }
-    func setStatistic(_ value: Double?, for type: HealthType, day: DayKey) { statistics["\(type.rawValue)|\(day)"] = value }
+    func setStatistic(_ value: Double?, for type: HealthType, day: DayKey) { statistics["\(type.rawValue)|\(day)"] = value.map { DailyStatistic(value: $0) } }
+    func setStatisticRange(_ statistic: DailyStatistic, for type: HealthType, day: DayKey) { statistics["\(type.rawValue)|\(day)"] = statistic }
     func failStatistic(for type: HealthType, day: DayKey) { failingStatistics.insert("\(type.rawValue)|\(day)") }
     func failChanges(for type: HealthType) { failingChangeTypes.insert(type) }
     func setEarliest(_ value: Date?) { earliest = value }
@@ -63,7 +64,7 @@ actor FakeHealthSource: HealthSource {
         return earliest
     }
 
-    func dailyStatistic(for type: HealthType, day: DayKey, timeZone: TimeZone) throws -> Double? {
+    func dailyStatistic(for type: HealthType, day: DayKey, timeZone: TimeZone) throws -> DailyStatistic? {
         let key = "\(type.rawValue)|\(day)"
         log.append("statistic \(key)")
         if failingStatistics.contains(key) { throw FakeWriteError() }

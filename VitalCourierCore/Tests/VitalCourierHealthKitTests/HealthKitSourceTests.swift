@@ -29,12 +29,36 @@ import VitalCourierCore
         #expect(HealthKitSource.statisticsOptions(for: .average) == .discreteAverage)
     }
 
-    @Test func theAggregationPicksWhichQuantityIsRead() {
+    @Test func theAggregationPicksWhichQuantitiesAreRead() {
         let sum = HKQuantity(unit: .minute(), doubleValue: 34)
         let average = HKQuantity(unit: .minute(), doubleValue: 1)
-        #expect(HealthKitSource.chosenQuantity(for: HealthType.exerciseMinutes.statisticsAggregation!, sum: sum, average: average) == sum)
-        #expect(HealthKitSource.chosenQuantity(for: HealthType.steps.statisticsAggregation!, sum: sum, average: average) == sum)
-        #expect(HealthKitSource.chosenQuantity(for: HealthType.restingHeartRate.statisticsAggregation!, sum: sum, average: average) == average)
-        #expect(HealthKitSource.chosenQuantity(for: .sum, sum: nil, average: average) == nil)
+        let minimum = HKQuantity(unit: .minute(), doubleValue: 0.5)
+        let maximum = HKQuantity(unit: .minute(), doubleValue: 2)
+
+        let exercise = HealthKitSource.chosenQuantities(for: HealthType.exerciseMinutes.statisticsAggregation!, sum: sum, average: average, minimum: minimum, maximum: maximum)
+        #expect(exercise.value == sum)
+        #expect(exercise.minimum == nil)
+        #expect(exercise.maximum == nil)
+
+        #expect(HealthKitSource.chosenQuantities(for: HealthType.steps.statisticsAggregation!, sum: sum, average: average, minimum: minimum, maximum: maximum).value == sum)
+
+        let restingHeartRate = HealthKitSource.chosenQuantities(for: HealthType.restingHeartRate.statisticsAggregation!, sum: sum, average: average, minimum: minimum, maximum: maximum)
+        #expect(restingHeartRate.value == average)
+        #expect(restingHeartRate.minimum == nil)
+        #expect(restingHeartRate.maximum == nil)
+
+        let respiratory = HealthKitSource.chosenQuantities(for: HealthType.respiratoryRate.statisticsAggregation!, sum: sum, average: average, minimum: minimum, maximum: maximum)
+        #expect(respiratory.value == average)
+        #expect(respiratory.minimum == minimum)
+        #expect(respiratory.maximum == maximum)
+
+        let empty = HealthKitSource.chosenQuantities(for: .averageMinMax, sum: nil, average: nil, minimum: nil, maximum: nil)
+        #expect(empty.value == nil)
+        #expect(empty.minimum == nil)
+        #expect(empty.maximum == nil)
+    }
+
+    @Test func anAverageMinMaxAggregationAsksForAllThreeDiscreteOptions() {
+        #expect(HealthKitSource.statisticsOptions(for: .averageMinMax) == [.discreteAverage, .discreteMin, .discreteMax])
     }
 }

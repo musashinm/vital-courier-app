@@ -14,7 +14,7 @@ private func date(_ iso: String) -> Date {
         #expect(HealthKitMapping.sampleType(for: .restingHeartRate) == HKQuantityType(.restingHeartRate))
         #expect(HealthKitMapping.sampleType(for: .sleep) == HKCategoryType(.sleepAnalysis))
         #expect(HealthKitMapping.sampleType(for: .weight) == HKQuantityType(.bodyMass))
-        #expect(HealthKitMapping.readTypes.count == 5)
+        #expect(HealthKitMapping.readTypes.count == 6)
     }
 
     @Test func samplesAreStoredInSIUnits() throws {
@@ -106,8 +106,8 @@ private func date(_ iso: String) -> Date {
     @Test func cycleTypesMapToTheirHealthKitTypes() {
         #expect(HealthKitMapping.sampleType(for: .menstrualFlow) == HKCategoryType(.menstrualFlow))
         #expect(HealthKitMapping.sampleType(for: .spotting) == HKCategoryType(.intermenstrualBleeding))
-        #expect(HealthKitMapping.readTypes.count == 5)
-        #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 7)
+        #expect(HealthKitMapping.readTypes.count == 6)
+        #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 8)
         #expect(HealthKitMapping.storedUnit(for: .menstrualFlow) == nil)
         #expect(HealthKitMapping.statisticUnit(for: .spotting) == nil)
     }
@@ -122,6 +122,20 @@ private func date(_ iso: String) -> Date {
     @Test func anExerciseQuantityIsStoredInSeconds() throws {
         let halfHour = HKQuantity(unit: .minute(), doubleValue: 30)
         #expect(try HealthKitMapping.storedValue(halfHour, for: .exerciseMinutes) == 1800)
+    }
+
+    @Test func respiratoryRateMapsToItsHealthKitType() {
+        let perSecond = HKUnit.count().unitDivided(by: .second())
+        let perMinute = HKUnit.count().unitDivided(by: .minute())
+        #expect(HealthKitMapping.sampleType(for: .respiratoryRate) == HKQuantityType(.respiratoryRate))
+        #expect(HealthKitMapping.storedUnit(for: .respiratoryRate) == perSecond)
+        #expect(HealthKitMapping.statisticUnit(for: .respiratoryRate) == perMinute)
+        #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.respiratoryRate)))
+    }
+
+    @Test func aRespiratoryQuantityIsStoredPerSecond() throws {
+        let fifteenBreathsPerMinute = HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 15)
+        #expect(try HealthKitMapping.storedValue(fifteenBreathsPerMinute, for: .respiratoryRate) == 0.25)
     }
 
     @Test func flowValuesBecomeTheirNames() {

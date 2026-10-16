@@ -12,6 +12,9 @@ import Testing
         summary.steps = 8412.4
         summary.exerciseMinutes = 34.9
         summary.restingHeartRateBPM = 58.46
+        summary.respiratoryRate = 14.46
+        summary.respiratoryRateMin = 12.1
+        summary.respiratoryRateMax = 17
         summary.sleepHours = 7.2
         summary.sleepDeepHours = 1.1
         summary.sleepREMHours = 1.556
@@ -24,6 +27,9 @@ import Testing
             vc_steps: 8412
             vc_exercise_minutes: 34
             vc_resting_hr_bpm: 58.5
+            vc_respiratory_rate: 14.5
+            vc_respiratory_rate_min: 12.1
+            vc_respiratory_rate_max: 17.0
             vc_sleep_hours: 7.20
             vc_sleep_deep_hours: 1.10
             vc_sleep_rem_hours: 1.56
@@ -153,5 +159,40 @@ import Testing
     @Test func theSummaryTakesExerciseMinutesFromTheStoredDailyValue() {
         let summary = DailySummary(day: day("2026-09-27"), values: [.exerciseMinutes: DailyValue(value: 34)])
         #expect(summary.exerciseMinutes == 34)
+    }
+
+    @Test func leavesOutRespiratoryRateWhenThereIsNone() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.restingHeartRateBPM = 58
+        #expect(!text(summary).contains("vc_respiratory_rate"))
+    }
+
+    @Test func writesTheRespiratoryAverageAloneWhenTheRangeIsMissing() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.respiratoryRate = 14.5
+        #expect(text(summary).contains("vc_respiratory_rate: 14.5\nvc_schema: 1\n"))
+        #expect(!text(summary).contains("vc_respiratory_rate_min"))
+        #expect(!text(summary).contains("vc_respiratory_rate_max"))
+    }
+
+    @Test func leavesOutTheRespiratoryMaximumOnItsOwn() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.respiratoryRate = 14.5
+        summary.respiratoryRateMin = 12.1
+        #expect(text(summary).contains("vc_respiratory_rate: 14.5\nvc_respiratory_rate_min: 12.1\nvc_schema: 1\n"))
+    }
+
+    @Test func leavesOutTheRespiratoryMinimumOnItsOwn() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.respiratoryRate = 14.5
+        summary.respiratoryRateMax = 17
+        #expect(text(summary).contains("vc_respiratory_rate: 14.5\nvc_respiratory_rate_max: 17.0\nvc_schema: 1\n"))
+    }
+
+    @Test func theSummaryTakesTheRespiratoryRangeFromTheStoredDailyValue() {
+        let summary = DailySummary(day: day("2026-09-27"), values: [.respiratoryRate: DailyValue(value: 14.5, minimum: 12.1, maximum: 17)])
+        #expect(summary.respiratoryRate == 14.5)
+        #expect(summary.respiratoryRateMin == 12.1)
+        #expect(summary.respiratoryRateMax == 17)
     }
 }
