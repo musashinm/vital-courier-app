@@ -7,7 +7,7 @@ public enum HealthSourceError: Error, Equatable {
     case anchorDidNotAdvance(HealthType)
 }
 
-/// A day's statistic in the type's statistic unit. `minimum` and `maximum` are set only for respiratory rate (Respiratory Rate Spec, Statistics query).
+/// A day's statistic in the type's statistic unit. `minimum` and `maximum` are set only for the average-minimum-maximum types, respiratory rate and blood glucose (Respiratory Rate Spec, Statistics query).
 public struct DailyStatistic: Equatable, Sendable {
     public var value: Double
     public var minimum: Double?

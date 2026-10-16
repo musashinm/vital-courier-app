@@ -46,7 +46,7 @@ public enum HealthKitMapping {
         }
     }
 
-    /// Daily values (spec, Daily values): steps as a count, exercise in minutes, resting heart rate in beats per minute, respiratory rate in breaths per minute (average, minimum and maximum).
+    /// Daily values (spec, Daily values): steps as a count, exercise in minutes, resting heart rate in beats per minute, respiratory rate in breaths per minute (average, minimum and maximum), blood glucose in mg/dL (average, minimum and maximum).
     public static func statisticUnit(for type: HealthType) -> HKUnit? {
         switch type {
         case .steps: .count()

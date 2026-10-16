@@ -210,7 +210,7 @@ public final class LocalStore: Sendable {
                 );
                 """)
         }
-        // Respiratory Rate Spec, Storage: the day's minimum and maximum, null for every other type. SQL inlined on purpose: later code must never change what this migration does.
+        // Respiratory Rate Spec, Storage: the day's minimum and maximum for the average-minimum-maximum types, null for every other type. SQL inlined on purpose: later code must never change what this migration does.
         migrator.registerMigration("v3-dailyValueMinMax") { db in
             try db.execute(sql: """
                 ALTER TABLE dailyValue ADD COLUMN minValue REAL;
