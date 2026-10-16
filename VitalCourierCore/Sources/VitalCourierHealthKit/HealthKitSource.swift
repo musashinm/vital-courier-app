@@ -90,8 +90,8 @@ public final class HealthKitSource: HealthSource {
         return earliest
     }
 
-    /// Sum types (steps, exercise minutes) use `cumulativeSum`; resting heart rate uses `discreteAverage` in beats per minute. One day-long bucket anchored at the day's local midnight. Other types return nil.
-    public func dailyStatistic(for type: HealthType, day: DayKey, timeZone: TimeZone) async throws -> Double? {
+    /// Sum types (steps, exercise minutes) use `cumulativeSum`; resting heart rate uses `discreteAverage` in beats per minute; respiratory rate uses `discreteAverage`, `discreteMin` and `discreteMax` in breaths per minute, from one query. One day-long bucket anchored at the day's local midnight. Other types return nil.
+    public func dailyStatistic(for type: HealthType, day: DayKey, timeZone: TimeZone) async throws -> DailyStatistic? {
         guard let aggregation = type.statisticsAggregation,
               let unit = HealthKitMapping.statisticUnit(for: type),
               let quantityType = HealthKitMapping.sampleType(for: type) as? HKQuantityType else { return nil }
@@ -109,8 +109,15 @@ public final class HealthKitSource: HealthSource {
             throw Self.mapped(error)
         }
         guard let statistics = collection.statistics(for: interval.start) else { return nil }
-        let quantity = Self.chosenQuantity(for: aggregation, sum: statistics.sumQuantity(), average: statistics.averageQuantity())
-        return quantity.map { $0.doubleValue(for: unit) }
+        let chosen = Self.chosenQuantities(
+            for: aggregation,
+            sum: statistics.sumQuantity(),
+            average: statistics.averageQuantity(),
+            minimum: statistics.minimumQuantity(),
+            maximum: statistics.maximumQuantity()
+        )
+        guard let value = chosen.value else { return nil }
+        return DailyStatistic(value: value.doubleValue(for: unit), minimum: chosen.minimum?.doubleValue(for: unit), maximum: chosen.maximum?.doubleValue(for: unit))
     }
 
     static func statisticsOptions(for aggregation: StatisticsAggregation) -> HKStatisticsOptions {
@@ -122,11 +129,19 @@ public final class HealthKitSource: HealthSource {
         }
     }
 
+    /// The quantities one statistics bucket yields for an aggregation. `minimum` and `maximum` stay nil unless it asked for them.
+    struct ChosenQuantities {
+        var value: HKQuantity?
+        var minimum: HKQuantity? = nil
+        var maximum: HKQuantity? = nil
+    }
+
     /// Pure, so the choice is tested on the Mac: `HKStatistics` can't be built in a test.
-    static func chosenQuantity(for aggregation: StatisticsAggregation, sum: HKQuantity?, average: HKQuantity?) -> HKQuantity? {
+    static func chosenQuantities(for aggregation: StatisticsAggregation, sum: HKQuantity?, average: HKQuantity?, minimum: HKQuantity?, maximum: HKQuantity?) -> ChosenQuantities {
         switch aggregation {
-        case .sum: sum
-        case .average, .averageMinMax: average
+        case .sum: ChosenQuantities(value: sum)
+        case .average: ChosenQuantities(value: average)
+        case .averageMinMax: ChosenQuantities(value: average, minimum: minimum, maximum: maximum)
         }
     }
 
