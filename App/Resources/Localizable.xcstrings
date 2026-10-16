@@ -1407,6 +1407,16 @@
         }
       }
     },
+    "Respiratory rate" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frequência respiratória"
+          }
+        }
+      }
+    },
     "Resting heart rate" : {
       "localizations" : {
         "pt-BR" : {

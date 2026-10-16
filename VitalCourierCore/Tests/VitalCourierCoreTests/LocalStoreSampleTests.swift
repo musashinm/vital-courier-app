@@ -241,4 +241,24 @@ import Testing
 
         #expect(try dirtyDays(store, type: .exerciseMinutes).isEmpty)
     }
+
+    @Test func addingARespiratorySampleAcrossMidnightDirtiesBothDays() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(type: .respiratoryRate, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z", value: .quantity(0.25))
+        try store.applyChanges(HealthChanges(added: [sample]), for: .respiratoryRate, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .respiratoryRate) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func rebuildAllDirtiesBothDaysOfAStoredCrossingRespiratorySample() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(type: .respiratoryRate, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z", value: .quantity(0.25), zone: "UTC")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .respiratoryRate, fallbackTimeZone: saoPaulo)
+        for entry in try store.dirtyEntries() { try store.clearDirty(type: entry.type, day: entry.day) }
+
+        try store.markAllDirty(statisticsZone: saoPaulo)
+
+        // Stored zone UTC keeps the sample on the 28th only; Sao Paulo, the statistics zone, adds the 27th.
+        #expect(try dirtyDays(store, type: .respiratoryRate) == [day("2026-09-27"), day("2026-09-28")])
+    }
 }

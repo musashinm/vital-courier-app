@@ -36,5 +36,10 @@ import VitalCourierCore
         #expect(HealthKitSource.chosenQuantity(for: HealthType.steps.statisticsAggregation!, sum: sum, average: average) == sum)
         #expect(HealthKitSource.chosenQuantity(for: HealthType.restingHeartRate.statisticsAggregation!, sum: sum, average: average) == average)
         #expect(HealthKitSource.chosenQuantity(for: .sum, sum: nil, average: average) == nil)
+        #expect(HealthKitSource.chosenQuantity(for: HealthType.respiratoryRate.statisticsAggregation!, sum: sum, average: average) == average)
+    }
+
+    @Test func anAverageMinMaxAggregationAsksForAllThreeDiscreteOptions() {
+        #expect(HealthKitSource.statisticsOptions(for: .averageMinMax) == [.discreteAverage, .discreteMin, .discreteMax])
     }
 }

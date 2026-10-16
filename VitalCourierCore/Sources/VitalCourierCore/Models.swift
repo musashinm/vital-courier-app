@@ -4,13 +4,14 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
     case steps
     case exerciseMinutes
     case restingHeartRate
+    case respiratoryRate
     case sleep
     case weight
     case menstrualFlow
     case spotting
 
     /// The types every install exports.
-    public static let baseTypes: [HealthType] = [.steps, .exerciseMinutes, .restingHeartRate, .sleep, .weight]
+    public static let baseTypes: [HealthType] = [.steps, .exerciseMinutes, .restingHeartRate, .respiratoryRate, .sleep, .weight]
     /// Exported only while Cycle tracking is on (Cycle Tracking Spec).
     public static let cycleTypes: [HealthType] = [.menstrualFlow, .spotting]
 
@@ -30,6 +31,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
         case .steps: "steps"
         case .exerciseMinutes: "exercise-minutes"
         case .restingHeartRate: "resting-heart-rate"
+        case .respiratoryRate: "respiratory-rate"
         case .sleep: "sleep"
         case .weight: "weight"
         case .menstrualFlow: "menstrual-flow"
@@ -42,7 +44,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
         switch self {
         case .steps: "count"
         case .exerciseMinutes: "s"
-        case .restingHeartRate: "count/s"
+        case .restingHeartRate, .respiratoryRate: "count/s"
         case .sleep, .menstrualFlow, .spotting: "category"
         case .weight: "kg"
         }
@@ -53,6 +55,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
         switch self {
         case .steps, .exerciseMinutes: .sum
         case .restingHeartRate: .average
+        case .respiratoryRate: .averageMinMax
         case .sleep, .weight, .menstrualFlow, .spotting: nil
         }
     }
@@ -64,6 +67,8 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
 public enum StatisticsAggregation: Sendable, Equatable {
     case sum
     case average
+    /// The day's average plus its minimum and maximum, from one query (Respiratory Rate Spec, Statistics query).
+    case averageMinMax
 }
 
 public enum SampleValue: Sendable, Equatable {

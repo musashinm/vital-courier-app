@@ -12,7 +12,7 @@ enum CycleRowText {
         case .spotting:
             guard let day = snapshot?.latestSpottingDay else { return localization.string("No entries yet") }
             return formatter.capitalizedFirst(formatter.day(day, today: today))
-        case .steps, .exerciseMinutes, .restingHeartRate, .sleep, .weight:
+        case .steps, .exerciseMinutes, .restingHeartRate, .respiratoryRate, .sleep, .weight:
             return ""
         }
     }

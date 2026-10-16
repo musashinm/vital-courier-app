@@ -117,6 +117,8 @@ public final class HealthKitSource: HealthSource {
         switch aggregation {
         case .sum: .cumulativeSum
         case .average: .discreteAverage
+        // Apple allows any number of discrete options together, so one query returns all three.
+        case .averageMinMax: [.discreteAverage, .discreteMin, .discreteMax]
         }
     }
 
@@ -124,7 +126,7 @@ public final class HealthKitSource: HealthSource {
     static func chosenQuantity(for aggregation: StatisticsAggregation, sum: HKQuantity?, average: HKQuantity?) -> HKQuantity? {
         switch aggregation {
         case .sum: sum
-        case .average: average
+        case .average, .averageMinMax: average
         }
     }
 
