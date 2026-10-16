@@ -91,6 +91,11 @@ import Testing
         #expect(settings.healthTypesAskedAbout == [.steps, .restingHeartRate, .sleep, .weight])
     }
 
+    @Test func theFixedPreSettingListNeverGainsWalkingHeartRateAverage() {
+        // Existing installs must see the Health sheet before the new type is observed (Walking Heart Rate Average Spec, Edge cases).
+        #expect(!AppSettings.typesAskedAboutBeforeThisSetting.contains(.walkingHeartRateAverage))
+    }
+
     @Test func concurrentRecordingsOfDifferentTypesAllSurvive() async {
         let settings = AppSettings(storage: InMemoryStorage())
 

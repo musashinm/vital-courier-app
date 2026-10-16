@@ -115,6 +115,7 @@ extension HealthType {
         case .steps: String(localized: "Steps")
         case .exerciseMinutes: String(localized: "Exercise minutes")
         case .restingHeartRate: String(localized: "Resting heart rate")
+        case .walkingHeartRateAverage: String(localized: "Walking heart rate average")
         case .respiratoryRate: String(localized: "Respiratory rate")
         case .bloodGlucose: String(localized: "Blood glucose")
         case .sleep: String(localized: "Sleep")
@@ -129,6 +130,7 @@ extension HealthType {
         case .steps: "figure.walk"
         case .exerciseMinutes: "figure.run"
         case .restingHeartRate: "heart.fill"
+        case .walkingHeartRateAverage: "heart.fill"
         case .respiratoryRate: "lungs.fill"
         case .bloodGlucose: "waveform.path.ecg.rectangle.fill"
         case .sleep: "bed.double.fill"

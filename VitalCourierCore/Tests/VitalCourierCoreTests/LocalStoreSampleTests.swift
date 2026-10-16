@@ -150,6 +150,27 @@ import Testing
         #expect(try dirtyDays(store, type: .restingHeartRate) == [day("2026-09-27"), day("2026-09-28")])
     }
 
+    @Test func aWalkingHeartRateSampleAcrossMidnightDirtiesBothDays() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(type: .walkingHeartRateAverage, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .walkingHeartRateAverage, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .walkingHeartRateAverage) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func aReplacedWalkingHeartRateEstimateDirtiesItsDayAndKeepsOnlyTheNewSample() throws {
+        let store = try LocalStore.inMemory()
+        let original = makeSample(type: .walkingHeartRateAverage, start: "2026-09-27T15:00:00Z", end: "2026-09-27T15:01:00Z", value: .quantity(1.5))
+        try store.applyChanges(HealthChanges(added: [original]), for: .walkingHeartRateAverage, fallbackTimeZone: saoPaulo)
+        for entry in try store.dirtyEntries() { try store.clearDirty(type: entry.type, day: entry.day) }
+
+        let replacement = makeSample(type: .walkingHeartRateAverage, start: "2026-09-27T16:00:00Z", end: "2026-09-27T16:01:00Z", value: .quantity(1.54))
+        try store.applyChanges(HealthChanges(added: [replacement], deletedUUIDs: [original.uuid]), for: .walkingHeartRateAverage, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .walkingHeartRateAverage) == [day("2026-09-27")])
+        #expect(try store.samples(type: .walkingHeartRateAverage, fromDay: day("2026-09-27"), toDay: day("2026-09-27")).map(\.uuid) == [replacement.uuid])
+    }
+
     @Test func aWeightSampleAcrossMidnightDirtiesOnlyItsStartDay() throws {
         let store = try LocalStore.inMemory()
         let sample = makeSample(type: .weight, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")

@@ -290,6 +290,17 @@ import Testing
         #expect(try store.dailyValues(day: day("2026-09-27")) == [.bloodGlucose: DailyValue(value: 104, minimum: 88, maximum: 142)])
     }
 
+    @Test func aWalkingHeartRateDayStoresTheStatisticAverage() async throws {
+        let store = try LocalStore.inMemory()
+        let health = FakeHealthSource()
+        await health.queue(HealthChanges(added: [makeSample(type: .walkingHeartRateAverage, start: "2026-09-27T12:00:00Z", end: "2026-09-27T12:01:00Z", value: .quantity(1.54))]), for: .walkingHeartRateAverage)
+        await health.setStatistic(92.4, for: .walkingHeartRateAverage, day: day("2026-09-27"))
+
+        _ = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        #expect(try store.dailyValues(day: day("2026-09-27")) == [.walkingHeartRateAverage: DailyValue(value: 92.4)])
+    }
+
     func makeRunnerThatHasNotAskedAboutExerciseMinutes(store: LocalStore, health: FakeHealthSource) -> ExportRunner {
         let fixedNow = now
         return ExportRunner(
