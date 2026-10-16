@@ -15,6 +15,9 @@ import Testing
         summary.respiratoryRate = 14.46
         summary.respiratoryRateMin = 12.1
         summary.respiratoryRateMax = 17
+        summary.bloodGlucoseMgDl = 103.6
+        summary.bloodGlucoseMgDlMin = 88.4
+        summary.bloodGlucoseMgDlMax = 141.5
         summary.sleepHours = 7.2
         summary.sleepDeepHours = 1.1
         summary.sleepREMHours = 1.556
@@ -30,6 +33,9 @@ import Testing
             vc_respiratory_rate: 14.5
             vc_respiratory_rate_min: 12.1
             vc_respiratory_rate_max: 17.0
+            vc_glucose_mg_dl: 104
+            vc_glucose_mg_dl_min: 88
+            vc_glucose_mg_dl_max: 142
             vc_sleep_hours: 7.20
             vc_sleep_deep_hours: 1.10
             vc_sleep_rem_hours: 1.56
@@ -194,5 +200,46 @@ import Testing
         #expect(summary.respiratoryRate == 14.5)
         #expect(summary.respiratoryRateMin == 12.1)
         #expect(summary.respiratoryRateMax == 17)
+    }
+
+    @Test func leavesOutBloodGlucoseWhenThereIsNone() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.respiratoryRate = 14.5
+        #expect(!text(summary).contains("vc_glucose"))
+    }
+
+    @Test func writesTheGlucoseAverageAloneWhenTheRangeIsMissing() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.bloodGlucoseMgDl = 104
+        #expect(text(summary).contains("vc_glucose_mg_dl: 104\nvc_schema: 1\n"))
+        #expect(!text(summary).contains("vc_glucose_mg_dl_min"))
+        #expect(!text(summary).contains("vc_glucose_mg_dl_max"))
+    }
+
+    @Test func leavesOutTheGlucoseMaximumOnItsOwn() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.bloodGlucoseMgDl = 104
+        summary.bloodGlucoseMgDlMin = 88
+        #expect(text(summary).contains("vc_glucose_mg_dl: 104\nvc_glucose_mg_dl_min: 88\nvc_schema: 1\n"))
+    }
+
+    @Test func leavesOutTheGlucoseMinimumOnItsOwn() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.bloodGlucoseMgDl = 104
+        summary.bloodGlucoseMgDlMax = 142
+        #expect(text(summary).contains("vc_glucose_mg_dl: 104\nvc_glucose_mg_dl_max: 142\nvc_schema: 1\n"))
+    }
+
+    @Test func theSummaryTakesTheGlucoseRangeFromTheStoredDailyValue() {
+        let summary = DailySummary(day: day("2026-09-27"), values: [.bloodGlucose: DailyValue(value: 104, minimum: 88, maximum: 142)])
+        #expect(summary.bloodGlucoseMgDl == 104)
+        #expect(summary.bloodGlucoseMgDlMin == 88)
+        #expect(summary.bloodGlucoseMgDlMax == 142)
+    }
+
+    @Test func noDecimalsRoundsToNearestWithoutGrouping() {
+        #expect(MarkdownWriter.noDecimals(103.6) == "104")
+        #expect(MarkdownWriter.noDecimals(88.4) == "88")
+        #expect(MarkdownWriter.noDecimals(1234.4) == "1234")
     }
 }

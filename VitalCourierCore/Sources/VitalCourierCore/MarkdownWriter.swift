@@ -9,6 +9,10 @@ public struct DailySummary: Equatable, Sendable {
     public var respiratoryRate: Double?
     public var respiratoryRateMin: Double?
     public var respiratoryRateMax: Double?
+    /// mg/dL: the day's average, lowest and highest reading.
+    public var bloodGlucoseMgDl: Double?
+    public var bloodGlucoseMgDlMin: Double?
+    public var bloodGlucoseMgDlMax: Double?
     public var sleepHours: Double?
     public var sleepDeepHours: Double?
     public var sleepREMHours: Double?
@@ -30,6 +34,9 @@ public struct DailySummary: Equatable, Sendable {
         respiratoryRate = values[.respiratoryRate]?.value
         respiratoryRateMin = values[.respiratoryRate]?.minimum
         respiratoryRateMax = values[.respiratoryRate]?.maximum
+        bloodGlucoseMgDl = values[.bloodGlucose]?.value
+        bloodGlucoseMgDlMin = values[.bloodGlucose]?.minimum
+        bloodGlucoseMgDlMax = values[.bloodGlucose]?.maximum
         sleepHours = values[.sleep]?.value
         sleepDeepHours = values[.sleep]?.deepHours
         sleepREMHours = values[.sleep]?.remHours
@@ -64,6 +71,10 @@ public enum MarkdownWriter {
         if let breaths = summary.respiratoryRate { lines.append("vc_respiratory_rate: \(oneDecimal(breaths))") }
         if let breaths = summary.respiratoryRateMin { lines.append("vc_respiratory_rate_min: \(oneDecimal(breaths))") }
         if let breaths = summary.respiratoryRateMax { lines.append("vc_respiratory_rate_max: \(oneDecimal(breaths))") }
+        // Whole numbers, rounded: mg/dL is read without decimals.
+        if let milligrams = summary.bloodGlucoseMgDl { lines.append("vc_glucose_mg_dl: \(noDecimals(milligrams))") }
+        if let milligrams = summary.bloodGlucoseMgDlMin { lines.append("vc_glucose_mg_dl_min: \(noDecimals(milligrams))") }
+        if let milligrams = summary.bloodGlucoseMgDlMax { lines.append("vc_glucose_mg_dl_max: \(noDecimals(milligrams))") }
         if let hours = summary.sleepHours { lines.append("vc_sleep_hours: \(twoDecimals(hours))") }
         if let hours = summary.sleepDeepHours { lines.append("vc_sleep_deep_hours: \(twoDecimals(hours))") }
         if let hours = summary.sleepREMHours { lines.append("vc_sleep_rem_hours: \(twoDecimals(hours))") }
@@ -80,6 +91,8 @@ public enum MarkdownWriter {
 
     /// Fixed locale so the decimal separator is always `.`, whatever the device language.
     static let posixLocale = Locale(identifier: "en_US_POSIX")
+
+    static func noDecimals(_ number: Double) -> String { String(format: "%.0f", locale: posixLocale, number) }
 
     static func oneDecimal(_ number: Double) -> String { String(format: "%.1f", locale: posixLocale, number) }
 
