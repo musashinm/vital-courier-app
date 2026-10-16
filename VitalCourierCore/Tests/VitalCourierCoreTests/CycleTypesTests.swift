@@ -4,8 +4,8 @@ import Testing
 
 @Suite struct CycleTypesTests {
     @Test func cycleTypesJoinTheEnabledSetOnlyWhenSwitchedOn() {
-        #expect(HealthType.enabledTypes(cycleTrackingEnabled: false) == [.steps, .exerciseMinutes, .restingHeartRate, .respiratoryRate, .sleep, .weight])
-        #expect(HealthType.enabledTypes(cycleTrackingEnabled: true) == [.steps, .exerciseMinutes, .restingHeartRate, .respiratoryRate, .sleep, .weight, .menstrualFlow, .spotting])
+        #expect(HealthType.enabledTypes(cycleTrackingEnabled: false) == [.steps, .exerciseMinutes, .restingHeartRate, .respiratoryRate, .bloodGlucose, .sleep, .weight])
+        #expect(HealthType.enabledTypes(cycleTrackingEnabled: true) == [.steps, .exerciseMinutes, .restingHeartRate, .respiratoryRate, .bloodGlucose, .sleep, .weight, .menstrualFlow, .spotting])
         #expect(HealthType.baseTypes + HealthType.cycleTypes == HealthType.allCases)
     }
 

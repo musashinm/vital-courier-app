@@ -250,6 +250,14 @@ import Testing
         #expect(try dirtyDays(store, type: .respiratoryRate) == [day("2026-09-27"), day("2026-09-28")])
     }
 
+    @Test func addingAGlucoseSampleAcrossMidnightDirtiesBothDays() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(type: .bloodGlucose, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z", value: .quantity(1.04))
+        try store.applyChanges(HealthChanges(added: [sample]), for: .bloodGlucose, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .bloodGlucose) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
     @Test func rebuildAllDirtiesBothDaysOfAStoredCrossingRespiratorySample() throws {
         let store = try LocalStore.inMemory()
         let sample = makeSample(type: .respiratoryRate, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z", value: .quantity(0.25), zone: "UTC")
