@@ -1843,6 +1843,16 @@
         }
       }
     },
+    "Walking heart rate average" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Média da frequência cardíaca ao caminhar"
+          }
+        }
+      }
+    },
     "Weight" : {
       "localizations" : {
         "pt-BR" : {

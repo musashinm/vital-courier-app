@@ -19,7 +19,15 @@ import VitalCourierCore
         #expect(HealthType.bloodGlucose.symbolName == "waveform.path.ecg.rectangle.fill")
     }
 
-    @Test func everyTypeHasItsOwnHomeRowSymbol() {
-        #expect(Set(HealthType.allCases.map(\.symbolName)).count == HealthType.allCases.count)
+    @Test func walkingHeartRateAverageSharesTheRestingHeartRateSymbol() {
+        #expect(HealthType.walkingHeartRateAverage.displayName == String(localized: "Walking heart rate average"))
+        #expect(HealthType.walkingHeartRateAverage.symbolName == "heart.fill")
+        #expect(HealthType.walkingHeartRateAverage.symbolName == HealthType.restingHeartRate.symbolName)
+    }
+
+    @Test func everyOtherTypeHasItsOwnHomeRowSymbol() {
+        // The two heart rates share heart.fill, as in Apple's Health app; nothing else may.
+        let typesWithTheirOwnSymbol = HealthType.allCases.filter { $0 != .walkingHeartRateAverage }
+        #expect(Set(typesWithTheirOwnSymbol.map(\.symbolName)).count == typesWithTheirOwnSymbol.count)
     }
 }

@@ -2,7 +2,7 @@ import Foundation
 import GRDB
 
 public struct DailyValue: Equatable, Sendable {
-    /// Steps: count. Exercise: minutes. Resting heart rate: beats per minute. Respiratory rate: breaths per minute (the day's average). Blood glucose: mg/dL (the day's average). Weight: kg. Sleep: asleep hours.
+    /// Steps: count. Exercise: minutes. Resting heart rate: beats per minute. Walking heart rate average: beats per minute. Respiratory rate: breaths per minute (the day's average). Blood glucose: mg/dL (the day's average). Weight: kg. Sleep: asleep hours.
     public var value: Double
     public var deepHours: Double?
     public var remHours: Double?

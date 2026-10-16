@@ -47,6 +47,11 @@ import VitalCourierCore
         #expect(restingHeartRate.minimum == nil)
         #expect(restingHeartRate.maximum == nil)
 
+        let walkingHeartRate = HealthKitSource.chosenQuantities(for: HealthType.walkingHeartRateAverage.statisticsAggregation!, sum: sum, average: average, minimum: minimum, maximum: maximum)
+        #expect(walkingHeartRate.value == average)
+        #expect(walkingHeartRate.minimum == nil)
+        #expect(walkingHeartRate.maximum == nil)
+
         let respiratory = HealthKitSource.chosenQuantities(for: HealthType.respiratoryRate.statisticsAggregation!, sum: sum, average: average, minimum: minimum, maximum: maximum)
         #expect(respiratory.value == average)
         #expect(respiratory.minimum == minimum)
