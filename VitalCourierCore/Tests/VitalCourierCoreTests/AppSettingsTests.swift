@@ -48,4 +48,16 @@ import Testing
         #expect(entries.count == 1)
         #expect(entries[0].contains("not json"))
     }
+
+    @Test func cycleTrackingIsOffUntilTurnedOn() {
+        let storage = InMemoryStorage()
+        let settings = AppSettings(storage: storage)
+        #expect(settings.cycleTrackingEnabled == false)
+
+        settings.cycleTrackingEnabled = true
+        #expect(AppSettings(storage: storage).cycleTrackingEnabled == true)
+
+        settings.cycleTrackingEnabled = false
+        #expect(AppSettings(storage: storage).cycleTrackingEnabled == false)
+    }
 }

@@ -36,6 +36,7 @@ final class AppEnvironment: Sendable {
     /// Guards read-modify-write of the durable queue `settings.pendingSetupErrors` (setup errors not yet saved to run history). The Bool is true while one drain is running.
     private let setupErrorQueue = Mutex(false)
     private let observersStarted = Mutex(false)
+    private let cycleTrackingTransition = CycleTrackingTransition()
 
     init() {
         let settings = AppSettings(storage: StandardUserDefaultsStorage())
@@ -44,7 +45,7 @@ final class AppEnvironment: Sendable {
         self.settings = settings
         self.folderAccess = folderAccess
         self.health = health
-        storeState = Mutex(Self.openStore(health: health, folderAccess: folderAccess))
+        storeState = Mutex(Self.openStore(health: health, folderAccess: folderAccess, settings: settings))
         drainPendingProtectionFailures()
     }
 
@@ -52,10 +53,15 @@ final class AppEnvironment: Sendable {
         URL.applicationSupportDirectory.appending(path: "LocalStore", directoryHint: .isDirectory)
     }
 
-    static func openStore(health: HealthKitSource, folderAccess: FolderAccess) -> StoreState {
+    static func openStore(health: HealthKitSource, folderAccess: FolderAccess, settings: AppSettings) -> StoreState {
         do {
             let store = try LocalStore.open(directory: storeDirectory)
-            let runner = ExportRunner(store: store, health: health, destination: { folderAccess.destination() })
+            let runner = ExportRunner(
+                store: store,
+                health: health,
+                destination: { folderAccess.destination() },
+                enabledTypes: { HealthType.enabledTypes(cycleTrackingEnabled: settings.cycleTrackingEnabled) }
+            )
             return .ready(store: store, coordinator: TriggerCoordinator(runner: runner))
         } catch {
             // Never delete or recreate the database as recovery (spec, Error handling: migration fails).
@@ -69,7 +75,7 @@ final class AppEnvironment: Sendable {
 
     @discardableResult
     func retryOpeningStore() -> StoreState {
-        let reopened = Self.openStore(health: health, folderAccess: folderAccess)
+        let reopened = Self.openStore(health: health, folderAccess: folderAccess, settings: settings)
         storeState.withLock { $0 = reopened }
         drainPendingProtectionFailures()
         return reopened
@@ -79,6 +85,30 @@ final class AppEnvironment: Sendable {
         switch storeStateNow {
         case .ready(let store, _): return store
         case .blocked(let errorText): throw AppEnvironmentError.storeBlocked(errorText)
+        }
+    }
+
+    /// The types the app reads, observes, exports and lists right now (Cycle Tracking Spec).
+    var enabledTypes: [HealthType] {
+        HealthType.enabledTypes(cycleTrackingEnabled: settings.cycleTrackingEnabled)
+    }
+
+    /// The only way the app changes the Cycle tracking switch, so it can't land between `deleteCycleDirtyMarks`'s check and its deletion.
+    func setCycleTrackingEnabled(_ isEnabled: Bool) {
+        cycleTrackingTransition.setEnabled(isEnabled, in: settings)
+    }
+
+    /// Cycle tracking turned off: drops pending cycle marks once no run is active, so a run already past its read can't write them after the switch.
+    /// The switch is checked again under the transition lock inside the exclusive section: if tracking came back on while this waited, that run's marks stay.
+    func deleteCycleDirtyMarks() async throws {
+        switch storeStateNow {
+        case .ready(let store, let coordinator):
+            try await coordinator.exclusive {
+                try self.cycleTrackingTransition.deleteMarksIfStillOff(in: store, settings: self.settings)
+                self.recordProtectionFailures(in: store)
+            }
+        case .blocked(let errorText):
+            throw AppEnvironmentError.storeBlocked(errorText)
         }
     }
 

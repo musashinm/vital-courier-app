@@ -16,21 +16,28 @@ public enum HealthKitMapping {
         case .restingHeartRate: HKQuantityType(.restingHeartRate)
         case .sleep: HKCategoryType(.sleepAnalysis)
         case .weight: HKQuantityType(.bodyMass)
+        case .menstrualFlow: HKCategoryType(.menstrualFlow)
+        case .spotting: HKCategoryType(.intermenstrualBleeding)
         }
     }
 
-    /// The four types Vital Courier asks to read. Nothing else (design §2; HIG HealthKit page).
-    public static var readTypes: Set<HKObjectType> {
-        Set(HealthType.allCases.map { sampleType(for: $0) })
+    /// The types Vital Courier asks to read: the base four, plus the cycle types while Cycle tracking is on. Nothing else (design §2; HIG HealthKit page).
+    public static func readTypes(for types: [HealthType]) -> Set<HKObjectType> {
+        Set(types.map { sampleType(for: $0) })
     }
 
-    /// The SI unit samples are stored in (`HealthType.siUnit`). Sleep is a category, so it has none.
+    /// The base four, asked for during onboarding.
+    public static var readTypes: Set<HKObjectType> {
+        readTypes(for: HealthType.baseTypes)
+    }
+
+    /// The SI unit samples are stored in (`HealthType.siUnit`). Categories have none.
     public static func storedUnit(for type: HealthType) -> HKUnit? {
         switch type {
         case .steps: .count()
         case .restingHeartRate: .count().unitDivided(by: .second())
         case .weight: .gramUnit(with: .kilo)
-        case .sleep: nil
+        case .sleep, .menstrualFlow, .spotting: nil
         }
     }
 
@@ -39,7 +46,7 @@ public enum HealthKitMapping {
         switch type {
         case .steps: .count()
         case .restingHeartRate: .count().unitDivided(by: .minute())
-        case .weight, .sleep: nil
+        case .weight, .sleep, .menstrualFlow, .spotting: nil
         }
     }
 
@@ -61,6 +68,28 @@ public enum HealthKitMapping {
         case .asleepCore: return "asleepCore"
         case .asleepDeep: return "asleepDeep"
         case .asleepREM: return "asleepREM"
+        @unknown default: return "unknown(\(rawValue))"
+        }
+    }
+
+    /// The string a category sample is stored and exported as. Only category types reach this.
+    public static func categoryValueName(rawValue: Int, for type: HealthType) -> String {
+        switch type {
+        case .menstrualFlow: menstrualFlowValueName(rawValue: rawValue)
+        case .spotting: rawValue == HKCategoryValue.notApplicable.rawValue ? "notApplicable" : "unknown(\(rawValue))"
+        case .steps, .restingHeartRate, .sleep, .weight: sleepValueName(rawValue: rawValue)
+        }
+    }
+
+    /// The strings the cycle daily rule and the JSON use (Cycle Tracking Spec, Types).
+    public static func menstrualFlowValueName(rawValue: Int) -> String {
+        guard let value = HKCategoryValueVaginalBleeding(rawValue: rawValue) else { return "unknown(\(rawValue))" }
+        switch value {
+        case .unspecified: return "unspecified"
+        case .light: return "light"
+        case .medium: return "medium"
+        case .heavy: return "heavy"
+        case HKCategoryValueVaginalBleeding.none: return "none"
         @unknown default: return "unknown(\(rawValue))"
         }
     }

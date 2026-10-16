@@ -9,12 +9,15 @@ public struct DailySummary: Equatable, Sendable {
     public var sleepREMHours: Double?
     public var sleepSource: String?
     public var weightKg: Double?
+    public var menstrualFlow: String?
+    public var periodStart = false
+    public var spotting = false
 
     public init(day: DayKey) {
         self.day = day
     }
 
-    public init(day: DayKey, values: [HealthType: DailyValue]) {
+    public init(day: DayKey, values: [HealthType: DailyValue], cycle: CycleDay? = nil) {
         self.day = day
         steps = values[.steps]?.value
         restingHeartRateBPM = values[.restingHeartRate]?.value
@@ -23,6 +26,9 @@ public struct DailySummary: Equatable, Sendable {
         sleepREMHours = values[.sleep]?.remHours
         sleepSource = values[.sleep]?.source
         weightKg = values[.weight]?.value
+        menstrualFlow = cycle?.flow
+        periodStart = cycle?.periodStart ?? false
+        spotting = cycle?.spotting ?? false
     }
 }
 
@@ -49,6 +55,10 @@ public enum MarkdownWriter {
         if let hours = summary.sleepREMHours { lines.append("vc_sleep_rem_hours: \(twoDecimals(hours))") }
         if let source = summary.sleepSource { lines.append("vc_sleep_source: \(quoted(source))") }
         if let kilograms = summary.weightKg { lines.append("vc_weight_kg: \(oneDecimal(kilograms))") }
+        // Flags are written only when true (Cycle Tracking Spec, Output).
+        if let flow = summary.menstrualFlow { lines.append("vc_menstrual_flow: \(flow)") }
+        if summary.periodStart { lines.append("vc_period_start: true") }
+        if summary.spotting { lines.append("vc_spotting: true") }
         lines.append("vc_schema: \(schemaVersion)")
         lines.append("---")
         return Data((lines.joined(separator: "\n") + "\n").utf8)

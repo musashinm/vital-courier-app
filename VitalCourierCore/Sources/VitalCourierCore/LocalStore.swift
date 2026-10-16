@@ -199,6 +199,17 @@ public final class LocalStore: Sendable {
                 );
                 """)
         }
+        // Cycle Tracking Spec, Storage: one row per day holds both cycle types. SQL inlined on purpose: later code must never change what this migration does.
+        migrator.registerMigration("v2-cycleDailyValue") { db in
+            try db.execute(sql: """
+                CREATE TABLE cycleDailyValue (
+                    day TEXT PRIMARY KEY NOT NULL,
+                    flow TEXT,
+                    periodStart INTEGER,
+                    spotting INTEGER
+                );
+                """)
+        }
         return migrator
     }
 
@@ -401,10 +412,15 @@ public final class LocalStore: Sendable {
         }
     }
 
-    /// Start of the earliest stored sample across all types; nil when the store has none.
-    func earliestSampleStart() throws -> Date? {
-        try dbQueue.read { db in
-            try Double.fetchOne(db, sql: "SELECT MIN(startTime) FROM sample").map { Date(timeIntervalSince1970: $0) }
+    /// Start of the earliest stored sample of `types`; nil when the store has none.
+    func earliestSampleStart(types: [HealthType]) throws -> Date? {
+        let typeNames = types.map(\.rawValue)
+        return try dbQueue.read { db in
+            try Double.fetchOne(
+                db,
+                sql: "SELECT MIN(startTime) FROM sample WHERE type IN (\(databaseQuestionMarks(count: typeNames.count)))",
+                arguments: StatementArguments(typeNames)
+            ).map { Date(timeIntervalSince1970: $0) }
         }
     }
 

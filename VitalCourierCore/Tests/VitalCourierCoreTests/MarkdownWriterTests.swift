@@ -90,4 +90,48 @@ import Testing
     @Test func theReadmeSaysEditsGetOverwritten() {
         #expect(MarkdownWriter.readme.contains("overwritten"))
     }
+
+    @Test func writesCycleKeysAfterWeight() {
+        var summary = DailySummary(day: day("2026-10-12"))
+        summary.steps = 812
+        summary.weightKg = 61.2
+        summary.menstrualFlow = "medium"
+        summary.periodStart = true
+        summary.spotting = true
+
+        #expect(text(summary) == """
+            ---
+            date: 2026-10-12
+            vc_steps: 812
+            vc_weight_kg: 61.2
+            vc_menstrual_flow: medium
+            vc_period_start: true
+            vc_spotting: true
+            vc_schema: 1
+            ---
+
+            """)
+    }
+
+    @Test func falseFlagsAreLeftOut() {
+        var summary = DailySummary(day: day("2026-10-12"))
+        summary.menstrualFlow = "none"
+
+        #expect(text(summary) == """
+            ---
+            date: 2026-10-12
+            vc_menstrual_flow: none
+            vc_schema: 1
+            ---
+
+            """)
+    }
+
+    @Test func theSummaryTakesCycleValuesFromTheCycleRow() {
+        let summary = DailySummary(day: day("2026-10-12"), values: [:], cycle: CycleDay(flow: "heavy", periodStart: true))
+        #expect(summary.menstrualFlow == "heavy")
+        #expect(summary.periodStart)
+        #expect(!summary.spotting)
+        #expect(DailySummary(day: day("2026-10-12"), values: [:]).menstrualFlow == nil)
+    }
 }

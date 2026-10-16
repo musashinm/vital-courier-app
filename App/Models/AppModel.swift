@@ -35,6 +35,7 @@ final class AppModel {
     let environment: AppEnvironment
     let history: HistoryModel
     let sleepSources: SleepSourceModel
+    let foregroundEntry: ForegroundEntry
     var phase: Phase = .booting
     var showsBootProgress = false
     var isRetryingStore = false
@@ -51,12 +52,20 @@ final class AppModel {
     var clearError: String?
     var now = Date()
     var selectedTab: AppTab = .home
+    var cycleTrackingEnabled: Bool
 
     init(environment: AppEnvironment) {
         self.environment = environment
         history = HistoryModel(environment: environment)
         sleepSources = SleepSourceModel(environment: environment)
+        cycleTrackingEnabled = environment.settings.cycleTrackingEnabled
+        foregroundEntry = ForegroundEntry(
+            authorizationRequestStatus: { try await environment.health.readAuthorizationRequestStatus(for: environment.enabledTypes) },
+            requestAuthorization: { try await environment.health.requestReadAuthorization(for: environment.enabledTypes) },
+            recordError: { errorText in Task.detached { environment.recordSetupError(errorText) } }
+        )
         sleepSources.onSaved = { [weak self] in self?.requestAppOpenRun() }
+        foregroundEntry.requestAppOpenRun = { [weak self] in self?.requestAppOpenRun() }
     }
 
     var homeSummary: HomeSummary {
@@ -71,6 +80,43 @@ final class AppModel {
             pendingProtectionFailure: pendingProtectionFailure,
             latestAppEvent: snapshot?.latestAppEvent
         ))
+    }
+
+    var enabledTypes: [HealthType] {
+        HealthType.enabledTypes(cycleTrackingEnabled: cycleTrackingEnabled)
+    }
+
+    /// The Settings switch (Cycle Tracking Spec). On: ask Health for the two types, watch them, then an app-open run imports all their history the app may read (a type with no anchor reads from the start). Off: drop their pending marks and stop watching; files, samples and cycle rows stay.
+    func setCycleTracking(_ isOn: Bool) {
+        guard isOn != cycleTrackingEnabled else { return }
+        cycleTrackingEnabled = isOn
+        environment.setCycleTrackingEnabled(isOn)
+        let environment = self.environment
+        Task {
+            if isOn {
+                do {
+                    try await environment.health.requestReadAuthorization(for: environment.enabledTypes)
+                } catch {
+                    let errorText = "cycle tracking authorization: \(error)"
+                    await Task.detached { environment.recordSetupError(errorText) }.value
+                }
+                ObserverRegistration.update(environment: environment)
+                // Through the coordinator, not `requestAppOpenRun`, which returns early while an app-open run is in flight; the coordinator merges this into the next batch.
+                do {
+                    _ = try await environment.request(.appOpen)
+                } catch {
+                    statusError = String(describing: error)
+                }
+            } else {
+                do {
+                    try await environment.deleteCycleDirtyMarks()
+                } catch {
+                    statusError = String(describing: error)
+                }
+                ObserverRegistration.update(environment: environment)
+            }
+            await refreshStatus()
+        }
     }
 
     /// Design §1: resolve the store, the folder and setup before choosing the root; show progress only after 300 ms.
@@ -108,9 +154,14 @@ final class AppModel {
                 phase = .ready
                 ObserverRegistration.start(environment: environment)
                 await refreshStatus()
-                requestAppOpenRun()
+                // Asks Health about new types before the app-open run, and only on a foreground launch.
+                await foregroundEntry.bootReachedReady()
             }
         }
+    }
+
+    func sceneActivityChanged(isActive: Bool) {
+        foregroundEntry.sceneActivityChanged(isActive: isActive)
     }
 
     func sceneBecameActive() {
@@ -120,7 +171,7 @@ final class AppModel {
         Task {
             folderState = await Task.detached { environment.refreshFolderRecordingLoss() }.value
         }
-        requestAppOpenRun()
+        Task { await foregroundEntry.sceneBecameActive() }
     }
 
     func sceneEnteredBackground() {
@@ -190,6 +241,7 @@ final class AppModel {
         folderSave = .idle
         phase = .ready
         ObserverRegistration.start(environment: environment)
+        foregroundEntry.setupCompleted()
         requestAppOpenRun()
     }
 

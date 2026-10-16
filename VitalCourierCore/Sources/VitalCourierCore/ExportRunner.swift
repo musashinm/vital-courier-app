@@ -9,38 +9,43 @@ public final class ExportRunner: Sendable {
     let destination: @Sendable () -> (any ExportDestination)?
     let now: @Sendable () -> Date
     let timeZone: @Sendable () -> TimeZone
+    let enabledTypes: @Sendable () -> [HealthType]
 
     public init(
         store: LocalStore,
         health: any HealthSource,
         destination: @escaping @Sendable () -> (any ExportDestination)?,
         now: @escaping @Sendable () -> Date = { Date() },
-        timeZone: @escaping @Sendable () -> TimeZone = { TimeZone.current }
+        timeZone: @escaping @Sendable () -> TimeZone = { TimeZone.current },
+        enabledTypes: @escaping @Sendable () -> [HealthType] = { HealthType.baseTypes }
     ) {
         self.store = store
         self.health = health
         self.destination = destination
         self.now = now
         self.timeZone = timeZone
+        self.enabledTypes = enabledTypes
     }
 
     /// `onReadCommitted` is called exactly once, right after the read step, whether it read, was skipped or failed. The HealthKit observer completion handler goes here, never after file writes.
     public func run(trigger: Trigger, options: RunOptions, onReadCommitted: @escaping @Sendable () -> Void) async -> RunOutcome {
         let startedAt = now()
         let zone = timeZone()
+        // Read once, so the switch can't change mid-run between steps.
+        let types = enabledTypes()
         var errors: [String] = []
         var readOutcome = ReadOutcome.notRequested
         // Rebuild all marks every stored day dirty first, so it works even while HealthKit is locked.
         if options.markAllDirty {
             do {
-                try store.markAllDirty(statisticsZone: zone)
+                try store.markAllDirty(statisticsZone: zone, types: types)
             } catch {
                 errors.append("rebuild: \(error)")
             }
         }
         if options.read {
             if await health.isReadable() {
-                readOutcome = await readStep(options: options, zone: zone, errors: &errors)
+                readOutcome = await readStep(types: types, zone: zone, errors: &errors)
             } else {
                 readOutcome = .skippedLocked
             }
@@ -48,10 +53,10 @@ public final class ExportRunner: Sendable {
         onReadCommitted()
         // HealthKit was readable for this run, even when one type's read failed part way.
         if readOutcome == .read || readOutcome == .failed {
-            await verifyStep(scope: options.verify, zone: zone, errors: &errors)
-            await dailyValuesStep(zone: zone, errors: &errors)
+            await verifyStep(scope: options.verify, types: types, zone: zone, errors: &errors)
+            await dailyValuesStep(types: types, zone: zone, errors: &errors)
         }
-        let counts = writeStep(zone: zone, errors: &errors)
+        let counts = writeStep(types: types, zone: zone, errors: &errors)
         do {
             // Snapshot, history row and discard of the pending protection failures happen as one serialized drain.
             try store.drainPendingProtectionFailures { pendingFailures in
@@ -72,9 +77,9 @@ public final class ExportRunner: Sendable {
         return RunOutcome(readOutcome: readOutcome, daysWritten: counts.written, daysFailed: counts.failed, daysPending: counts.pending, errors: errors)
     }
 
-    func readStep(options: RunOptions, zone: TimeZone, errors: inout [String]) async -> ReadOutcome {
+    func readStep(types: [HealthType], zone: TimeZone, errors: inout [String]) async -> ReadOutcome {
         do {
-            for type in HealthType.allCases {
+            for type in types {
                 var hasMore = true
                 while hasMore {
                     if Task.isCancelled { return .read }
@@ -98,7 +103,7 @@ public final class ExportRunner: Sendable {
     }
 
     /// Catches deletions HealthKit dropped before the app saw them, within the scope only.
-    func verifyStep(scope: VerifyScope, zone: TimeZone, errors: inout [String]) async {
+    func verifyStep(scope: VerifyScope, types: [HealthType], zone: TimeZone, errors: inout [String]) async {
         let end = now()
         let start: Date
         do {
@@ -107,7 +112,7 @@ public final class ExportRunner: Sendable {
             case .last30Days: start = end.addingTimeInterval(-Self.verifyWindow)
             case .allDates:
                 // Also reach back to the earliest local sample, so samples older than HealthKit's earliest (or all of them, when HealthKit is empty) are compared.
-                let earliest = [try await health.earliestSampleDate(), try store.earliestSampleStart()].compactMap { $0 }.min()
+                let earliest = [try await health.earliestSampleDate(types: types), try store.earliestSampleStart(types: types)].compactMap { $0 }.min()
                 guard let earliest else { return }
                 start = earliest
             }
@@ -116,7 +121,7 @@ public final class ExportRunner: Sendable {
             return
         }
         let interval = DateInterval(start: start, end: end)
-        for type in HealthType.allCases {
+        for type in types {
             if Task.isCancelled { return }
             do {
                 let remote = try await health.samples(for: type, in: interval)
@@ -132,12 +137,13 @@ public final class ExportRunner: Sendable {
         }
     }
 
-    /// Runs after Verify, so stored values never lag behind samples Verify added or removed.
-    func dailyValuesStep(zone: TimeZone, errors: inout [String]) async {
+    /// Runs after Verify, so stored values never lag behind samples Verify added or removed. Entries of a type that isn't enabled are left alone.
+    func dailyValuesStep(types: [HealthType], zone: TimeZone, errors: inout [String]) async {
+        let enabled = Set(types)
         let dirtyEntries: [DirtyEntry]
         let preferredSleepSource: String?
         do {
-            dirtyEntries = try store.dirtyEntries()
+            dirtyEntries = try store.dirtyEntries().filter { enabled.contains($0.type) }
             preferredSleepSource = try store.sleepSourcePreference()
         } catch {
             errors.append("daily values: \(error)")
@@ -147,8 +153,12 @@ public final class ExportRunner: Sendable {
         for entry in dirtyEntries {
             if Task.isCancelled { return }
             do {
-                let value = try await dailyValue(for: entry, zone: zone, preferredSleepSource: preferredSleepSource)
-                try store.saveDailyValue(value, type: entry.type, day: entry.day)
+                if HealthType.cycleTypes.contains(entry.type) {
+                    try store.saveCycleDay(try cycleDayUpdate(for: entry), day: entry.day)
+                } else {
+                    let value = try await dailyValue(for: entry, zone: zone, preferredSleepSource: preferredSleepSource)
+                    try store.saveDailyValue(value, type: entry.type, day: entry.day)
+                }
             } catch {
                 errors.append("daily values \(entry.type.rawValue) \(entry.day): \(error)")
                 // A value fresh from an earlier run must not be written as if it were current.
@@ -159,6 +169,12 @@ public final class ExportRunner: Sendable {
                 }
             }
         }
+    }
+
+    /// A cycle sample counts on its stored start day only (Cycle Tracking Spec, Day assignment).
+    func cycleDayUpdate(for entry: DirtyEntry) throws -> CycleDayUpdate {
+        let samples = try store.samples(type: entry.type, fromDay: entry.day, toDay: entry.day)
+        return entry.type == .menstrualFlow ? CycleDayRule.flowUpdate(from: samples) : CycleDayRule.spottingUpdate(from: samples)
     }
 
     func dailyValue(for entry: DirtyEntry, zone: TimeZone, preferredSleepSource: String?) async throws -> DailyValue? {
@@ -175,6 +191,9 @@ public final class ExportRunner: Sendable {
             let nights = SleepAggregator.nights(from: samples, preferredSource: preferredSleepSource, fallback: zone)
             guard let night = nights[entry.day] else { return nil }
             return DailyValue(value: night.asleepHours, deepHours: night.deepHours, remHours: night.remHours, source: night.source)
+        case .menstrualFlow, .spotting:
+            // Never reached: cycle days go through cycleDayUpdate.
+            return nil
         }
     }
 
@@ -188,10 +207,11 @@ public final class ExportRunner: Sendable {
         "Vital Courier/daily/\(day).md"
     }
 
-    func writeStep(zone: TimeZone, errors: inout [String]) -> (written: Int, failed: Int, pending: Int) {
+    func writeStep(types: [HealthType], zone: TimeZone, errors: inout [String]) -> (written: Int, failed: Int, pending: Int) {
+        let enabled = Set(types)
         let entries: [DirtyEntry]
         do {
-            entries = try store.dirtyEntries()
+            entries = try store.dirtyEntries().filter { enabled.contains($0.type) }
         } catch {
             errors.append("write: \(error)")
             return (0, 0, 0)
@@ -243,7 +263,8 @@ public final class ExportRunner: Sendable {
                 continue
             }
             do {
-                let summary = DailySummary(day: day, values: try store.dailyValues(day: day))
+                // Stored cycle keys are kept whatever the switch says, so a note doesn't change with when it was last rewritten.
+                let summary = DailySummary(day: day, values: try store.dailyValues(day: day), cycle: try store.cycleDay(day: day))
                 try destination.write(MarkdownWriter.note(for: summary), to: Self.notePath(day: day))
             } catch {
                 everyFileWritten = false

@@ -22,6 +22,7 @@ actor FakeHealthSource: HealthSource {
     var failingStatistics: Set<String> = []
     var failingChangeTypes: Set<HealthType> = []
     var earliest: Date?
+    var earliestRequestedTypes: [[HealthType]] = []
 
     init(log: EventLog = EventLog()) { self.log = log }
 
@@ -57,7 +58,10 @@ actor FakeHealthSource: HealthSource {
         return (storedSamples[type] ?? []).filter { interval.start <= $0.start && $0.start < interval.end }
     }
 
-    func earliestSampleDate() -> Date? { earliest }
+    func earliestSampleDate(types: [HealthType]) -> Date? {
+        earliestRequestedTypes.append(types)
+        return earliest
+    }
 
     func dailyStatistic(for type: HealthType, day: DayKey, timeZone: TimeZone) throws -> Double? {
         let key = "\(type.rawValue)|\(day)"

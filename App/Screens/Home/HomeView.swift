@@ -32,13 +32,17 @@ struct HomeView: View {
                 Text("What happens next").foregroundStyle(Color.vcTertiaryText)
             }
             Section {
-                ForEach(HealthType.allCases, id: \.self) { type in
-                    let recency = TypeRecency.resolve(latestDay: model.snapshot?.latestDailyValueDays[type], setupDay: setupDay, today: today)
-                    HealthRow(
-                        type: type,
-                        recency: recency,
-                        valueText: recency.valueText(formatter: formatter, today: today, source: type == .sleep ? model.snapshot?.latestSleepSource : nil)
-                    )
+                ForEach(model.enabledTypes, id: \.self) { type in
+                    if HealthType.cycleTypes.contains(type) {
+                        HealthRow(type: type, showsSilentHint: false, valueText: CycleRowText.valueText(for: type, snapshot: model.snapshot, formatter: formatter, today: today))
+                    } else {
+                        let recency = TypeRecency.resolve(latestDay: model.snapshot?.latestDailyValueDays[type], setupDay: setupDay, today: today)
+                        HealthRow(
+                            type: type,
+                            showsSilentHint: recency == .silentForAWeek,
+                            valueText: recency.valueText(formatter: formatter, today: today, source: type == .sleep ? model.snapshot?.latestSleepSource : nil)
+                        )
+                    }
                 }
             } header: {
                 Text("Health data").foregroundStyle(Color.vcTertiaryText)
@@ -158,13 +162,13 @@ private struct FolderSaveRow: View {
 
 private struct HealthRow: View {
     let type: HealthType
-    let recency: TypeRecency
+    let showsSilentHint: Bool
     let valueText: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 12) {
-                SymbolImage(isSilent ? "exclamationmark.circle" : type.symbolName, size: SymbolSize.row, color: isSilent ? .vcWarning : .vcSecondaryText)
+                SymbolImage(showsSilentHint ? "exclamationmark.circle" : type.symbolName, size: SymbolSize.row, color: showsSilentHint ? .vcWarning : .vcSecondaryText)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(type.displayName)
@@ -176,14 +180,10 @@ private struct HealthRow: View {
                 }
             }
             .accessibilityElement(children: .combine)
-            if isSilent {
+            if showsSilentHint {
                 SilentTypeHint()
             }
         }
         .frame(minHeight: 56, alignment: .leading)
-    }
-
-    private var isSilent: Bool {
-        recency == .silentForAWeek
     }
 }

@@ -102,4 +102,34 @@ private func date(_ iso: String) -> Date {
         #expect(try HealthKitMapping.anchorData(decoded) == data)
         #expect(throws: (any Error).self) { try HealthKitMapping.queryAnchor(from: Data([1, 2, 3])) }
     }
+
+    @Test func cycleTypesMapToTheirHealthKitTypes() {
+        #expect(HealthKitMapping.sampleType(for: .menstrualFlow) == HKCategoryType(.menstrualFlow))
+        #expect(HealthKitMapping.sampleType(for: .spotting) == HKCategoryType(.intermenstrualBleeding))
+        #expect(HealthKitMapping.readTypes.count == 4)
+        #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 6)
+        #expect(HealthKitMapping.storedUnit(for: .menstrualFlow) == nil)
+        #expect(HealthKitMapping.statisticUnit(for: .spotting) == nil)
+    }
+
+    @Test func flowValuesBecomeTheirNames() {
+        // HKCategoryValueVaginalBleeding raw values (iOS 18), the same as the deprecated HKCategoryValueMenstrualFlow.
+        #expect(HealthKitMapping.categoryValueName(rawValue: 1, for: .menstrualFlow) == "unspecified")
+        #expect(HealthKitMapping.categoryValueName(rawValue: 2, for: .menstrualFlow) == "light")
+        #expect(HealthKitMapping.categoryValueName(rawValue: 3, for: .menstrualFlow) == "medium")
+        #expect(HealthKitMapping.categoryValueName(rawValue: 4, for: .menstrualFlow) == "heavy")
+        #expect(HealthKitMapping.categoryValueName(rawValue: 5, for: .menstrualFlow) == "none")
+        #expect(HealthKitMapping.categoryValueName(rawValue: 99, for: .menstrualFlow) == "unknown(99)")
+        #expect(HKCategoryValueVaginalBleeding.heavy.rawValue == 4)
+    }
+
+    @Test func spottingAndSleepKeepTheirOwnNames() {
+        #expect(HealthKitMapping.categoryValueName(rawValue: HKCategoryValue.notApplicable.rawValue, for: .spotting) == "notApplicable")
+        #expect(HealthKitMapping.categoryValueName(rawValue: HKCategoryValueSleepAnalysis.asleepREM.rawValue, for: .sleep) == "asleepREM")
+    }
+
+    @Test func theCycleStartFlagIsStoredAsOne() {
+        #expect(CycleDayRule.menstrualCycleStartMetadataKey == HKMetadataKeyMenstrualCycleStart)
+        #expect(HealthKitMapping.stringMetadata([HKMetadataKeyMenstrualCycleStart: NSNumber(value: true)])[HKMetadataKeyMenstrualCycleStart] == "1")
+    }
 }

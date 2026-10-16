@@ -15,8 +15,8 @@ public protocol HealthSource: Sendable {
     func changes(for type: HealthType, since anchor: Data?) async throws -> HealthChanges
     /// Every sample of `type` whose start is in `interval` (used by Verify).
     func samples(for type: HealthType, in interval: DateInterval) async throws -> [HealthSample]
-    /// The earliest sample start across the four types; nil when there are none.
-    func earliestSampleDate() async throws -> Date?
+    /// The earliest sample start across `types`; nil when there are none.
+    func earliestSampleDate(types: [HealthType]) async throws -> Date?
     /// Steps: `cumulativeSum` (count). Resting heart rate: `discreteAverage` (beats per minute). Nil when there is no data.
     func dailyStatistic(for type: HealthType, day: DayKey, timeZone: TimeZone) async throws -> Double?
 }

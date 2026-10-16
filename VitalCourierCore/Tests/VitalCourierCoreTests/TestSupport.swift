@@ -21,6 +21,7 @@ func makeSample(
     source: String = "iPhone",
     device: String? = "iPhone",
     zone: String? = nil,
+    metadata: [String: String] = [:],
     uuid: UUID = UUID()
 ) -> HealthSample {
     HealthSample(
@@ -31,7 +32,7 @@ func makeSample(
         value: value,
         source: source,
         device: device,
-        metadata: [:],
+        metadata: metadata,
         timeZoneIdentifier: zone
     )
 }
