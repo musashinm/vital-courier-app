@@ -12,6 +12,7 @@ import Testing
         summary.steps = 8412.4
         summary.exerciseMinutes = 34.9
         summary.restingHeartRateBPM = 58.46
+        summary.walkingHeartRateAverageBPM = 92.46
         summary.respiratoryRate = 14.46
         summary.respiratoryRateMin = 12.1
         summary.respiratoryRateMax = 17
@@ -30,6 +31,7 @@ import Testing
             vc_steps: 8412
             vc_exercise_minutes: 34
             vc_resting_hr_bpm: 58.5
+            vc_walking_hr_avg: 92.5
             vc_respiratory_rate: 14.5
             vc_respiratory_rate_min: 12.1
             vc_respiratory_rate_max: 17.0
@@ -241,5 +243,22 @@ import Testing
         #expect(MarkdownWriter.noDecimals(103.6) == "104")
         #expect(MarkdownWriter.noDecimals(88.4) == "88")
         #expect(MarkdownWriter.noDecimals(1234.4) == "1234")
+    }
+
+    @Test func leavesOutWalkingHeartRateWhenThereIsNone() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.restingHeartRateBPM = 58
+        #expect(!text(summary).contains("vc_walking_hr_avg"))
+    }
+
+    @Test func writesAWholeWalkingHeartRateWithOneDecimal() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.walkingHeartRateAverageBPM = 90
+        #expect(text(summary).contains("vc_walking_hr_avg: 90.0\nvc_schema: 1\n"))
+    }
+
+    @Test func theSummaryTakesTheWalkingHeartRateFromTheStoredDailyValue() {
+        let summary = DailySummary(day: day("2026-09-27"), values: [.walkingHeartRateAverage: DailyValue(value: 92.4)])
+        #expect(summary.walkingHeartRateAverageBPM == 92.4)
     }
 }

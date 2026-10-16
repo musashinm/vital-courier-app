@@ -5,6 +5,7 @@ public struct DailySummary: Equatable, Sendable {
     public var steps: Double?
     public var exerciseMinutes: Double?
     public var restingHeartRateBPM: Double?
+    public var walkingHeartRateAverageBPM: Double?
     /// Breaths per minute: the day's average, lowest and highest reading.
     public var respiratoryRate: Double?
     public var respiratoryRateMin: Double?
@@ -31,6 +32,7 @@ public struct DailySummary: Equatable, Sendable {
         steps = values[.steps]?.value
         exerciseMinutes = values[.exerciseMinutes]?.value
         restingHeartRateBPM = values[.restingHeartRate]?.value
+        walkingHeartRateAverageBPM = values[.walkingHeartRateAverage]?.value
         respiratoryRate = values[.respiratoryRate]?.value
         respiratoryRateMin = values[.respiratoryRate]?.minimum
         respiratoryRateMax = values[.respiratoryRate]?.maximum
@@ -67,6 +69,7 @@ public enum MarkdownWriter {
         if let steps = summary.steps { lines.append("vc_steps: \(Int(steps.rounded(.towardZero)))") }
         if let minutes = summary.exerciseMinutes { lines.append("vc_exercise_minutes: \(Int(minutes.rounded(.towardZero)))") }
         if let bpm = summary.restingHeartRateBPM { lines.append("vc_resting_hr_bpm: \(oneDecimal(bpm))") }
+        if let bpm = summary.walkingHeartRateAverageBPM { lines.append("vc_walking_hr_avg: \(oneDecimal(bpm))") }
         // Each written on its own: a missing minimum or maximum never hides the average (Respiratory Rate Spec, Edge cases).
         if let breaths = summary.respiratoryRate { lines.append("vc_respiratory_rate: \(oneDecimal(breaths))") }
         if let breaths = summary.respiratoryRateMin { lines.append("vc_respiratory_rate_min: \(oneDecimal(breaths))") }
