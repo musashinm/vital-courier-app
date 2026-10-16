@@ -14,7 +14,7 @@ private func date(_ iso: String) -> Date {
         #expect(HealthKitMapping.sampleType(for: .restingHeartRate) == HKQuantityType(.restingHeartRate))
         #expect(HealthKitMapping.sampleType(for: .sleep) == HKCategoryType(.sleepAnalysis))
         #expect(HealthKitMapping.sampleType(for: .weight) == HKQuantityType(.bodyMass))
-        #expect(HealthKitMapping.readTypes.count == 6)
+        #expect(HealthKitMapping.readTypes.count == 7)
     }
 
     @Test func samplesAreStoredInSIUnits() throws {
@@ -106,8 +106,8 @@ private func date(_ iso: String) -> Date {
     @Test func cycleTypesMapToTheirHealthKitTypes() {
         #expect(HealthKitMapping.sampleType(for: .menstrualFlow) == HKCategoryType(.menstrualFlow))
         #expect(HealthKitMapping.sampleType(for: .spotting) == HKCategoryType(.intermenstrualBleeding))
-        #expect(HealthKitMapping.readTypes.count == 6)
-        #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 8)
+        #expect(HealthKitMapping.readTypes.count == 7)
+        #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 9)
         #expect(HealthKitMapping.storedUnit(for: .menstrualFlow) == nil)
         #expect(HealthKitMapping.statisticUnit(for: .spotting) == nil)
     }
@@ -136,6 +136,29 @@ private func date(_ iso: String) -> Date {
     @Test func aRespiratoryQuantityIsStoredPerSecond() throws {
         let fifteenBreathsPerMinute = HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 15)
         #expect(try HealthKitMapping.storedValue(fifteenBreathsPerMinute, for: .respiratoryRate) == 0.25)
+    }
+
+    @Test func bloodGlucoseMapsToItsHealthKitType() {
+        let gramsPerLiter = HKUnit.gram().unitDivided(by: .liter())
+        let milligramsPerDeciliter = HKUnit.gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci))
+        #expect(HealthKitMapping.sampleType(for: .bloodGlucose) == HKQuantityType(.bloodGlucose))
+        #expect(HealthKitMapping.storedUnit(for: .bloodGlucose) == gramsPerLiter)
+        #expect(HealthKitMapping.statisticUnit(for: .bloodGlucose) == milligramsPerDeciliter)
+        #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.bloodGlucose)))
+    }
+
+    @Test func aMilligramPerDeciliterGlucoseQuantityIsStoredInGramsPerLiter() throws {
+        let oneHundredFourMilligramsPerDeciliter = HKQuantity(unit: .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci)), doubleValue: 104)
+        let gramsPerLiter = try HealthKitMapping.storedValue(oneHundredFourMilligramsPerDeciliter, for: .bloodGlucose)
+        #expect(abs(gramsPerLiter - 1.04) < 0.000001)
+    }
+
+    @Test func aMillimolarGlucoseQuantityIsStoredInGramsPerLiter() throws {
+        // CGM apps may write mmol/L; HealthKit converts it through the glucose molar mass (180.15588 g/mol).
+        let millimolesPerLiter = HKUnit.moleUnit(with: .milli, molarMass: HKUnitMolarMassBloodGlucose).unitDivided(by: .liter())
+        let fiveMillimolesPerLiter = HKQuantity(unit: millimolesPerLiter, doubleValue: 5)
+        let gramsPerLiter = try HealthKitMapping.storedValue(fiveMillimolesPerLiter, for: .bloodGlucose)
+        #expect(abs(gramsPerLiter - 0.9007794) < 0.0001)
     }
 
     @Test func flowValuesBecomeTheirNames() {

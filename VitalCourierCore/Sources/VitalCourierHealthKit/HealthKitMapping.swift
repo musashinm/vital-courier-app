@@ -16,6 +16,7 @@ public enum HealthKitMapping {
         case .exerciseMinutes: HKQuantityType(.appleExerciseTime)
         case .restingHeartRate: HKQuantityType(.restingHeartRate)
         case .respiratoryRate: HKQuantityType(.respiratoryRate)
+        case .bloodGlucose: HKQuantityType(.bloodGlucose)
         case .sleep: HKCategoryType(.sleepAnalysis)
         case .weight: HKQuantityType(.bodyMass)
         case .menstrualFlow: HKCategoryType(.menstrualFlow)
@@ -39,6 +40,7 @@ public enum HealthKitMapping {
         case .steps: .count()
         case .exerciseMinutes: .second()
         case .restingHeartRate, .respiratoryRate: .count().unitDivided(by: .second())
+        case .bloodGlucose: .gram().unitDivided(by: .liter())
         case .weight: .gramUnit(with: .kilo)
         case .sleep, .menstrualFlow, .spotting: nil
         }
@@ -50,6 +52,7 @@ public enum HealthKitMapping {
         case .steps: .count()
         case .exerciseMinutes: .minute()
         case .restingHeartRate, .respiratoryRate: .count().unitDivided(by: .minute())
+        case .bloodGlucose: .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci))
         case .weight, .sleep, .menstrualFlow, .spotting: nil
         }
     }
@@ -81,7 +84,7 @@ public enum HealthKitMapping {
         switch type {
         case .menstrualFlow: menstrualFlowValueName(rawValue: rawValue)
         case .spotting: rawValue == HKCategoryValue.notApplicable.rawValue ? "notApplicable" : "unknown(\(rawValue))"
-        case .steps, .exerciseMinutes, .restingHeartRate, .respiratoryRate, .sleep, .weight: sleepValueName(rawValue: rawValue)
+        case .steps, .exerciseMinutes, .restingHeartRate, .respiratoryRate, .bloodGlucose, .sleep, .weight: sleepValueName(rawValue: rawValue)
         }
     }
 
