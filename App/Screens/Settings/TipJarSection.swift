@@ -15,7 +15,6 @@ extension TipTier {
 /// The optional tip jar at the bottom of Settings (design: Tip Jar).
 struct TipJarSection: View {
     @Environment(AppModel.self) private var model
-    @Environment(\.scenePhase) private var scenePhase
 
     private var tipJar: TipJarModel { model.tipJar }
     private var state: TipJarState { tipJar.state }
@@ -24,13 +23,7 @@ struct TipJarSection: View {
         Section {
             content
         } header: {
-            // The header is the one view that stays in every state, so the lifecycle hooks live here. On the section itself they would run once per row.
-            Text("Support the project")
-                .foregroundStyle(Color.vcTertiaryText)
-                .task { await tipJar.loadIfNeeded() }
-                .onAppear { tipJar.sectionAppeared() }
-                .onChange(of: state) { oldState, newState in announceChange(from: oldState, to: newState) }
-                .onChange(of: scenePhase) { oldPhase, newPhase in announcePurchasingAfterSheet(from: oldPhase, to: newPhase) }
+            Text("Support the project").foregroundStyle(Color.vcTertiaryText)
         } footer: {
             if showsFooter {
                 Text("Optional one-time tips. No paywall and no recurring subscription.")
@@ -96,9 +89,30 @@ struct TipJarSection: View {
         guard case .purchasing(let purchasingTier) = state.phase else { return .ready }
         return purchasingTier == tier ? .purchasing : .blockedByOtherPurchase
     }
+}
+
+/// Runs the tip jar's lifecycle once per visit to Settings. It sits on the screen's `List`, not on the section: a `List` header or row is recycled while scrolling, which would cancel the load and clear Failed on every scroll.
+private struct TipJarLifecycle: ViewModifier {
+    @Environment(AppModel.self) private var model
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var hasAnnouncedPurchasing = false
+
+    private var tipJar: TipJarModel { model.tipJar }
+
+    func body(content: Content) -> some View {
+        content
+            .task { await tipJar.loadIfNeeded() }
+            .onAppear { tipJar.sectionAppeared() }
+            .onChange(of: tipJar.state) { oldState, newState in announceChange(from: oldState, to: newState) }
+            // StoreKit has no public "sheet dismissed" callback; the scene returning to active is the closest signal.
+            .onChange(of: scenePhase) { oldPhase, newPhase in announcePurchasingAfterSheet(from: oldPhase, to: newPhase) }
+    }
 
     /// Failed, Pending and Thanked are each announced once, when they replace Purchasing.
     private func announceChange(from oldState: TipJarState, to newState: TipJarState) {
+        if case .purchasing = newState.phase, oldState.phase != newState.phase {
+            hasAnnouncedPurchasing = false
+        }
         if newState.phase == .thanked, oldState.phase != .thanked {
             announce(String(localized: "Thank you for supporting Vital Courier."))
         } else if newState.isAwaitingApproval, !oldState.isAwaitingApproval {
@@ -108,14 +122,22 @@ struct TipJarSection: View {
         }
     }
 
-    /// "Purchasing" is announced once, when the app returns from Apple's sheet and the purchase is still running.
+    /// "Purchasing" is announced at most once per purchase, when the app returns from Apple's sheet and the purchase is still running.
     private func announcePurchasingAfterSheet(from oldPhase: ScenePhase, to newPhase: ScenePhase) {
-        guard case .purchasing = state.phase, newPhase == .active, oldPhase != .active else { return }
+        guard case .purchasing = tipJar.state.phase, newPhase == .active, oldPhase != .active, !hasAnnouncedPurchasing else { return }
+        hasAnnouncedPurchasing = true
         announce(String(localized: "Purchasing…"))
     }
 
     private func announce(_ message: String) {
         AccessibilityNotification.Announcement(message).post()
+    }
+}
+
+extension View {
+    /// Loads the tip jar's products, resets its transient failure and announces its state changes, once per visit to the screen holding the section.
+    func tipJarLifecycle() -> some View {
+        modifier(TipJarLifecycle())
     }
 }
 
@@ -148,7 +170,7 @@ struct TipRow: View {
         }
         .disabled(availability == .blockedByOtherPurchase)
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityHint(Text("Optional one-time tip."))
+        .accessibilityHint(availability == .ready ? Text("Optional one-time tip.") : Text(verbatim: ""))
         .accessibilityValue(accessibilityValue)
     }
 

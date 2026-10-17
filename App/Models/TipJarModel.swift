@@ -40,6 +40,8 @@ final class TipJarModel {
             }
             state.productsLoaded(availableTiers: Set(productsByTier.keys))
         } catch {
+            // Leaving Settings cancels the load; that is not a failure, so the next visit retries.
+            guard !Task.isCancelled else { return }
             state.productsFailedToLoad()
         }
     }
