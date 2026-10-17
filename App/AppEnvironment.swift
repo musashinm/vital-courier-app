@@ -7,6 +7,8 @@ import VitalCourierHealthKit
 extension Notification.Name {
     /// Posted after every run, whatever its trigger, so open screens re-read their status.
     static let vitalCourierRunFinished = Notification.Name("app.vitalcourier.runFinished")
+    /// Posted when the transaction listener records a tip, so an open tip jar section shows its thanks.
+    static let vitalCourierTipRecorded = Notification.Name("app.vitalcourier.tipRecorded")
 }
 
 enum StoreState: Sendable {
