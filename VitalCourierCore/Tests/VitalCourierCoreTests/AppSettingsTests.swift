@@ -96,6 +96,11 @@ import Testing
         #expect(!AppSettings.typesAskedAboutBeforeThisSetting.contains(.walkingHeartRateAverage))
     }
 
+    @Test func theFixedPreSettingListNeverGainsHeartRate() {
+        // Heart rate is a base type asked of everyone (Heart Rate Spec, Edge cases).
+        #expect(!AppSettings.typesAskedAboutBeforeThisSetting.contains(.heartRate))
+    }
+
     @Test func concurrentRecordingsOfDifferentTypesAllSurvive() async {
         let settings = AppSettings(storage: InMemoryStorage())
 

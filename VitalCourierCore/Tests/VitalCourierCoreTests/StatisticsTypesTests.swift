@@ -7,6 +7,7 @@ import Testing
         #expect(HealthType.exerciseMinutes.statisticsAggregation == .sum)
         #expect(HealthType.restingHeartRate.statisticsAggregation == .average)
         #expect(HealthType.walkingHeartRateAverage.statisticsAggregation == .average)
+        #expect(HealthType.heartRate.statisticsAggregation == .averageMinMax)
         #expect(HealthType.respiratoryRate.statisticsAggregation == .averageMinMax)
         #expect(HealthType.bloodGlucose.statisticsAggregation == .averageMinMax)
         #expect(HealthType.sleep.statisticsAggregation == nil)
@@ -20,13 +21,18 @@ import Testing
         #expect(HealthType.walkingHeartRateAverage.siUnit == "count/s")
     }
 
-    @Test func exactlyTheSixStatisticsTypesUseTheStatisticsQuery() {
-        #expect(HealthType.allCases.filter(\.usesStatisticsQuery) == [.steps, .exerciseMinutes, .restingHeartRate, .walkingHeartRateAverage, .respiratoryRate, .bloodGlucose])
+    @Test func exactlyTheSevenStatisticsTypesUseTheStatisticsQuery() {
+        #expect(HealthType.allCases.filter(\.usesStatisticsQuery) == [.steps, .exerciseMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate, .bloodGlucose])
     }
 
     @Test func exerciseMinutesIsStoredInSeconds() {
         #expect(HealthType.exerciseMinutes.folderName == "exercise-minutes")
         #expect(HealthType.exerciseMinutes.siUnit == "s")
+    }
+
+    @Test func heartRateIsStoredPerSecond() {
+        #expect(HealthType.heartRate.folderName == "heart-rate")
+        #expect(HealthType.heartRate.siUnit == "count/s")
     }
 
     @Test func respiratoryRateIsStoredPerSecond() {

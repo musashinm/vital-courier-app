@@ -1010,6 +1010,16 @@
         }
       }
     },
+    "Heart rate" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frequência cardíaca"
+          }
+        }
+      }
+    },
     "Heavy" : {
       "localizations" : {
         "pt-BR" : {

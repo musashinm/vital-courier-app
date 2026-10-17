@@ -158,6 +158,14 @@ import Testing
         #expect(try dirtyDays(store, type: .walkingHeartRateAverage) == [day("2026-09-27"), day("2026-09-28")])
     }
 
+    @Test func aHeartRateSampleAcrossMidnightDirtiesBothDays() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(type: .heartRate, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .heartRate, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .heartRate) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
     @Test func aReplacedWalkingHeartRateEstimateDirtiesItsDayAndKeepsOnlyTheNewSample() throws {
         let store = try LocalStore.inMemory()
         let original = makeSample(type: .walkingHeartRateAverage, start: "2026-09-27T15:00:00Z", end: "2026-09-27T15:01:00Z", value: .quantity(1.5))
