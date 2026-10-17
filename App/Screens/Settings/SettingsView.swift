@@ -105,6 +105,8 @@ struct SettingsView: View {
                 Text("Privacy and app").foregroundStyle(Color.vcTertiaryText)
             }
 
+            TipJarSection()
+
             #if DEBUG
             Section {
                 NavigationLink("Diagnostics") { DiagnosticsView() }
@@ -116,6 +118,7 @@ struct SettingsView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Settings")
         .task { await model.sleepSources.load() }
+        .tipJarLifecycle()
         .alert("Clear the local copy?", isPresented: $confirmsClear) {
             Button("Clear local copy", role: .destructive) { model.clearLocalCopy() }
             Button("Cancel", role: .cancel) {}

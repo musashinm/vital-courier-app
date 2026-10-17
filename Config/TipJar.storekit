@@ -1,0 +1,77 @@
+{
+  "identifier": "5F1D3A20",
+  "nonRenewingSubscriptions": [],
+  "products": [
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "6740000100",
+      "localizations": [
+        {
+          "description": "Small thanks",
+          "displayName": "Small thanks",
+          "locale": "en_US"
+        },
+        {
+          "description": "Um obrigado",
+          "displayName": "Um obrigado",
+          "locale": "pt_BR"
+        }
+      ],
+      "productID": "app.vitalcourier.tip.small",
+      "referenceName": "Small thanks",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "6740000200",
+      "localizations": [
+        {
+          "description": "Coffee",
+          "displayName": "Coffee",
+          "locale": "en_US"
+        },
+        {
+          "description": "Um cafézinho",
+          "displayName": "Um cafézinho",
+          "locale": "pt_BR"
+        }
+      ],
+      "productID": "app.vitalcourier.tip.coffee",
+      "referenceName": "Coffee",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "9.99",
+      "familyShareable": false,
+      "internalID": "6740000300",
+      "localizations": [
+        {
+          "description": "Keep it going",
+          "displayName": "Keep it going",
+          "locale": "en_US"
+        },
+        {
+          "description": "Continue assim",
+          "displayName": "Continue assim",
+          "locale": "pt_BR"
+        }
+      ],
+      "productID": "app.vitalcourier.tip.keepgoing",
+      "referenceName": "Keep it going",
+      "type": "Consumable"
+    }
+  ],
+  "settings": {
+    "_failTransactionsEnabled": false,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_askToBuyEnabled": false
+  },
+  "subscriptionGroups": [],
+  "version": {
+    "major": 3,
+    "minor": 0
+  }
+}

@@ -12,6 +12,7 @@ public struct AppSettings: Sendable {
         static let pendingSetupErrors = "pendingSetupErrors"
         static let cycleTrackingEnabled = "cycleTrackingEnabled"
         static let healthTypesAskedAbout = "healthTypesAskedAbout"
+        static let hasTipped = "hasTipped"
     }
 
     let storage: any KeyValueStorage
@@ -51,6 +52,12 @@ public struct AppSettings: Sendable {
     public var cycleTrackingEnabled: Bool {
         get { string(forKey: Key.cycleTrackingEnabled) == "1" }
         nonmutating set { setString(newValue ? "1" : nil, forKey: Key.cycleTrackingEnabled) }
+    }
+
+    /// Set after the first verified tip, never cleared by the app.
+    public var hasTipped: Bool {
+        get { string(forKey: Key.hasTipped) == "1" }
+        nonmutating set { setString(newValue ? "1" : nil, forKey: Key.hasTipped) }
     }
 
     /// The types Health has been asked to read, so the observer never watches a type whose authorization isn't determined (Exercise Minutes Spec, Launch observer). Stored as a JSON array of raw values; values a later version wrote are ignored.

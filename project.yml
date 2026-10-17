@@ -11,7 +11,7 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
     DEVELOPMENT_TEAM: Y4P6U2R57W
-    MARKETING_VERSION: "0.2.6"
+    MARKETING_VERSION: "0.3.0"
     CURRENT_PROJECT_VERSION: "1"
 packages:
   VitalCourierCore:
@@ -29,6 +29,7 @@ targets:
         product: VitalCourierHealthKit
       - sdk: HealthKit.framework
     scheme:
+      storeKitConfiguration: Config/TipJar.storekit
       testTargets:
         - VitalCourierTests
     settings:
@@ -54,6 +55,8 @@ targets:
     platform: iOS
     sources:
       - path: AppTests
+      - path: Config/TipJar.storekit
+        buildPhase: resources
     dependencies:
       - target: VitalCourier
     settings:

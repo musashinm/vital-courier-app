@@ -112,4 +112,13 @@ import Testing
 
         #expect(settings.healthTypesAskedAbout == Set(HealthType.allCases))
     }
+
+    @Test func hasTippedDefaultsToFalseAndPersists() {
+        let storage = InMemoryStorage()
+        let settings = AppSettings(storage: storage)
+        #expect(settings.hasTipped == false)
+
+        settings.hasTipped = true
+        #expect(AppSettings(storage: storage).hasTipped == true)
+    }
 }

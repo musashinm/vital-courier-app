@@ -8,6 +8,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         if environment.settings.setupCompletedAt != nil {
             ObserverRegistration.start(environment: environment)
         }
+        // Every launch, set up or not: an interrupted or Ask to Buy tip arrives here, not through a view.
+        TipTransactionListener.start(settings: environment.settings)
         return true
     }
 }

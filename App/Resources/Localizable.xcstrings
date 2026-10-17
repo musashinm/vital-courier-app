@@ -588,6 +588,16 @@
         }
       }
     },
+    "%@, purchase in progress" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, compra em andamento"
+          }
+        }
+      }
+    },
     "A folder you choose in Files" : {
       "localizations" : {
         "pt-BR" : {
@@ -791,6 +801,16 @@
         }
       }
     },
+    "Coffee" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um cafézinho"
+          }
+        }
+      }
+    },
     "Continue" : {
       "localizations" : {
         "pt-BR" : {
@@ -807,6 +827,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Copiar erro"
+          }
+        }
+      }
+    },
+    "Couldn’t complete the tip. Try again." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível concluir a contribuição. Tente novamente."
           }
         }
       }
@@ -1083,6 +1113,16 @@
         }
       }
     },
+    "Keep it going" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue assim"
+          }
+        }
+      }
+    },
     "Keep this iPhone unlocked and open Vital Courier. Your exported files remain in place." : {
       "localizations" : {
         "pt-BR" : {
@@ -1119,6 +1159,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Leve"
+          }
+        }
+      }
+    },
+    "Loading tips…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carregando contribuições…"
           }
         }
       }
@@ -1292,6 +1342,26 @@
     "Opens a write transaction that changes the database, lists the files while it is open (the rollback journal exists only now), then rolls it back. The -journal line must carry the same class as the database." : {
       "shouldTranslate" : false
     },
+    "Optional one-time tip." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contribuição única e opcional."
+          }
+        }
+      }
+    },
+    "Optional one-time tips. No paywall and no recurring subscription." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contribuições únicas e opcionais. Sem conteúdo bloqueado ou assinatura recorrente."
+          }
+        }
+      }
+    },
     "Pause the app in the debugger after it went to the background, paste the command, then continue." : {
       "shouldTranslate" : false
     },
@@ -1393,6 +1463,16 @@
     },
     "Protection during a write" : {
       "shouldTranslate" : false
+    },
+    "Purchasing…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processando…"
+          }
+        }
+      }
     },
     "Read" : {
       "localizations" : {
@@ -1560,6 +1640,16 @@
         }
       }
     },
+    "Small thanks" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um obrigado"
+          }
+        }
+      }
+    },
     "Source code" : {
       "localizations" : {
         "pt-BR" : {
@@ -1596,6 +1686,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Resumo"
+          }
+        }
+      }
+    },
+    "Support the project" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apoie o projeto"
+          }
+        }
+      }
+    },
+    "Thank you for supporting Vital Courier." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obrigado por apoiar o Vital Courier."
           }
         }
       }
@@ -1640,6 +1750,16 @@
         }
       }
     },
+    "Tips aren’t available right now." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "As contribuições não estão disponíveis agora."
+          }
+        }
+      }
+    },
     "Trigger" : {
       "localizations" : {
         "pt-BR" : {
@@ -1666,6 +1786,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ao desativar, o Vital Courier para de ler dados do ciclo. O que já foi exportado continua. Para remover o acesso ao app Saúde, vá em Ajustes > Saúde."
+          }
+        }
+      }
+    },
+    "Unavailable while another purchase is in progress." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indisponível enquanto outra compra está em andamento."
           }
         }
       }
@@ -1839,6 +1969,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aguardando o app Saúde…"
+          }
+        }
+      }
+    },
+    "Waiting for approval." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aguardando aprovação."
           }
         }
       }

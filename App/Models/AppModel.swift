@@ -36,6 +36,7 @@ final class AppModel {
     let history: HistoryModel
     let sleepSources: SleepSourceModel
     let foregroundEntry: ForegroundEntry
+    let tipJar: TipJarModel
     var phase: Phase = .booting
     var showsBootProgress = false
     var isRetryingStore = false
@@ -58,6 +59,7 @@ final class AppModel {
         self.environment = environment
         history = HistoryModel(environment: environment)
         sleepSources = SleepSourceModel(environment: environment)
+        tipJar = TipJarModel(settings: environment.settings)
         cycleTrackingEnabled = environment.settings.cycleTrackingEnabled
         foregroundEntry = ForegroundEntry(
             authorizationRequestStatus: { try await environment.health.readAuthorizationRequestStatus(for: environment.enabledTypes) },
