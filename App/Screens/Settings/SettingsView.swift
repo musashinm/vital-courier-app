@@ -105,6 +105,8 @@ struct SettingsView: View {
                 Text("Privacy and app").foregroundStyle(Color.vcTertiaryText)
             }
 
+            TipJarSection()
+
             #if DEBUG
             Section {
                 NavigationLink("Diagnostics") { DiagnosticsView() }
