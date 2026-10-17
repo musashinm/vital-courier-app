@@ -215,6 +215,75 @@ import Testing
         #expect(try store.dirtyEntries().map(\.day) == [day("2026-02-05")])
     }
 
+    // `now` is 2026-09-30 12:00 in São Paulo, so July, August and September 2026 are the three months.
+    @Test func allDatesVerifyAsksHealthKitOneMonthAtATime() async throws {
+        let store = try LocalStore.inMemory()
+        let samples = [makeSample(start: "2026-07-05T12:00:00Z"), makeSample(start: "2026-08-05T12:00:00Z"), makeSample(start: "2026-09-05T12:00:00Z")]
+        try store.applyChanges(HealthChanges(added: samples), for: .steps, fallbackTimeZone: saoPaulo)
+        let health = FakeHealthSource()
+        await health.setSamples(samples, for: .steps)
+        await health.setEarliest(samples[0].start)
+
+        _ = await makeRunner(store: store, health: health).run(trigger: .rebuildAll, options: RunOptions(read: true, verify: .allDates, markAllDirty: false)) {}
+
+        let augustStart = date("2026-08-01T03:00:00Z")
+        let septemberStart = date("2026-09-01T03:00:00Z")
+        let intervals = await health.requestedSampleIntervals[.steps]
+        #expect(intervals == [
+            DateInterval(start: samples[0].start, end: augustStart),
+            DateInterval(start: augustStart, end: septemberStart),
+            DateInterval(start: septemberStart, end: now)
+        ])
+    }
+
+    @Test func windowedVerifyComparesAMonthEdgeSampleOnce() async throws {
+        let store = try LocalStore.inMemory()
+        // 23:59 on July 31 in São Paulo, ending after midnight in August.
+        let edge = makeSample(start: "2026-08-01T02:59:00Z", end: "2026-08-01T03:30:00Z")
+        let health = FakeHealthSource()
+        await health.setSamples([edge], for: .steps)
+        await health.setEarliest(edge.start)
+
+        _ = await makeRunner(store: store, health: health).run(trigger: .rebuildAll, options: RunOptions(read: true, verify: .allDates, markAllDirty: false)) {}
+
+        let stored = try store.samples(type: .steps, month: "2026-07") + store.samples(type: .steps, month: "2026-08")
+        #expect(stored.map(\.uuid) == [edge.uuid])
+    }
+
+    @Test func windowedVerifyRemovesALocalSampleMissingFromTheMiddleMonth() async throws {
+        let store = try LocalStore.inMemory()
+        let july = makeSample(start: "2026-07-05T12:00:00Z")
+        let extraInAugust = makeSample(start: "2026-08-05T12:00:00Z")
+        let september = makeSample(start: "2026-09-05T12:00:00Z")
+        try store.applyChanges(HealthChanges(added: [july, extraInAugust, september]), for: .steps, fallbackTimeZone: saoPaulo)
+        for key in ["2026-07-05", "2026-08-05", "2026-09-05"] { try store.clearDirty(type: .steps, day: day(key)) }
+        let health = FakeHealthSource()
+        await health.setSamples([july, september], for: .steps)
+        await health.setEarliest(july.start)
+
+        _ = await makeRunner(store: store, health: health).run(trigger: .rebuildAll, options: RunOptions(read: true, verify: .allDates, markAllDirty: false)) {}
+
+        #expect(try store.samples(type: .steps, month: "2026-08").isEmpty)
+        #expect(try store.samples(type: .steps, month: "2026-07").map(\.uuid) == [july.uuid])
+        #expect(try store.samples(type: .steps, month: "2026-09").map(\.uuid) == [september.uuid])
+        #expect(try store.dirtyEntries().map(\.day) == [day("2026-08-05")])
+    }
+
+    @Test func cancellingAllDatesVerifyAfterTheFirstMonthLeavesLaterMonthsUntouched() async throws {
+        let store = try LocalStore.inMemory()
+        let july = makeSample(start: "2026-07-05T12:00:00Z")
+        let extraInSeptember = makeSample(start: "2026-09-05T12:00:00Z")
+        try store.applyChanges(HealthChanges(added: [july, extraInSeptember]), for: .steps, fallbackTimeZone: saoPaulo)
+        let health = FakeHealthSource()
+        await health.setSamples([july], for: .steps)
+        await health.setEarliest(july.start)
+        await health.cancelCurrentTaskOnSamplesCall(number: 2)
+
+        _ = await makeRunner(store: store, health: health).run(trigger: .rebuildAll, options: RunOptions(read: true, verify: .allDates, markAllDirty: false)) {}
+
+        #expect(try store.samples(type: .steps, month: "2026-09").map(\.uuid) == [extraInSeptember.uuid])
+    }
+
     @Test func aCancelledRunReadsNothingAndLeavesMarks() async throws {
         let store = try LocalStore.inMemory()
         let log = EventLog()

@@ -125,21 +125,43 @@ public final class ExportRunner: Sendable {
             errors.append("verify: \(error)")
             return
         }
-        let interval = DateInterval(start: start, end: end)
+        let windows = Self.verifyWindows(from: start, to: end, splitByMonth: scope == .allDates, zone: zone)
         for type in types {
-            if Task.isCancelled { return }
-            do {
-                let remote = try await health.samples(for: type, in: interval)
-                let remoteUUIDs = Set(remote.map(\.uuid))
-                let localUUIDs = try store.sampleUUIDs(type: type, startingIn: interval)
-                let missing = remote.filter { !localUUIDs.contains($0.uuid) }
-                let removed = localUUIDs.subtracting(remoteUUIDs)
-                if missing.isEmpty && removed.isEmpty { continue }
-                try store.applyChanges(HealthChanges(added: missing, deletedUUIDs: Array(removed)), for: type, fallbackTimeZone: zone)
-            } catch {
-                errors.append("verify \(type.rawValue): \(error)")
+            for window in windows {
+                // Between windows, so a cancelled run stops without loading another month.
+                if Task.isCancelled { return }
+                do {
+                    let remote = try await health.samples(for: type, in: window)
+                    let remoteUUIDs = Set(remote.map(\.uuid))
+                    let localUUIDs = try store.sampleUUIDs(type: type, startingIn: window)
+                    let missing = remote.filter { !localUUIDs.contains($0.uuid) }
+                    let removed = localUUIDs.subtracting(remoteUUIDs)
+                    if missing.isEmpty && removed.isEmpty { continue }
+                    try store.applyChanges(HealthChanges(added: missing, deletedUUIDs: Array(removed)), for: type, fallbackTimeZone: zone)
+                } catch {
+                    errors.append("verify \(type.rawValue): \(error)")
+                }
             }
         }
+    }
+
+    /// One window, or one per local calendar month for a years-long history, so no query loads it all at once. Windows are half-open on the start time and contiguous, so each sample is compared once. Boundaries come from the calendar, never from adding a month to `start`.
+    private static func verifyWindows(from start: Date, to end: Date, splitByMonth: Bool, zone: TimeZone) -> [DateInterval] {
+        guard splitByMonth else { return [DateInterval(start: start, end: end)] }
+        let calendar = DayKey.calendar(in: zone)
+        var windows: [DateInterval] = []
+        var windowStart = start
+        while windowStart < end {
+            guard let monthStart = calendar.dateInterval(of: .month, for: windowStart)?.start,
+                  let nextMonthStart = calendar.date(byAdding: .month, value: 1, to: monthStart),
+                  nextMonthStart < end else {
+                windows.append(DateInterval(start: windowStart, end: end))
+                break
+            }
+            windows.append(DateInterval(start: windowStart, end: nextMonthStart))
+            windowStart = nextMonthStart
+        }
+        return windows
     }
 
     /// Runs after Verify, so stored values never lag behind samples Verify added or removed. Entries of a type that isn't enabled are left alone.
