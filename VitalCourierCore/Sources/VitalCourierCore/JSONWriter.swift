@@ -54,18 +54,19 @@ public enum JSONWriter {
         let periodStart = firstDay.interval(in: timeZone).start
         let periodEnd = DayKey.calendar(in: timeZone).date(byAdding: .month, value: 1, to: periodStart)!
         let ordered = samples.sorted { ($0.start, $0.uuid.uuidString) < ($1.start, $1.uuid.uuidString) }
+        var formatters = FormatterCache()
         let file = MonthFile(
             schemaVersion: schemaVersion,
             type: type.rawValue,
             unit: type.siUnit,
-            period: Period(start: iso8601(periodStart, in: timeZone), end: iso8601(periodEnd, in: timeZone), timeZone: timeZone.identifier),
-            generatedAt: iso8601(generatedAt, in: timeZone),
+            period: Period(start: formatters.string(from: periodStart, in: timeZone), end: formatters.string(from: periodEnd, in: timeZone), timeZone: timeZone.identifier),
+            generatedAt: formatters.string(from: generatedAt, in: timeZone),
             samples: ordered.map { sample in
                 let sampleZone = DayAssigner.zone(for: sample, fallback: timeZone)
                 return SampleEntry(
                     uuid: sample.uuid.uuidString,
-                    start: iso8601(sample.start, in: sampleZone, fractionalSeconds: true),
-                    end: iso8601(sample.end, in: sampleZone, fractionalSeconds: true),
+                    start: formatters.string(from: sample.start, in: sampleZone, fractionalSeconds: true),
+                    end: formatters.string(from: sample.end, in: sampleZone, fractionalSeconds: true),
                     value: sample.value,
                     source: sample.source,
                     device: sample.device,
@@ -74,14 +75,31 @@ public enum JSONWriter {
             }
         )
         let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         return try encoder.encode(file)
     }
 
-    static func iso8601(_ date: Date, in timeZone: TimeZone, fractionalSeconds: Bool = false) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.timeZone = timeZone
-        formatter.formatOptions = fractionalSeconds ? [.withInternetDateTime, .withFractionalSeconds] : [.withInternetDateTime]
-        return formatter.string(from: date)
+    /// Formatters are costly to create and a heart rate month holds tens of thousands of samples,
+    /// so one `monthFile` call builds each (zone, fractional seconds) formatter once and reuses it.
+    /// It lives on the stack of that call rather than in a static, to stay free of shared mutable state.
+    struct FormatterCache {
+        private struct Key: Hashable {
+            let timeZoneIdentifier: String
+            let fractionalSeconds: Bool
+        }
+
+        private var formatters: [Key: ISO8601DateFormatter] = [:]
+
+        mutating func string(from date: Date, in timeZone: TimeZone, fractionalSeconds: Bool = false) -> String {
+            let key = Key(timeZoneIdentifier: timeZone.identifier, fractionalSeconds: fractionalSeconds)
+            if let cached = formatters[key] {
+                return cached.string(from: date)
+            }
+            let formatter = ISO8601DateFormatter()
+            formatter.timeZone = timeZone
+            formatter.formatOptions = fractionalSeconds ? [.withInternetDateTime, .withFractionalSeconds] : [.withInternetDateTime]
+            formatters[key] = formatter
+            return formatter.string(from: date)
+        }
     }
 }
