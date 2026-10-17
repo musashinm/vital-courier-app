@@ -132,6 +132,9 @@ public final class ExportRunner: Sendable {
                 if Task.isCancelled { return }
                 do {
                     let remote = try await health.samples(for: type, in: window)
+                    // A cancel during the fetch must not still commit this window's diff.
+                    // A cancel during the fetch must not still commit this window's diff.
+                    if Task.isCancelled { return }
                     let remoteUUIDs = Set(remote.map(\.uuid))
                     let localUUIDs = try store.sampleUUIDs(type: type, startingIn: window)
                     let missing = remote.filter { !localUUIDs.contains($0.uuid) }

@@ -269,18 +269,21 @@ import Testing
         #expect(try store.dirtyEntries().map(\.day) == [day("2026-08-05")])
     }
 
-    @Test func cancellingAllDatesVerifyAfterTheFirstMonthLeavesLaterMonthsUntouched() async throws {
+    @Test func cancellingAllDatesVerifyDuringTheSecondMonthLeavesThatMonthAndLaterOnesUntouched() async throws {
         let store = try LocalStore.inMemory()
         let july = makeSample(start: "2026-07-05T12:00:00Z")
+        let extraInAugust = makeSample(start: "2026-08-05T12:00:00Z")
         let extraInSeptember = makeSample(start: "2026-09-05T12:00:00Z")
-        try store.applyChanges(HealthChanges(added: [july, extraInSeptember]), for: .steps, fallbackTimeZone: saoPaulo)
+        try store.applyChanges(HealthChanges(added: [july, extraInAugust, extraInSeptember]), for: .steps, fallbackTimeZone: saoPaulo)
         let health = FakeHealthSource()
         await health.setSamples([july], for: .steps)
         await health.setEarliest(july.start)
-        await health.cancelCurrentTaskOnSamplesCall(number: 2)
+        await health.cancelCurrentTaskOnSamplesCall(number: 2, for: .steps)
 
         _ = await makeRunner(store: store, health: health).run(trigger: .rebuildAll, options: RunOptions(read: true, verify: .allDates, markAllDirty: false)) {}
 
+        // The cancel lands while August is being fetched, so August's diff must not be applied either.
+        #expect(try store.samples(type: .steps, month: "2026-08").map(\.uuid) == [extraInAugust.uuid])
         #expect(try store.samples(type: .steps, month: "2026-09").map(\.uuid) == [extraInSeptember.uuid])
     }
 
