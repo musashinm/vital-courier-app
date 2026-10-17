@@ -9,24 +9,27 @@ final class TipJarModel {
     private(set) var pricesByTier: [TipTier: String] = [:]
     private var productsByTier: [TipTier: Product] = [:]
     private let settings: AppSettings
-    @ObservationIgnored private var recordedTipObservation: Task<Void, Never>?
 
     init(settings: AppSettings) {
         self.settings = settings
         state = .initial(hasTipped: settings.hasTipped)
-        recordedTipObservation = Task { [weak self] in
+        // The model lives as long as the app, so this task needs no cleanup beyond ending once the model is gone.
+        Task { [weak self] in
             for await _ in NotificationCenter.default.notifications(named: .vitalCourierTipRecorded) {
                 guard let self else { return }
-                state.tipRecordedElsewhere()
+                showThanksIfTipWasRecorded()
             }
         }
     }
 
-    isolated deinit {
-        recordedTipObservation?.cancel()
+    /// The notification observer starts asynchronously and can miss a tip the launch listener recorded first, so the saved flag is the source of truth.
+    private func showThanksIfTipWasRecorded() {
+        guard settings.hasTipped, state.phase != .thanked else { return }
+        state.tipRecordedElsewhere()
     }
 
     func loadIfNeeded() async {
+        showThanksIfTipWasRecorded()
         guard state.needsProducts else { return }
         do {
             let products = try await Product.products(for: TipTier.allCases.map(\.productID))
@@ -66,6 +69,7 @@ final class TipJarModel {
     }
 
     func sectionAppeared() {
+        showThanksIfTipWasRecorded()
         state.sectionReappeared()
     }
 }

@@ -9,8 +9,13 @@ import VitalCourierCore
     private final class BundleAnchor {}
 
     private func makeSession() throws -> SKTestSession {
-        let configurationURL = try #require(Bundle(for: BundleAnchor.self).url(forResource: "TipJar", withExtension: "storekit"))
-        let session = try SKTestSession(contentsOf: configurationURL)
+        let session: SKTestSession
+        do {
+            session = try SKTestSession(configurationFileNamed: "TipJar")
+        } catch {
+            let configurationURL = try #require(Bundle(for: BundleAnchor.self).url(forResource: "TipJar", withExtension: "storekit"))
+            session = try SKTestSession(contentsOf: configurationURL)
+        }
         session.disableDialogs = true
         session.clearTransactions()
         return session
