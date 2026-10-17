@@ -18,6 +18,9 @@ public struct DailySummary: Equatable, Sendable {
     public var bloodGlucoseMgDl: Double?
     public var bloodGlucoseMgDlMin: Double?
     public var bloodGlucoseMgDlMax: Double?
+    /// Percent (0–100): the day's lowest and highest reading. No average: Health shows the day as a range (Blood Oxygen Spec, Decisions).
+    public var bloodOxygenPercentMin: Double?
+    public var bloodOxygenPercentMax: Double?
     public var sleepHours: Double?
     public var sleepDeepHours: Double?
     public var sleepREMHours: Double?
@@ -46,6 +49,9 @@ public struct DailySummary: Equatable, Sendable {
         bloodGlucoseMgDl = values[.bloodGlucose]?.value
         bloodGlucoseMgDlMin = values[.bloodGlucose]?.minimum
         bloodGlucoseMgDlMax = values[.bloodGlucose]?.maximum
+        // The stored value is HealthKit's 0–1 fraction; the note reads in percent.
+        bloodOxygenPercentMin = values[.bloodOxygen]?.minimum.map { $0 * 100 }
+        bloodOxygenPercentMax = values[.bloodOxygen]?.maximum.map { $0 * 100 }
         sleepHours = values[.sleep]?.value
         sleepDeepHours = values[.sleep]?.deepHours
         sleepREMHours = values[.sleep]?.remHours
@@ -88,6 +94,8 @@ public enum MarkdownWriter {
         if let milligrams = summary.bloodGlucoseMgDl { lines.append("vc_glucose_mg_dl: \(noDecimals(milligrams))") }
         if let milligrams = summary.bloodGlucoseMgDlMin { lines.append("vc_glucose_mg_dl_min: \(noDecimals(milligrams))") }
         if let milligrams = summary.bloodGlucoseMgDlMax { lines.append("vc_glucose_mg_dl_max: \(noDecimals(milligrams))") }
+        if let percent = summary.bloodOxygenPercentMin { lines.append("vc_spo2_pct_min: \(noDecimals(percent))") }
+        if let percent = summary.bloodOxygenPercentMax { lines.append("vc_spo2_pct_max: \(noDecimals(percent))") }
         if let hours = summary.sleepHours { lines.append("vc_sleep_hours: \(twoDecimals(hours))") }
         if let hours = summary.sleepDeepHours { lines.append("vc_sleep_deep_hours: \(twoDecimals(hours))") }
         if let hours = summary.sleepREMHours { lines.append("vc_sleep_rem_hours: \(twoDecimals(hours))") }

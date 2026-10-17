@@ -22,6 +22,8 @@ import Testing
         summary.bloodGlucoseMgDl = 103.6
         summary.bloodGlucoseMgDlMin = 88.4
         summary.bloodGlucoseMgDlMax = 141.5
+        summary.bloodOxygenPercentMin = 90.4
+        summary.bloodOxygenPercentMax = 96.6
         summary.sleepHours = 7.2
         summary.sleepDeepHours = 1.1
         summary.sleepREMHours = 1.556
@@ -44,6 +46,8 @@ import Testing
             vc_glucose_mg_dl: 104
             vc_glucose_mg_dl_min: 88
             vc_glucose_mg_dl_max: 142
+            vc_spo2_pct_min: 90
+            vc_spo2_pct_max: 97
             vc_sleep_hours: 7.20
             vc_sleep_deep_hours: 1.10
             vc_sleep_rem_hours: 1.56
@@ -249,6 +253,41 @@ import Testing
         #expect(MarkdownWriter.noDecimals(103.6) == "104")
         #expect(MarkdownWriter.noDecimals(88.4) == "88")
         #expect(MarkdownWriter.noDecimals(1234.4) == "1234")
+    }
+
+    @Test func theSummaryTurnsTheStoredOxygenFractionIntoPercent() {
+        let summary = DailySummary(day: day("2026-09-27"), values: [.bloodOxygen: DailyValue(value: 0.95, minimum: 0.904, maximum: 0.966)])
+        #expect(text(summary).contains("vc_spo2_pct_min: 90\nvc_spo2_pct_max: 97\nvc_schema: 1\n"))
+    }
+
+    @Test func anOvernightDipShowsAsTheMinimum() {
+        let summary = DailySummary(day: day("2026-09-27"), values: [.bloodOxygen: DailyValue(value: 0.94, minimum: 0.75, maximum: 0.98)])
+        #expect(text(summary).contains("vc_spo2_pct_min: 75\n"))
+    }
+
+    @Test func neverWritesABloodOxygenAverage() {
+        let averageOnly = DailySummary(day: day("2026-09-27"), values: [.bloodOxygen: DailyValue(value: 0.95)])
+        #expect(!text(averageOnly).contains("vc_spo2"))
+        let fullDay = DailySummary(day: day("2026-09-27"), values: [.bloodOxygen: DailyValue(value: 0.95, minimum: 0.90, maximum: 0.97)])
+        #expect(!text(fullDay).contains("vc_spo2_pct:"))
+    }
+
+    @Test func leavesOutBloodOxygenWhenThereIsNone() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.bloodGlucoseMgDl = 104
+        #expect(!text(summary).contains("vc_spo2"))
+    }
+
+    @Test func leavesOutTheOxygenMaximumOnItsOwn() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.bloodOxygenPercentMin = 90
+        #expect(text(summary).contains("vc_spo2_pct_min: 90\nvc_schema: 1\n"))
+    }
+
+    @Test func leavesOutTheOxygenMinimumOnItsOwn() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.bloodOxygenPercentMax = 97
+        #expect(text(summary).contains("vc_spo2_pct_max: 97\nvc_schema: 1\n"))
     }
 
     @Test func leavesOutWalkingHeartRateWhenThereIsNone() {
