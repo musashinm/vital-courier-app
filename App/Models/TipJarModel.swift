@@ -33,6 +33,8 @@ final class TipJarModel {
         guard state.needsProducts else { return }
         do {
             let products = try await Product.products(for: TipTier.allCases.map(\.productID))
+            // A cancelled load can still return normally; stay in Loading so the next visit retries.
+            guard !Task.isCancelled else { return }
             for product in products {
                 guard let tier = TipTier(rawValue: product.id) else { continue }
                 productsByTier[tier] = product
