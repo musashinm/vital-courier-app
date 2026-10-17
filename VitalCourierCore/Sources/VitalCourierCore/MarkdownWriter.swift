@@ -6,6 +6,10 @@ public struct DailySummary: Equatable, Sendable {
     public var exerciseMinutes: Double?
     public var restingHeartRateBPM: Double?
     public var walkingHeartRateAverageBPM: Double?
+    /// Beats per minute: the day's average, lowest and highest reading.
+    public var heartRateBPM: Double?
+    public var heartRateBPMMin: Double?
+    public var heartRateBPMMax: Double?
     /// Breaths per minute: the day's average, lowest and highest reading.
     public var respiratoryRate: Double?
     public var respiratoryRateMin: Double?
@@ -33,6 +37,9 @@ public struct DailySummary: Equatable, Sendable {
         exerciseMinutes = values[.exerciseMinutes]?.value
         restingHeartRateBPM = values[.restingHeartRate]?.value
         walkingHeartRateAverageBPM = values[.walkingHeartRateAverage]?.value
+        heartRateBPM = values[.heartRate]?.value
+        heartRateBPMMin = values[.heartRate]?.minimum
+        heartRateBPMMax = values[.heartRate]?.maximum
         respiratoryRate = values[.respiratoryRate]?.value
         respiratoryRateMin = values[.respiratoryRate]?.minimum
         respiratoryRateMax = values[.respiratoryRate]?.maximum
@@ -70,6 +77,9 @@ public enum MarkdownWriter {
         if let minutes = summary.exerciseMinutes { lines.append("vc_exercise_minutes: \(Int(minutes.rounded(.towardZero)))") }
         if let bpm = summary.restingHeartRateBPM { lines.append("vc_resting_hr_bpm: \(oneDecimal(bpm))") }
         if let bpm = summary.walkingHeartRateAverageBPM { lines.append("vc_walking_hr_avg: \(oneDecimal(bpm))") }
+        if let bpm = summary.heartRateBPM { lines.append("vc_hr_avg: \(noDecimals(bpm))") }
+        if let bpm = summary.heartRateBPMMin { lines.append("vc_hr_min: \(noDecimals(bpm))") }
+        if let bpm = summary.heartRateBPMMax { lines.append("vc_hr_max: \(noDecimals(bpm))") }
         // Each written on its own: a missing minimum or maximum never hides the average (Respiratory Rate Spec, Edge cases).
         if let breaths = summary.respiratoryRate { lines.append("vc_respiratory_rate: \(oneDecimal(breaths))") }
         if let breaths = summary.respiratoryRateMin { lines.append("vc_respiratory_rate_min: \(oneDecimal(breaths))") }

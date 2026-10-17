@@ -13,6 +13,9 @@ import Testing
         summary.exerciseMinutes = 34.9
         summary.restingHeartRateBPM = 58.46
         summary.walkingHeartRateAverageBPM = 92.46
+        summary.heartRateBPM = 72.4
+        summary.heartRateBPMMin = 48
+        summary.heartRateBPMMax = 151.6
         summary.respiratoryRate = 14.46
         summary.respiratoryRateMin = 12.1
         summary.respiratoryRateMax = 17
@@ -32,6 +35,9 @@ import Testing
             vc_exercise_minutes: 34
             vc_resting_hr_bpm: 58.5
             vc_walking_hr_avg: 92.5
+            vc_hr_avg: 72
+            vc_hr_min: 48
+            vc_hr_max: 152
             vc_respiratory_rate: 14.5
             vc_respiratory_rate_min: 12.1
             vc_respiratory_rate_max: 17.0
@@ -260,5 +266,29 @@ import Testing
     @Test func theSummaryTakesTheWalkingHeartRateFromTheStoredDailyValue() {
         let summary = DailySummary(day: day("2026-09-27"), values: [.walkingHeartRateAverage: DailyValue(value: 92.4)])
         #expect(summary.walkingHeartRateAverageBPM == 92.4)
+    }
+
+    @Test func leavesOutHeartRateWhenThereIsNone() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.restingHeartRateBPM = 58
+        let note = text(summary)
+        #expect(!note.contains("vc_hr_avg"))
+        #expect(!note.contains("vc_hr_min"))
+        #expect(!note.contains("vc_hr_max"))
+    }
+
+    @Test func writesOnlyTheHeartRateValuesTheDayHas() {
+        var summary = DailySummary(day: day("2026-09-27"))
+        summary.heartRateBPM = 70
+        summary.heartRateBPMMax = 120.5
+        #expect(text(summary).contains("vc_hr_avg: 70\nvc_hr_max: 120\n"))
+        #expect(!text(summary).contains("vc_hr_min"))
+    }
+
+    @Test func theSummaryTakesHeartRateFromTheStoredDailyValue() {
+        let summary = DailySummary(day: day("2026-09-27"), values: [.heartRate: DailyValue(value: 72.4, minimum: 48, maximum: 151.6)])
+        #expect(summary.heartRateBPM == 72.4)
+        #expect(summary.heartRateBPMMin == 48)
+        #expect(summary.heartRateBPMMax == 151.6)
     }
 }
