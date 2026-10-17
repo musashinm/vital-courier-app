@@ -168,6 +168,8 @@ struct TipRow: View {
             }
             .frame(minHeight: 44)
             .accessibilityElement(children: .combine)
+            // The explicit row colours hide the native disabled look, so the blocked rows dim to the mockup's opacity.
+            .opacity(availability == .blockedByOtherPurchase ? 0.42 : 1)
         }
         .disabled(availability == .blockedByOtherPurchase)
         .accessibilityLabel(accessibilityLabel)
