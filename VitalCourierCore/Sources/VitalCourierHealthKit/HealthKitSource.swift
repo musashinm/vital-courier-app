@@ -90,7 +90,7 @@ public final class HealthKitSource: HealthSource {
         return earliest
     }
 
-    /// Sum types (steps, exercise minutes) use `cumulativeSum`; resting heart rate and walking heart rate average use `discreteAverage` in beats per minute; heart rate, respiratory rate and blood glucose use `discreteAverage`, `discreteMin` and `discreteMax` in beats per minute, breaths per minute and mg/dL, from one query. One day-long bucket anchored at the day's local midnight. Other types return nil.
+    /// Sum types (steps, exercise minutes) use `cumulativeSum`; resting heart rate and walking heart rate average use `discreteAverage` in beats per minute; heart rate, respiratory rate, blood glucose and blood oxygen use `discreteAverage`, `discreteMin` and `discreteMax` in beats per minute, breaths per minute, mg/dL and a 0–1 fraction, from one query. One day-long bucket anchored at the day's local midnight. Other types return nil.
     public func dailyStatistic(for type: HealthType, day: DayKey, timeZone: TimeZone) async throws -> DailyStatistic? {
         guard let aggregation = type.statisticsAggregation,
               let unit = HealthKitMapping.statisticUnit(for: type),

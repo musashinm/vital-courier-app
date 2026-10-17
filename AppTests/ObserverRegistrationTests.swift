@@ -14,14 +14,15 @@ import VitalCourierCore
     @Test func theQueryWatchesTheEnabledTypes() {
         let off = ObserverRegistration.descriptors(for: HealthType.enabledTypes(cycleTrackingEnabled: false)).map(\.sampleType)
         let on = ObserverRegistration.descriptors(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).map(\.sampleType)
-        #expect(off.count == 9)
+        #expect(off.count == 10)
         #expect(off.contains(HKQuantityType(.appleExerciseTime)))
         #expect(off.contains(HKQuantityType(.walkingHeartRateAverage)))
         #expect(off.contains(HKQuantityType(.heartRate)))
         #expect(off.contains(HKQuantityType(.respiratoryRate)))
         #expect(off.contains(HKQuantityType(.bloodGlucose)))
+        #expect(off.contains(HKQuantityType(.oxygenSaturation)))
         #expect(!off.contains(HKCategoryType(.menstrualFlow)))
-        #expect(on.count == 11)
+        #expect(on.count == 12)
         #expect(on.contains(HKCategoryType(.menstrualFlow)))
         #expect(on.contains(HKCategoryType(.intermenstrualBleeding)))
     }

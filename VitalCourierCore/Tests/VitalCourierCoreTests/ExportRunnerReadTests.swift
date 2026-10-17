@@ -362,6 +362,17 @@ import Testing
         #expect(try store.dailyValues(day: day("2026-09-27")) == [.bloodGlucose: DailyValue(value: 104, minimum: 88, maximum: 142)])
     }
 
+    @Test func aBloodOxygenDayStoresTheFractionAndItsRange() async throws {
+        let store = try LocalStore.inMemory()
+        let health = FakeHealthSource()
+        await health.queue(HealthChanges(added: [makeSample(type: .bloodOxygen, start: "2026-09-27T06:00:00Z", end: "2026-09-27T06:01:00Z", value: .quantity(0.96))]), for: .bloodOxygen)
+        await health.setStatisticRange(DailyStatistic(value: 0.95, minimum: 0.90, maximum: 0.97), for: .bloodOxygen, day: day("2026-09-27"))
+
+        _ = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+        #expect(try store.dailyValues(day: day("2026-09-27")) == [.bloodOxygen: DailyValue(value: 0.95, minimum: 0.90, maximum: 0.97)])
+    }
+
     @Test func aHeartRateDayStoresTheAverageAndItsRange() async throws {
         let store = try LocalStore.inMemory()
         let health = FakeHealthSource()

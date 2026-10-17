@@ -19,6 +19,7 @@ public enum HealthKitMapping {
         case .heartRate: HKQuantityType(.heartRate)
         case .respiratoryRate: HKQuantityType(.respiratoryRate)
         case .bloodGlucose: HKQuantityType(.bloodGlucose)
+        case .bloodOxygen: HKQuantityType(.oxygenSaturation)
         case .sleep: HKCategoryType(.sleepAnalysis)
         case .weight: HKQuantityType(.bodyMass)
         case .menstrualFlow: HKCategoryType(.menstrualFlow)
@@ -43,18 +44,20 @@ public enum HealthKitMapping {
         case .exerciseMinutes: .second()
         case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate: .count().unitDivided(by: .second())
         case .bloodGlucose: .gram().unitDivided(by: .liter())
+        case .bloodOxygen: .percent()
         case .weight: .gramUnit(with: .kilo)
         case .sleep, .menstrualFlow, .spotting: nil
         }
     }
 
-    /// Daily values (spec, Daily values): steps as a count, exercise in minutes, resting heart rate and walking heart rate average in beats per minute, heart rate in beats per minute (average, minimum and maximum), respiratory rate in breaths per minute (average, minimum and maximum), blood glucose in mg/dL (average, minimum and maximum).
+    /// Daily values (spec, Daily values): steps as a count, exercise in minutes, resting heart rate and walking heart rate average in beats per minute, heart rate in beats per minute (average, minimum and maximum), respiratory rate in breaths per minute (average, minimum and maximum), blood glucose in mg/dL (average, minimum and maximum), blood oxygen as a 0–1 fraction (average, minimum and maximum; the note scales it to percent).
     public static func statisticUnit(for type: HealthType) -> HKUnit? {
         switch type {
         case .steps: .count()
         case .exerciseMinutes: .minute()
         case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate: .count().unitDivided(by: .minute())
         case .bloodGlucose: .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci))
+        case .bloodOxygen: .percent()
         case .weight, .sleep, .menstrualFlow, .spotting: nil
         }
     }
@@ -86,7 +89,7 @@ public enum HealthKitMapping {
         switch type {
         case .menstrualFlow: menstrualFlowValueName(rawValue: rawValue)
         case .spotting: rawValue == HKCategoryValue.notApplicable.rawValue ? "notApplicable" : "unknown(\(rawValue))"
-        case .steps, .exerciseMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate, .bloodGlucose, .sleep, .weight: sleepValueName(rawValue: rawValue)
+        case .steps, .exerciseMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight: sleepValueName(rawValue: rawValue)
         }
     }
 
