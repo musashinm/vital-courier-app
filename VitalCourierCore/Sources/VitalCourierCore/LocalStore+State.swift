@@ -2,13 +2,13 @@ import Foundation
 import GRDB
 
 public struct DailyValue: Equatable, Sendable {
-    /// Steps: count. Exercise: minutes. Resting heart rate: beats per minute. Walking heart rate average: beats per minute. Respiratory rate: breaths per minute (the day's average). Blood glucose: mg/dL (the day's average). Weight: kg. Sleep: asleep hours.
+    /// Steps: count. Exercise: minutes. Resting heart rate: beats per minute. Walking heart rate average: beats per minute. Heart rate: beats per minute (the day's average). Respiratory rate: breaths per minute (the day's average). Blood glucose: mg/dL (the day's average). Weight: kg. Sleep: asleep hours.
     public var value: Double
     public var deepHours: Double?
     public var remHours: Double?
     /// Sleep only: the source the night's totals came from.
     public var source: String?
-    /// Respiratory rate and blood glucose only: the day's lowest and highest reading, in the same unit as `value`.
+    /// Heart rate, respiratory rate and blood glucose only: the day's lowest and highest reading, in the same unit as `value`.
     public var minimum: Double?
     public var maximum: Double?
 
@@ -132,25 +132,42 @@ extension LocalStore {
         }
     }
 
-    /// Dirties every day each stored sample of a statistics type (`HealthType.usesStatisticsQuery`) in `types` overlaps, in its stored zone and in `statisticsZone`. The stored-day marks of `markAllDirty` miss the later days of a sample that crosses midnight.
+    /// Rows per page when Rebuild all walks the stored samples; small enough that memory stays flat for a heart rate history.
+    static let overlappedDayMarkingPageSize = 2_000
+
+    /// Dirties every day each stored sample of a statistics type (`HealthType.usesStatisticsQuery`) in `types` overlaps, in its stored zone and in `statisticsZone`. The stored-day marks of `markAllDirty` miss the later days of a sample that crosses midnight. Rows are read in keyset pages by rowid, each fetched whole before its days are marked, so memory stays flat however many samples are stored.
     static func markEveryOverlappedDayDirty(_ db: Database, statisticsZone: TimeZone, types: [HealthType]) throws {
         let statisticsTypeNames = types.filter(\.usesStatisticsQuery).map(\.rawValue)
         guard !statisticsTypeNames.isEmpty else { return }
-        let rows = try Row.fetchAll(
-            db,
-            sql: "SELECT type, zone, startTime, endTime FROM sample WHERE type IN (\(databaseQuestionMarks(count: statisticsTypeNames.count)))",
-            arguments: StatementArguments(statisticsTypeNames)
-        )
-        for row in rows {
-            let typeRaw: String = row["type"]
-            let zoneIdentifier: String = row["zone"]
-            let startTime: Double = row["startTime"]
-            let endTime: Double = row["endTime"]
-            let storedZone = TimeZone(identifier: zoneIdentifier) ?? statisticsZone
-            let start = Date(timeIntervalSince1970: startTime)
-            let end = Date(timeIntervalSince1970: endTime)
-            let days = overlappedDays(start: start, end: end, zone: storedZone).union(overlappedDays(start: start, end: end, zone: statisticsZone))
-            try markDirty(db, type: typeRaw, days: days)
+        let pageSQL = """
+            SELECT rowid, type, zone, startTime, endTime FROM sample
+            WHERE type IN (\(databaseQuestionMarks(count: statisticsTypeNames.count))) AND rowid > ?
+            ORDER BY rowid LIMIT ?
+            """
+        var lastRowID: Int64 = 0
+        while true {
+            // A cursor is off the table: markDirty writes while we iterate, which leaves a cursor's remaining rows undefined.
+            let page = try Row.fetchAll(
+                db,
+                sql: pageSQL,
+                arguments: StatementArguments(statisticsTypeNames as [any DatabaseValueConvertible] + [lastRowID, overlappedDayMarkingPageSize])
+            )
+            var markedInPage: Set<String> = []
+            for row in page {
+                let typeRaw: String = row["type"]
+                let zoneIdentifier: String = row["zone"]
+                let startTime: Double = row["startTime"]
+                let endTime: Double = row["endTime"]
+                let storedZone = TimeZone(identifier: zoneIdentifier) ?? statisticsZone
+                let start = Date(timeIntervalSince1970: startTime)
+                let end = Date(timeIntervalSince1970: endTime)
+                let days = overlappedDays(start: start, end: end, zone: storedZone).union(overlappedDays(start: start, end: end, zone: statisticsZone))
+                // Samples a minute apart share a day, so skip the write for a (type, day) this page already marked.
+                let unmarkedDays = days.filter { markedInPage.insert("\(typeRaw) \($0)").inserted }
+                try markDirty(db, type: typeRaw, days: unmarkedDays)
+            }
+            guard page.count == overlappedDayMarkingPageSize, let lastRow = page.last else { return }
+            lastRowID = lastRow["rowid"]
         }
     }
 

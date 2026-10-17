@@ -66,10 +66,15 @@ enum ObserverRegistration {
         running = (query, types)
     }
 
+    /// Heart rate arrives every few minutes from the Watch and each wake rewrites its month file, so it wakes the app at most hourly (Heart Rate Spec, Background delivery).
+    static func backgroundDeliveryFrequency(for type: HealthType) -> HKUpdateFrequency {
+        type == .heartRate ? .hourly : .immediate
+    }
+
     private static func setBackgroundDelivery(enable typesToEnable: [HealthType], disable typesToDisable: [HealthType], environment: AppEnvironment) {
         let healthStore = environment.health.healthStore
         for type in typesToEnable {
-            healthStore.enableBackgroundDelivery(for: HealthKitMapping.sampleType(for: type), frequency: .immediate) { succeeded, error in
+            healthStore.enableBackgroundDelivery(for: HealthKitMapping.sampleType(for: type), frequency: backgroundDeliveryFrequency(for: type)) { succeeded, error in
                 if !succeeded {
                     environment.recordSetupError("background delivery \(type.rawValue): \(error.map { String(describing: $0) } ?? "not enabled")")
                 }

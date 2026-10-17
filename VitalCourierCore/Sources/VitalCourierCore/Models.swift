@@ -5,6 +5,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
     case exerciseMinutes
     case restingHeartRate
     case walkingHeartRateAverage
+    case heartRate
     case respiratoryRate
     case bloodGlucose
     case sleep
@@ -13,7 +14,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
     case spotting
 
     /// The types every install exports.
-    public static let baseTypes: [HealthType] = [.steps, .exerciseMinutes, .restingHeartRate, .walkingHeartRateAverage, .respiratoryRate, .bloodGlucose, .sleep, .weight]
+    public static let baseTypes: [HealthType] = [.steps, .exerciseMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate, .bloodGlucose, .sleep, .weight]
     /// Exported only while Cycle tracking is on (Cycle Tracking Spec).
     public static let cycleTypes: [HealthType] = [.menstrualFlow, .spotting]
 
@@ -34,6 +35,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
         case .exerciseMinutes: "exercise-minutes"
         case .restingHeartRate: "resting-heart-rate"
         case .walkingHeartRateAverage: "walking-heart-rate-average"
+        case .heartRate: "heart-rate"
         case .respiratoryRate: "respiratory-rate"
         case .bloodGlucose: "blood-glucose"
         case .sleep: "sleep"
@@ -48,7 +50,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
         switch self {
         case .steps: "count"
         case .exerciseMinutes: "s"
-        case .restingHeartRate, .walkingHeartRateAverage, .respiratoryRate: "count/s"
+        case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate: "count/s"
         case .bloodGlucose: "g/L"
         case .sleep, .menstrualFlow, .spotting: "category"
         case .weight: "kg"
@@ -60,7 +62,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
         switch self {
         case .steps, .exerciseMinutes: .sum
         case .restingHeartRate, .walkingHeartRateAverage: .average
-        case .respiratoryRate, .bloodGlucose: .averageMinMax
+        case .heartRate, .respiratoryRate, .bloodGlucose: .averageMinMax
         case .sleep, .weight, .menstrualFlow, .spotting: nil
         }
     }

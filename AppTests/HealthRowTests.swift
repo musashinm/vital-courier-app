@@ -25,9 +25,15 @@ import VitalCourierCore
         #expect(HealthType.walkingHeartRateAverage.symbolName == HealthType.restingHeartRate.symbolName)
     }
 
+    @Test func heartRateSharesTheHeartSymbol() {
+        #expect(HealthType.heartRate.displayName == String(localized: "Heart rate"))
+        #expect(HealthType.heartRate.symbolName == "heart.fill")
+        #expect(HealthType.heartRate.symbolName == HealthType.restingHeartRate.symbolName)
+    }
+
     @Test func everyOtherTypeHasItsOwnHomeRowSymbol() {
-        // The two heart rates share heart.fill, as in Apple's Health app; nothing else may.
-        let typesWithTheirOwnSymbol = HealthType.allCases.filter { $0 != .walkingHeartRateAverage }
+        // The three heart rates share heart.fill, as in Apple's Health app; nothing else may.
+        let typesWithTheirOwnSymbol = HealthType.allCases.filter { $0 != .walkingHeartRateAverage && $0 != .heartRate }
         #expect(Set(typesWithTheirOwnSymbol.map(\.symbolName)).count == typesWithTheirOwnSymbol.count)
     }
 }

@@ -158,6 +158,14 @@ import Testing
         #expect(try dirtyDays(store, type: .walkingHeartRateAverage) == [day("2026-09-27"), day("2026-09-28")])
     }
 
+    @Test func aHeartRateSampleAcrossMidnightDirtiesBothDays() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(type: .heartRate, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .heartRate, fallbackTimeZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .heartRate) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
     @Test func aReplacedWalkingHeartRateEstimateDirtiesItsDayAndKeepsOnlyTheNewSample() throws {
         let store = try LocalStore.inMemory()
         let original = makeSample(type: .walkingHeartRateAverage, start: "2026-09-27T15:00:00Z", end: "2026-09-27T15:01:00Z", value: .quantity(1.5))
@@ -210,6 +218,48 @@ import Testing
 
         // Stored zone Sao Paulo splits the sample across the 27th and 28th; Lisbon alone would keep it on the 28th.
         #expect(try dirtyDays(store, type: .steps) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func rebuildAllMarksTheSameDaysForAHeartRateSampleWhoseStartDayDiffersBetweenZones() throws {
+        let store = try LocalStore.inMemory()
+        let sample = makeSample(type: .heartRate, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z", zone: "UTC")
+        try store.applyChanges(HealthChanges(added: [sample]), for: .heartRate, fallbackTimeZone: saoPaulo)
+        for entry in try store.dirtyEntries() { try store.clearDirty(type: entry.type, day: entry.day) }
+
+        try store.markAllDirty(statisticsZone: saoPaulo)
+
+        #expect(try dirtyDays(store, type: .heartRate) == [day("2026-09-27"), day("2026-09-28")])
+    }
+
+    @Test func rebuildAllMarksEveryDayOfALargeHeartRateHistory() throws {
+        let store = try LocalStore.inMemory()
+        let sampleCount = 50_000
+        let batchSize = 2_000
+        let firstStart = date("2026-01-01T03:00:00Z")
+        for batchStart in stride(from: 0, to: sampleCount, by: batchSize) {
+            let samples = (batchStart..<batchStart + batchSize).map { minute in
+                let start = firstStart.addingTimeInterval(Double(minute) * 60)
+                return HealthSample(
+                    uuid: UUID(), type: .heartRate, start: start, end: start.addingTimeInterval(1),
+                    value: .quantity(60), source: "Watch", device: "Apple Watch", metadata: [:],
+                    timeZoneIdentifier: "America/Sao_Paulo"
+                )
+            }
+            try store.applyChanges(HealthChanges(added: samples), for: .heartRate, fallbackTimeZone: saoPaulo)
+        }
+        for entry in try store.dirtyEntries() { try store.clearDirty(type: entry.type, day: entry.day) }
+
+        try store.markAllDirty(statisticsZone: saoPaulo, types: [.heartRate])
+
+        let lastStart = firstStart.addingTimeInterval(Double(sampleCount - 1) * 60)
+        let lastDay = DayKey(date: lastStart, timeZone: saoPaulo)
+        var expectedDays: [DayKey] = []
+        var current = day("2026-01-01")
+        while current <= lastDay {
+            expectedDays.append(current)
+            current = current.adding(days: 1)
+        }
+        #expect(try dirtyDays(store, type: .heartRate) == expectedDays)
     }
 
     @Test func addingAnExerciseSampleAcrossMidnightDirtiesBothDays() throws {

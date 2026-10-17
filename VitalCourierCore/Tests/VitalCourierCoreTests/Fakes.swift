@@ -23,6 +23,8 @@ actor FakeHealthSource: HealthSource {
     var failingChangeTypes: Set<HealthType> = []
     var earliest: Date?
     var earliestRequestedTypes: [[HealthType]] = []
+    var requestedSampleIntervals: [HealthType: [DateInterval]] = [:]
+    var cancelOnSamplesCall: (type: HealthType, number: Int)?
 
     init(log: EventLog = EventLog()) { self.log = log }
 
@@ -30,6 +32,8 @@ actor FakeHealthSource: HealthSource {
     func setRefuseReads(_ value: Bool) { refuseReads = value }
     func queue(_ changes: HealthChanges, for type: HealthType) { queuedChanges[type, default: []].append(changes) }
     func cancelCurrentTaskOnNextChanges() { cancelOnNextChanges = true }
+    /// Cancels the calling task during the given 1-based `samples` call for `type`, the way `cancelCurrentTaskOnNextChanges` does for `changes`.
+    func cancelCurrentTaskOnSamplesCall(number: Int, for type: HealthType) { cancelOnSamplesCall = (type, number) }
     func setSamples(_ samples: [HealthSample], for type: HealthType) { storedSamples[type] = samples }
     func setStatistic(_ value: Double?, for type: HealthType, day: DayKey) { statistics["\(type.rawValue)|\(day)"] = value.map { DailyStatistic(value: $0) } }
     func setStatisticRange(_ statistic: DailyStatistic, for type: HealthType, day: DayKey) { statistics["\(type.rawValue)|\(day)"] = statistic }
@@ -56,6 +60,10 @@ actor FakeHealthSource: HealthSource {
 
     func samples(for type: HealthType, in interval: DateInterval) -> [HealthSample] {
         log.append("samples \(type.rawValue)")
+        requestedSampleIntervals[type, default: []].append(interval)
+        if let target = cancelOnSamplesCall, target.type == type, requestedSampleIntervals[type]?.count == target.number {
+            withUnsafeCurrentTask { $0?.cancel() }
+        }
         return (storedSamples[type] ?? []).filter { interval.start <= $0.start && $0.start < interval.end }
     }
 
