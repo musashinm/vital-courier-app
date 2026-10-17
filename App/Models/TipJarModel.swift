@@ -13,7 +13,7 @@ final class TipJarModel {
     init(settings: AppSettings) {
         self.settings = settings
         state = .initial(hasTipped: settings.hasTipped)
-        // The model lives as long as the app, so this task needs no cleanup beyond ending once the model is gone.
+        // The weak capture keeps this task from retaining the model; the task ends at the next notification after the model is gone.
         Task { [weak self] in
             for await _ in NotificationCenter.default.notifications(named: .vitalCourierTipRecorded) {
                 guard let self else { return }
@@ -58,11 +58,11 @@ final class TipJarModel {
         do {
             switch try await product.purchase() {
             case .success(let result):
-                outcome = await TipLedger.outcome(of: TipPurchaseResult.success(TipVerification(result)), in: settings)
+                outcome = await TipLedger.outcome(of: TipPurchaseResult.success(TipVerification(result)), in: settings, afterSaving: showThanksBeforeFinishing)
             case .userCancelled:
-                outcome = await TipLedger.outcome(of: TipPurchaseResult<StoreKitTipTransaction>.userCancelled, in: settings)
+                outcome = await TipLedger.outcome(of: TipPurchaseResult<StoreKitTipTransaction>.userCancelled, in: settings, afterSaving: showThanksBeforeFinishing)
             case .pending:
-                outcome = await TipLedger.outcome(of: TipPurchaseResult<StoreKitTipTransaction>.pending, in: settings)
+                outcome = await TipLedger.outcome(of: TipPurchaseResult<StoreKitTipTransaction>.pending, in: settings, afterSaving: showThanksBeforeFinishing)
             @unknown default:
                 outcome = .failed
             }
@@ -70,6 +70,11 @@ final class TipJarModel {
             outcome = .failed
         }
         state.purchaseEnded(outcome)
+    }
+
+    /// Runs between saving the flag and finishing the transaction, so a slow `finish()` can't leave a paid buyer on Purchasing.
+    private func showThanksBeforeFinishing() {
+        state.tipRecordedElsewhere()
     }
 
     func sectionAppeared() {

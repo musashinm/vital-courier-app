@@ -6,6 +6,7 @@ private final class FakeTipTransaction: TipTransaction {
     private struct State {
         var finishCount = 0
         var flagWhenFinished: Bool?
+        var callbackRanBeforeFinish: Bool?
     }
 
     let productID: String
@@ -19,12 +20,19 @@ private final class FakeTipTransaction: TipTransaction {
 
     var finishCount: Int { state.withLock { $0.finishCount } }
     var flagWhenFinished: Bool? { state.withLock { $0.flagWhenFinished } }
+    var callbackRanBeforeFinish: Bool? { state.withLock { $0.callbackRanBeforeFinish } }
+
+    /// Set by the test's `afterSaving` callback, so `finish()` can tell whether the callback came first.
+    func noteCallbackRan() { callbackRan.withLock { $0 = true } }
+    private let callbackRan = Mutex(false)
 
     func finish() async {
         let flag = settings.hasTipped
+        let callbackAlreadyRan = callbackRan.withLock { $0 }
         state.withLock {
             $0.finishCount += 1
             $0.flagWhenFinished = flag
+            $0.callbackRanBeforeFinish = callbackAlreadyRan
         }
     }
 }
@@ -38,16 +46,43 @@ private final class FakeTipTransaction: TipTransaction {
 
     @Test func savesTheFlagBeforeFinishing() async {
         let transaction = fake(TipTier.coffee.productID)
-        let recorded = await TipLedger.record(.verified(transaction), in: settings)
+        let recorded = await TipLedger.record(.verified(transaction), in: settings) {}
         #expect(recorded == true)
         #expect(settings.hasTipped)
         #expect(transaction.finishCount == 1)
         #expect(transaction.flagWhenFinished == true)
     }
 
+    @Test func runsTheCallbackAfterSavingAndBeforeFinishing() async {
+        let transaction = fake(TipTier.coffee.productID)
+        let flagWhenCallbackRan = Mutex<Bool?>(nil)
+        let settings = settings
+        let recorded = await TipLedger.record(.verified(transaction), in: settings) {
+            flagWhenCallbackRan.withLock { $0 = settings.hasTipped }
+            transaction.noteCallbackRan()
+        }
+        #expect(recorded == true)
+        #expect(flagWhenCallbackRan.withLock { $0 } == true)
+        #expect(transaction.callbackRanBeforeFinish == true)
+        #expect(transaction.finishCount == 1)
+    }
+
+    @Test func anUnverifiedOrUnknownTipNeverRunsTheCallback() async {
+        let unverified = fake(TipTier.coffee.productID)
+        let unknown = fake("app.vitalcourier.other")
+        let callbackCount = Mutex(0)
+
+        _ = await TipLedger.record(.unverified(unverified), in: settings) { callbackCount.withLock { $0 += 1 } }
+        _ = await TipLedger.record(.verified(unknown), in: settings) { callbackCount.withLock { $0 += 1 } }
+
+        #expect(callbackCount.withLock { $0 } == 0)
+        #expect(unverified.finishCount == 0)
+        #expect(unknown.finishCount == 0)
+    }
+
     @Test func anUnverifiedTipIsNeitherCountedNorFinished() async {
         let transaction = fake(TipTier.coffee.productID)
-        let recorded = await TipLedger.record(.unverified(transaction), in: settings)
+        let recorded = await TipLedger.record(.unverified(transaction), in: settings) {}
         #expect(recorded == false)
         #expect(settings.hasTipped == false)
         #expect(transaction.finishCount == 0)
@@ -55,7 +90,7 @@ private final class FakeTipTransaction: TipTransaction {
 
     @Test func anUnknownProductIsLeftAlone() async {
         let transaction = fake("app.vitalcourier.other")
-        let recorded = await TipLedger.record(.verified(transaction), in: settings)
+        let recorded = await TipLedger.record(.verified(transaction), in: settings) {}
         #expect(recorded == false)
         #expect(settings.hasTipped == false)
         #expect(transaction.finishCount == 0)
@@ -63,7 +98,7 @@ private final class FakeTipTransaction: TipTransaction {
 
     @Test func aVerifiedPurchaseResultIsThanked() async {
         let transaction = fake(TipTier.coffee.productID)
-        let outcome = await TipLedger.outcome(of: .success(.verified(transaction)), in: settings)
+        let outcome = await TipLedger.outcome(of: .success(.verified(transaction)), in: settings) {}
         #expect(outcome == .thanked)
         #expect(settings.hasTipped)
         #expect(transaction.finishCount == 1)
@@ -71,20 +106,20 @@ private final class FakeTipTransaction: TipTransaction {
 
     @Test func anUnverifiedPurchaseResultFails() async {
         let transaction = fake(TipTier.coffee.productID)
-        let outcome = await TipLedger.outcome(of: .success(.unverified(transaction)), in: settings)
+        let outcome = await TipLedger.outcome(of: .success(.unverified(transaction)), in: settings) {}
         #expect(outcome == .failed)
         #expect(settings.hasTipped == false)
         #expect(transaction.finishCount == 0)
     }
 
     @Test func aCancelledPurchaseIsNeitherCountedNorFinished() async {
-        let outcome = await TipLedger.outcome(of: TipPurchaseResult<FakeTipTransaction>.userCancelled, in: settings)
+        let outcome = await TipLedger.outcome(of: TipPurchaseResult<FakeTipTransaction>.userCancelled, in: settings) {}
         #expect(outcome == .cancelled)
         #expect(settings.hasTipped == false)
     }
 
     @Test func aPendingPurchaseIsNotCounted() async {
-        let outcome = await TipLedger.outcome(of: TipPurchaseResult<FakeTipTransaction>.pending, in: settings)
+        let outcome = await TipLedger.outcome(of: TipPurchaseResult<FakeTipTransaction>.pending, in: settings) {}
         #expect(outcome == .pending)
         #expect(settings.hasTipped == false)
     }

@@ -34,25 +34,28 @@ public enum TipPurchaseResult<Transaction: TipTransaction>: Sendable {
 }
 
 public enum TipLedger: Sendable {
-    /// Saves the flag before finishing, so a crash in between replays the transaction instead of losing the thanks. An unverified or unknown transaction is never finished, which leaves StoreKit free to redeliver it.
+    /// Saves the flag, runs `afterSaving`, then finishes, so a crash in between replays the transaction instead of losing the thanks, and a slow `finish()` never keeps a paid buyer waiting. An unverified or unknown transaction is never finished and never calls `afterSaving`, which leaves StoreKit free to redeliver it.
     public static func record<Transaction: TipTransaction>(
         _ verification: TipVerification<Transaction>,
-        in settings: AppSettings
+        in settings: AppSettings,
+        afterSaving: @Sendable () async -> Void
     ) async -> Bool {
         guard case .verified(let transaction) = verification,
               TipTier(rawValue: transaction.productID) != nil else { return false }
         settings.hasTipped = true
+        await afterSaving()
         await transaction.finish()
         return true
     }
 
     public static func outcome<Transaction: TipTransaction>(
         of result: TipPurchaseResult<Transaction>,
-        in settings: AppSettings
+        in settings: AppSettings,
+        afterSaving: @Sendable () async -> Void
     ) async -> TipPurchaseOutcome {
         switch result {
         case .success(let verification):
-            return await record(verification, in: settings) ? .thanked : .failed
+            return await record(verification, in: settings, afterSaving: afterSaving) ? .thanked : .failed
         case .userCancelled:
             return .cancelled
         case .pending:
@@ -66,9 +69,7 @@ public enum TipLedger: Sendable {
         in settings: AppSettings,
         onRecorded: @Sendable () async -> Void
     ) async where Verifications.Element == TipVerification<Transaction>, Verifications.Failure == Never {
-        for await verification in verifications where await record(verification, in: settings) {
-            await onRecorded()
-        }
+        for await verification in verifications where await record(verification, in: settings, afterSaving: onRecorded) {}
     }
 }
 
