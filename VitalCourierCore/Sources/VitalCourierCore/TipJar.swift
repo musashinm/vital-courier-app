@@ -33,7 +33,7 @@ public enum TipPurchaseResult<Transaction: TipTransaction>: Sendable {
     case pending
 }
 
-public enum TipLedger {
+public enum TipLedger: Sendable {
     /// Saves the flag before finishing, so a crash in between replays the transaction instead of losing the thanks. An unverified or unknown transaction is never finished, which leaves StoreKit free to redeliver it.
     public static func record<Transaction: TipTransaction>(
         _ verification: TipVerification<Transaction>,
