@@ -67,6 +67,11 @@ import VitalCourierCore
         #expect(glucose.minimum == minimum)
         #expect(glucose.maximum == maximum)
 
+        let bloodOxygen = HealthKitSource.chosenQuantities(for: HealthType.bloodOxygen.statisticsAggregation!, sum: sum, average: average, minimum: minimum, maximum: maximum)
+        #expect(bloodOxygen.value == average)
+        #expect(bloodOxygen.minimum == minimum)
+        #expect(bloodOxygen.maximum == maximum)
+
         let empty = HealthKitSource.chosenQuantities(for: .averageMinMax, sum: nil, average: nil, minimum: nil, maximum: nil)
         #expect(empty.value == nil)
         #expect(empty.minimum == nil)

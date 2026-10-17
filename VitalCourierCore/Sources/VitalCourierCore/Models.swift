@@ -8,13 +8,14 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
     case heartRate
     case respiratoryRate
     case bloodGlucose
+    case bloodOxygen
     case sleep
     case weight
     case menstrualFlow
     case spotting
 
     /// The types every install exports.
-    public static let baseTypes: [HealthType] = [.steps, .exerciseMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate, .bloodGlucose, .sleep, .weight]
+    public static let baseTypes: [HealthType] = [.steps, .exerciseMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight]
     /// Exported only while Cycle tracking is on (Cycle Tracking Spec).
     public static let cycleTypes: [HealthType] = [.menstrualFlow, .spotting]
 
@@ -38,6 +39,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
         case .heartRate: "heart-rate"
         case .respiratoryRate: "respiratory-rate"
         case .bloodGlucose: "blood-glucose"
+        case .bloodOxygen: "blood-oxygen"
         case .sleep: "sleep"
         case .weight: "weight"
         case .menstrualFlow: "menstrual-flow"
@@ -52,6 +54,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
         case .exerciseMinutes: "s"
         case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate: "count/s"
         case .bloodGlucose: "g/L"
+        case .bloodOxygen: "%"
         case .sleep, .menstrualFlow, .spotting: "category"
         case .weight: "kg"
         }
@@ -62,7 +65,7 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
         switch self {
         case .steps, .exerciseMinutes: .sum
         case .restingHeartRate, .walkingHeartRateAverage: .average
-        case .heartRate, .respiratoryRate, .bloodGlucose: .averageMinMax
+        case .heartRate, .respiratoryRate, .bloodGlucose, .bloodOxygen: .averageMinMax
         case .sleep, .weight, .menstrualFlow, .spotting: nil
         }
     }

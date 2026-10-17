@@ -14,7 +14,7 @@ private func date(_ iso: String) -> Date {
         #expect(HealthKitMapping.sampleType(for: .restingHeartRate) == HKQuantityType(.restingHeartRate))
         #expect(HealthKitMapping.sampleType(for: .sleep) == HKCategoryType(.sleepAnalysis))
         #expect(HealthKitMapping.sampleType(for: .weight) == HKQuantityType(.bodyMass))
-        #expect(HealthKitMapping.readTypes.count == 9)
+        #expect(HealthKitMapping.readTypes.count == 10)
     }
 
     @Test func samplesAreStoredInSIUnits() throws {
@@ -106,8 +106,8 @@ private func date(_ iso: String) -> Date {
     @Test func cycleTypesMapToTheirHealthKitTypes() {
         #expect(HealthKitMapping.sampleType(for: .menstrualFlow) == HKCategoryType(.menstrualFlow))
         #expect(HealthKitMapping.sampleType(for: .spotting) == HKCategoryType(.intermenstrualBleeding))
-        #expect(HealthKitMapping.readTypes.count == 9)
-        #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 11)
+        #expect(HealthKitMapping.readTypes.count == 10)
+        #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 12)
         #expect(HealthKitMapping.storedUnit(for: .menstrualFlow) == nil)
         #expect(HealthKitMapping.statisticUnit(for: .spotting) == nil)
     }
@@ -187,6 +187,19 @@ private func date(_ iso: String) -> Date {
         let fiveMillimolesPerLiter = HKQuantity(unit: millimolesPerLiter, doubleValue: 5)
         let gramsPerLiter = try HealthKitMapping.storedValue(fiveMillimolesPerLiter, for: .bloodGlucose)
         #expect(abs(gramsPerLiter - 0.9007794) < 0.0001)
+    }
+
+    @Test func bloodOxygenMapsToOxygenSaturation() {
+        #expect(HealthKitMapping.sampleType(for: .bloodOxygen) == HKQuantityType(.oxygenSaturation))
+        #expect(HealthKitMapping.storedUnit(for: .bloodOxygen) == .percent())
+        #expect(HealthKitMapping.statisticUnit(for: .bloodOxygen) == .percent())
+        #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.oxygenSaturation)))
+    }
+
+    @Test func aPercentQuantityIsStoredAsAFraction() throws {
+        let ninetySevenPercent = HKQuantity(unit: .percent(), doubleValue: 0.97)
+        #expect(try HealthKitMapping.storedValue(ninetySevenPercent, for: .bloodOxygen) == 0.97)
+        #expect(HKUnit.percent().unitString == HealthType.bloodOxygen.siUnit)
     }
 
     @Test func flowValuesBecomeTheirNames() {

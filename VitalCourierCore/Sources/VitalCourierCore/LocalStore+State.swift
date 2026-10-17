@@ -2,13 +2,13 @@ import Foundation
 import GRDB
 
 public struct DailyValue: Equatable, Sendable {
-    /// Steps: count. Exercise: minutes. Resting heart rate: beats per minute. Walking heart rate average: beats per minute. Heart rate: beats per minute (the day's average). Respiratory rate: breaths per minute (the day's average). Blood glucose: mg/dL (the day's average). Weight: kg. Sleep: asleep hours.
+    /// Steps: count. Exercise: minutes. Resting heart rate: beats per minute. Walking heart rate average: beats per minute. Heart rate: beats per minute (the day's average). Respiratory rate: breaths per minute (the day's average). Blood glucose: mg/dL (the day's average). Blood oxygen: a 0–1 fraction (the day's average; the note writes only the minimum and maximum, ×100). Weight: kg. Sleep: asleep hours.
     public var value: Double
     public var deepHours: Double?
     public var remHours: Double?
     /// Sleep only: the source the night's totals came from.
     public var source: String?
-    /// Heart rate, respiratory rate and blood glucose only: the day's lowest and highest reading, in the same unit as `value`.
+    /// Heart rate, respiratory rate, blood glucose and blood oxygen only: the day's lowest and highest reading, in the same unit as `value`.
     public var minimum: Double?
     public var maximum: Double?
 

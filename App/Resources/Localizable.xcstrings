@@ -668,6 +668,16 @@
         }
       }
     },
+    "Blood oxygen" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oxigênio no sangue"
+          }
+        }
+      }
+    },
     "Cancel" : {
       "localizations" : {
         "pt-BR" : {
