@@ -155,7 +155,8 @@ struct TipRow: View {
     var body: some View {
         Button(action: action) {
             ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline) {
+                // A ProgressView has no text baseline, so a purchasing row centres its name on the spinner and text instead.
+                HStack(alignment: availability == .purchasing ? .center : .firstTextBaseline) {
                     tierName
                     Spacer(minLength: 12)
                     trailing
