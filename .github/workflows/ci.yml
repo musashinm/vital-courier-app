@@ -27,10 +27,12 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode_27.1.app
           xcodebuild -version
-      - name: Install XcodeGen
+      - name: Install XcodeGen and SwiftLint
         run: |
           brew install xcodegen
           xcodegen --version
+          brew install swiftlint
+          swiftlint version
       - name: Boot the simulator
         timeout-minutes: 10
         run: |

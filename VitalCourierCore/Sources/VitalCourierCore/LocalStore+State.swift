@@ -201,7 +201,7 @@ extension LocalStore {
     ).map(Self.sample(from:))
     // Every stored sample carries its own zone, so the fallback is never used.
     let seeds = Set(samples.map(\.uuid))
-    let nights = SleepAggregator.affectedNights(in: samples, containing: seeds, fallback: TimeZone(identifier: "UTC")!)
+    let nights = SleepAggregator.affectedNights(in: samples, containing: seeds, fallback: TimeZone.gmt)
     try markDirty(db, type: HealthType.sleep.rawValue, days: nights.wakeDays)
   }
 
@@ -232,6 +232,7 @@ extension LocalStore {
   }
 
   public func appendRun(_ record: RunRecord) throws {
+    // swiftlint:disable:next optional_data_string_conversion - our own JSONEncoder output is always valid UTF-8
     let errorsJSON = String(decoding: try JSONEncoder().encode(record.errors), as: UTF8.self)
     try write { db in
       try db.execute(

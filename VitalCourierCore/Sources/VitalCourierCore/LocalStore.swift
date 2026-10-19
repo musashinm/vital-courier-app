@@ -2,6 +2,8 @@ import Foundation
 import GRDB
 import Synchronization
 
+// swiftlint:disable file_length - the store keeps its schema, migrations and queries together; splitting it is a separate refactor
+
 public enum LocalStoreError: Error, Equatable {
   case corruptRow(String)
   /// A History page cursor that was never saved, so it has no row id.
@@ -20,6 +22,7 @@ public struct DirtyEntry: Hashable, Sendable {
   }
 }
 
+// swiftlint:disable type_body_length - the store owns the schema and every query; splitting it is a separate refactor
 /// The app's own database (spec, Units: LocalStore). Holds a full copy of every sample so files can be rebuilt while the phone is locked.
 public final class LocalStore: Sendable {
   static let fileName = "local-store.sqlite"
@@ -239,6 +242,7 @@ public final class LocalStore: Sendable {
     }
   }
 
+  // swiftlint:disable function_body_length - long by design; splitting it is a separate refactor
   /// One transaction (spec, Data flow step 1.2): new samples get their day once, deleted UUIDs lose their row, every touched (type, day) is marked dirty and not fresh, and the anchor is saved when there is one.
   public func applyChanges(_ changes: HealthChanges, for type: HealthType, fallbackTimeZone: TimeZone) throws {
     let metadataEncoder = JSONEncoder()
@@ -252,6 +256,7 @@ public final class LocalStore: Sendable {
           : []
         let zone = DayAssigner.zone(for: sample, fallback: fallbackTimeZone)
         let sampleDay = DayKey(date: sample.start, timeZone: zone)
+        // swiftlint:disable:next optional_data_string_conversion - our own JSONEncoder output is always valid UTF-8
         let metadata = String(decoding: try metadataEncoder.encode(sample.metadata), as: UTF8.self)
         var valueNumber: Double?
         var valueText: String?
@@ -298,6 +303,7 @@ public final class LocalStore: Sendable {
       }
     }
   }
+  // swiftlint:enable function_body_length
 
   /// Every day the half-open interval [start, end) overlaps in `zone`, stepping by calendar day. The start day is always included, so an end at or before the start gives the start day only.
   static func overlappedDays(start: Date, end: Date, zone: TimeZone) -> Set<DayKey> {
@@ -492,3 +498,4 @@ public final class LocalStore: Sendable {
     )
   }
 }
+// swiftlint:enable type_body_length

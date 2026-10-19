@@ -208,7 +208,7 @@ final class AppEnvironment: Sendable {
   func recordSetupError(_ errorText: String, savingToHistory: Bool = true) {
     recordedSetupErrors.withLock { $0.append(errorText) }
     setupErrorQueue.withLock { _ in
-      settings.pendingSetupErrors = settings.pendingSetupErrors + [errorText]
+      settings.pendingSetupErrors += [errorText]
     }
     guard savingToHistory, case .ready(let store, _) = storeStateNow else { return }
     drainPendingSetupErrors(in: store)

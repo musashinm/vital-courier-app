@@ -76,6 +76,7 @@ public enum MarkdownWriter {
 
     """
 
+  // swiftlint:disable:next cyclomatic_complexity - many simple branches; splitting it is a separate refactor
   public static func note(for summary: DailySummary) -> Data {
     var lines = ["---", "date: \(summary.day)"]
     // Truncated, not rounded: the Health app shows a fractional de-duplicated step sum without its fraction.

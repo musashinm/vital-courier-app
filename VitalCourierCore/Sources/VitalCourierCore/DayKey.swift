@@ -13,7 +13,10 @@ public struct DayKey: Hashable, Comparable, Sendable, CustomStringConvertible {
 
   public init(date: Date, timeZone: TimeZone) {
     let parts = Self.calendar(in: timeZone).dateComponents([.year, .month, .day], from: date)
-    self.init(year: parts.year!, month: parts.month!, day: parts.day!)
+    guard let year = parts.year, let month = parts.month, let day = parts.day else {
+      preconditionFailure("a Gregorian calendar always returns year, month and day components")
+    }
+    self.init(year: year, month: month, day: day)
   }
 
   /// Parses `YYYY-MM-DD`.
@@ -24,8 +27,7 @@ public struct DayKey: Hashable, Comparable, Sendable, CustomStringConvertible {
       fields.allSatisfy({ $0.allSatisfy { $0.isASCII && $0.isNumber } }),
       let year = Int(fields[0]), let month = Int(fields[1]), let day = Int(fields[2])
     else { return nil }
-    let utcZone = TimeZone(identifier: "UTC")!
-    let calendar = Self.calendar(in: utcZone)
+    let calendar = Self.calendar(in: .gmt)
     guard let date = calendar.date(from: DateComponents(year: year, month: month, day: day)) else { return nil }
     let roundTrip = calendar.dateComponents([.year, .month, .day], from: date)
     guard roundTrip.year == year, roundTrip.month == month, roundTrip.day == day else { return nil }
@@ -41,17 +43,23 @@ public struct DayKey: Hashable, Comparable, Sendable, CustomStringConvertible {
   }
 
   public func adding(days: Int) -> DayKey {
-    let utcZone = TimeZone(identifier: "UTC")!
-    let calendar = Self.calendar(in: utcZone)
-    let start = calendar.date(from: DateComponents(year: year, month: month, day: day))!
-    return DayKey(date: calendar.date(byAdding: .day, value: days, to: start)!, timeZone: utcZone)
+    let calendar = Self.calendar(in: .gmt)
+    guard let start = calendar.date(from: DateComponents(year: year, month: month, day: day)),
+      let shifted = calendar.date(byAdding: .day, value: days, to: start)
+    else {
+      preconditionFailure("a DayKey is a valid Gregorian date, and so is any day shifted from it")
+    }
+    return DayKey(date: shifted, timeZone: .gmt)
   }
 
   /// Local midnight to the next local midnight in `timeZone`.
   public func interval(in timeZone: TimeZone) -> DateInterval {
     let calendar = Self.calendar(in: timeZone)
-    let start = calendar.date(from: DateComponents(year: year, month: month, day: day))!
-    let end = calendar.date(byAdding: .day, value: 1, to: start)!
+    guard let start = calendar.date(from: DateComponents(year: year, month: month, day: day)),
+      let end = calendar.date(byAdding: .day, value: 1, to: start)
+    else {
+      preconditionFailure("a DayKey is a valid Gregorian date, and so is the next day")
+    }
     return DateInterval(start: start, end: end)
   }
 

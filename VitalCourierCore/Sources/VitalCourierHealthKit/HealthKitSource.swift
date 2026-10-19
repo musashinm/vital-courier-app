@@ -138,8 +138,8 @@ public final class HealthKitSource: HealthSource {
   /// The quantities one statistics bucket yields for an aggregation. `minimum` and `maximum` stay nil unless it asked for them.
   struct ChosenQuantities {
     var value: HKQuantity?
-    var minimum: HKQuantity? = nil
-    var maximum: HKQuantity? = nil
+    var minimum: HKQuantity?
+    var maximum: HKQuantity?
   }
 
   /// Pure, so the choice is tested on the Mac: `HKStatistics` can't be built in a test.

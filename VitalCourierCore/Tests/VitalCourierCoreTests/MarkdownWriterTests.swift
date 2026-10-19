@@ -5,6 +5,7 @@ import Testing
 
 @Suite struct MarkdownWriterTests {
   func text(_ summary: DailySummary) -> String {
+    // swiftlint:disable:next optional_data_string_conversion - test helper; MarkdownWriter output is always valid UTF-8
     String(decoding: MarkdownWriter.note(for: summary), as: UTF8.self)
   }
 

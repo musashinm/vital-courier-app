@@ -53,7 +53,9 @@ public enum SleepAggregator {
     var members: Set<UUID> = []
     for sourceSamples in Dictionary(grouping: samples.filter(isAsleep), by: \.source).values {
       for cluster in clusters(of: sourceSamples) where cluster.contains(where: { seeds.contains($0.uuid) }) {
-        let lastSample = cluster.max { $0.end < $1.end }!
+        guard let lastSample = cluster.max(by: { $0.end < $1.end }) else {
+          preconditionFailure("a cluster always holds at least one sample")
+        }
         wakeDays.insert(DayAssigner.wakeDay(for: lastSample, fallback: fallback))
         members.formUnion(cluster.map(\.uuid))
       }
@@ -113,7 +115,9 @@ public enum SleepAggregator {
       if let open = current { total += open.end.timeIntervalSince(open.start) }
       return total / secondsPerHour
     }
-    let lastSample = cluster.max { $0.end < $1.end }!
+    guard let lastSample = cluster.max(by: { $0.end < $1.end }) else {
+      preconditionFailure("a cluster always holds at least one sample")
+    }
     let night = SleepNight(
       wakeDay: DayAssigner.wakeDay(for: lastSample, fallback: fallback),
       source: source,
@@ -131,6 +135,9 @@ public enum SleepAggregator {
     let watchCandidates = candidates.filter(\.isWatch)
     let pool = (watchCandidates.isEmpty ? candidates : watchCandidates).map(\.night)
     // Most asleep time wins; on a tie the alphabetically first source wins.
-    return pool.max { ($0.asleepHours, $1.source) < ($1.asleepHours, $0.source) }!
+    guard let best = pool.max(by: { ($0.asleepHours, $1.source) < ($1.asleepHours, $0.source) }) else {
+      preconditionFailure("pick(from:) is only called with at least one candidate")
+    }
+    return best
   }
 }
