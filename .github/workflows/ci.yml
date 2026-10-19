@@ -46,6 +46,8 @@ jobs:
           xcrun simctl bootstatus "$simulator_udid" -b
       - name: Verify
         timeout-minutes: 15
+        env:
+          TEST_RUNNER_SKIP_STOREKIT_PURCHASE_TESTS: "1"
         run: scripts/verify.sh
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()

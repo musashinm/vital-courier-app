@@ -6,6 +6,10 @@ import VitalCourierCore
 @testable import VitalCourier
 
 @Suite(.serialized) @MainActor struct TipJarModelTests {
+    // `xcodebuild test` doesn't sync the StoreKit configuration into a fresh simulator, so a purchase
+    // hits the real App Store and waits on a "Sign in to Apple Account" alert. CI sets this to skip them.
+    nonisolated static let skipsStoreKitPurchases = ProcessInfo.processInfo.environment["SKIP_STOREKIT_PURCHASE_TESTS"] == "1"
+
     private final class BundleAnchor {}
 
     private func makeSession() throws -> SKTestSession {
@@ -36,7 +40,7 @@ import VitalCourierCore
         #expect(model.pricesByTier[.keepGoing] == "$9.99")
     }
 
-    @Test func aSuccessfulTipSavesTheFlagThanksAndFinishes() async throws {
+    @Test(.disabled(if: Self.skipsStoreKitPurchases, "StoreKit purchases need a simulator Xcode has synced the configuration into")) func aSuccessfulTipSavesTheFlagThanksAndFinishes() async throws {
         let session = try makeSession()
         let settings = AppEnvironment.shared.settings
         settings.hasTipped = false
@@ -57,7 +61,7 @@ import VitalCourierCore
         #expect(unfinishedCoffeeCount == 0)
     }
 
-    @Test func aFailedPurchaseLeavesTheRowsWithTheFailureLine() async throws {
+    @Test(.disabled(if: Self.skipsStoreKitPurchases, "StoreKit purchases need a simulator Xcode has synced the configuration into")) func aFailedPurchaseLeavesTheRowsWithTheFailureLine() async throws {
         let session = try makeSession()
         let settings = AppEnvironment.shared.settings
         settings.hasTipped = false
@@ -73,7 +77,7 @@ import VitalCourierCore
         #expect(settings.hasTipped == false)
     }
 
-    @Test func anApprovedAskToBuyTipThanksThroughTheListener() async throws {
+    @Test(.disabled(if: Self.skipsStoreKitPurchases, "StoreKit purchases need a simulator Xcode has synced the configuration into")) func anApprovedAskToBuyTipThanksThroughTheListener() async throws {
         let session = try makeSession()
         let settings = AppEnvironment.shared.settings
         settings.hasTipped = false
