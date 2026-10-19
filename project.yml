@@ -5,6 +5,9 @@ options:
     iOS: "18.0"
   createIntermediateGroups: true
   developmentLanguage: en
+  indentWidth: 2
+  tabWidth: 2
+  usesTabs: false
 settings:
   base:
     SWIFT_VERSION: "6.0"
