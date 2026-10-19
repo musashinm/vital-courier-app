@@ -5,13 +5,16 @@ options:
     iOS: "18.0"
   createIntermediateGroups: true
   developmentLanguage: en
+  indentWidth: 2
+  tabWidth: 2
+  usesTabs: false
 settings:
   base:
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
     SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
     DEVELOPMENT_TEAM: Y4P6U2R57W
-    MARKETING_VERSION: "0.3.1"
+    MARKETING_VERSION: "0.3.2"
     CURRENT_PROJECT_VERSION: "1"
 packages:
   VitalCourierCore:
