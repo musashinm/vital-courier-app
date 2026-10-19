@@ -41,8 +41,13 @@ jobs:
             xcrun simctl list devices available
             exit 1
           fi
-          echo "Booting $simulator_udid"
-          xcrun simctl boot "$simulator_udid"
+          simulator_state=$(xcrun simctl list devices available --json | jq -r --arg udid "$simulator_udid" '.devices["com.apple.CoreSimulator.SimRuntime.iOS-27-0"][]? | select(.udid == $udid) | .state' | head -n 1)
+          if [ "$simulator_state" = "Shutdown" ]; then
+            echo "Booting $simulator_udid"
+            xcrun simctl boot "$simulator_udid"
+          else
+            echo "$simulator_udid is already $simulator_state"
+          fi
           xcrun simctl bootstatus "$simulator_udid" -b
       - name: Verify
         timeout-minutes: 15
