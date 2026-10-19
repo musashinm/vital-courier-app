@@ -135,6 +135,7 @@ public enum HealthKitMapping {
     return identifier
   }
 
+  // swiftlint:disable:next function_parameter_count - explicit parameters; bundling them is a separate refactor
   public static func makeSample(
     uuid: UUID,
     type: HealthType,

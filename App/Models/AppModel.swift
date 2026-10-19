@@ -9,6 +9,7 @@ enum AppTab: Hashable {
 }
 
 @MainActor @Observable
+// swiftlint:disable:next type_body_length - the model owns every app-level action; splitting it is a separate refactor
 final class AppModel {
   enum Phase: Equatable {
     case booting

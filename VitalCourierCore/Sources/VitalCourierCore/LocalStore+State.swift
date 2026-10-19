@@ -201,7 +201,7 @@ extension LocalStore {
     ).map(Self.sample(from:))
     // Every stored sample carries its own zone, so the fallback is never used.
     let seeds = Set(samples.map(\.uuid))
-    let nights = SleepAggregator.affectedNights(in: samples, containing: seeds, fallback: TimeZone(identifier: "UTC")!)
+    let nights = SleepAggregator.affectedNights(in: samples, containing: seeds, fallback: TimeZone.gmt)
     try markDirty(db, type: HealthType.sleep.rawValue, days: nights.wakeDays)
   }
 

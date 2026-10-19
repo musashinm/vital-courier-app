@@ -31,6 +31,7 @@ public enum JSONWriter {
     let device: String?
     let metadata: [String: String]
 
+    // swiftlint:disable:next nesting - helper type kept next to its only user
     enum CodingKeys: String, CodingKey {
       case uuid, start, end, value, source, device, metadata
     }
@@ -54,7 +55,9 @@ public enum JSONWriter {
       throw JSONWriterError.invalidMonthKey(monthKey)
     }
     let periodStart = firstDay.interval(in: timeZone).start
-    let periodEnd = DayKey.calendar(in: timeZone).date(byAdding: .month, value: 1, to: periodStart)!
+    guard let periodEnd = DayKey.calendar(in: timeZone).date(byAdding: .month, value: 1, to: periodStart) else {
+      preconditionFailure("adding one month to a valid date always succeeds")
+    }
     let ordered = samples.sorted { ($0.start, $0.uuid.uuidString) < ($1.start, $1.uuid.uuidString) }
     var formatters = FormatterCache()
     let file = MonthFile(
@@ -87,6 +90,7 @@ public enum JSONWriter {
   /// so one `monthFile` call builds each (zone, fractional seconds) formatter once and reuses it.
   /// It lives on the stack of that call rather than in a static, to stay free of shared mutable state.
   struct FormatterCache {
+    // swiftlint:disable:next nesting - helper type kept next to its only user
     private struct Key: Hashable {
       let timeZoneIdentifier: String
       let fractionalSeconds: Bool

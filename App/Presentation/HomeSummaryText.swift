@@ -13,6 +13,7 @@ struct HomeSummaryText: Equatable {
 }
 
 extension HomeSummary {
+  // swiftlint:disable:next function_body_length - long by design; splitting it is a separate refactor
   func text(formatter: StatusDateFormatter, now: Date) -> HomeSummaryText {
     let localization = formatter.localization
     return switch self {

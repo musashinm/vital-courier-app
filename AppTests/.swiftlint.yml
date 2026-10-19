@@ -1,6 +1,7 @@
-# Tests: long suites and force unwraps on fixtures are fine.
+# Tests: long suites, and force unwraps or force try on fixtures, are fine.
 disabled_rules:
   - file_length
+  - force_try
   - force_unwrapping
   - function_body_length
   - type_body_length

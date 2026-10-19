@@ -12,6 +12,9 @@ disabled_rules:
   - opening_brace
   - closure_parameter_position
 
+  # String(decoding:as:) is lossy on purpose here: our own encoder output and diagnostic dumps.
+  - optional_data_string_conversion
+
 opt_in_rules:
   - contains_over_first_not_nil
   - empty_count

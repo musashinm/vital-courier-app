@@ -52,6 +52,7 @@ public final class ObserverWake: Sendable {
     )
   }
 
+  // swiftlint:disable function_parameter_count - explicit parameters; bundling them is a separate refactor
   /// Test seams: `beforeRegistration` runs after background time is known and before the run task is registered; `beforeCompletion` runs after `run` returned or threw and before the wake claims its end; `deliverCutShort` is asked once per cut-short, after the lock is released, to run the callback.
   static func start(
     beginBackgroundTime: (_ onExpire: @escaping @Sendable () -> Void) -> BackgroundTimeToken?,
@@ -88,6 +89,7 @@ public final class ObserverWake: Sendable {
     wake.register(runTask)
     return wake
   }
+  // swiftlint:enable function_parameter_count
 
   func untilRunFinishes() async {
     await state.withLock { $0.runTask }?.value

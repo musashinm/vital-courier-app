@@ -1,5 +1,6 @@
 import Foundation
 
+// swiftlint:disable type_body_length - the runner owns the whole export pass; splitting it is a separate refactor
 /// One run (spec, Data flow): read, verify, daily values, write.
 public final class ExportRunner: Sendable {
   static let verifyWindow: TimeInterval = 30 * 24 * 60 * 60
@@ -261,6 +262,7 @@ public final class ExportRunner: Sendable {
     "Vital Courier/daily/\(day).md"
   }
 
+  // swiftlint:disable:next cyclomatic_complexity function_body_length large_tuple - long by design, with a three-count result; splitting it is a separate refactor
   func writeStep(types: [HealthType], zone: TimeZone, errors: inout [String]) -> (
     written: Int, failed: Int, pending: Int
   ) {
@@ -297,7 +299,9 @@ public final class ExportRunner: Sendable {
         pending += days.count - index
         break
       }
-      let dayEntries = entriesByDay[day]!
+      guard let dayEntries = entriesByDay[day] else {
+        preconditionFailure("days holds only keys of entriesByDay")
+      }
       var everyFileWritten = true
       for entry in dayEntries {
         let path = Self.jsonPath(type: entry.type, monthKey: day.monthKey)
@@ -347,3 +351,4 @@ public final class ExportRunner: Sendable {
     return (written, failed, pending)
   }
 }
+// swiftlint:enable type_body_length
