@@ -89,7 +89,7 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
     let time = FakeBackgroundTime()
     let cutShortDeliveries = Counter()
 
-    let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }) {}
+    let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }, run: {})
     await wake.untilRunFinishes()
 
     #expect(time.ends == [7])
@@ -101,9 +101,11 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
     let failures = TextLog()
     let cutShortDeliveries = Counter()
 
-    let wake = startWake(time, failures: failures, deliverCutShort: { _ in cutShortDeliveries.increment() }) {
-      throw WakeRunFailure()
-    }
+    let wake = startWake(
+      time, failures: failures, deliverCutShort: { _ in cutShortDeliveries.increment() },
+      run: {
+        throw WakeRunFailure()
+      })
     await wake.untilRunFinishes()
 
     #expect(time.ends == [7])
@@ -116,9 +118,11 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
     let failures = TextLog()
     let cutShortDeliveries = Counter()
 
-    let wake = startWake(time, failures: failures, deliverCutShort: { _ in cutShortDeliveries.increment() }) {
-      throw CancellationError()
-    }
+    let wake = startWake(
+      time, failures: failures, deliverCutShort: { _ in cutShortDeliveries.increment() },
+      run: {
+        throw CancellationError()
+      })
     await wake.untilRunFinishes()
 
     #expect(time.ends == [7])
@@ -131,9 +135,11 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
     let cutShortDeliveries = Counter()
     let observedCancellation = Counter()
 
-    let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }) {
-      try await runUntilCancelled(observedCancellation)
-    }
+    let wake = startWake(
+      time, deliverCutShort: { _ in cutShortDeliveries.increment() },
+      run: {
+        try await runUntilCancelled(observedCancellation)
+      })
     time.expire()
 
     #expect(time.ends == [7])
@@ -149,10 +155,12 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
     let finished = Counter()
     let cutShortDeliveries = Counter()
 
-    let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }) {
-      await latch.wait()
-      finished.increment()
-    }
+    let wake = startWake(
+      time, deliverCutShort: { _ in cutShortDeliveries.increment() },
+      run: {
+        await latch.wait()
+        finished.increment()
+      })
     time.expire()
     await latch.open()
     await wake.untilRunFinishes()
@@ -167,9 +175,11 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
     let cutShortDeliveries = Counter()
     let observedCancellation = Counter()
 
-    let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }) {
-      try await runUntilCancelled(observedCancellation)
-    }
+    let wake = startWake(
+      time, deliverCutShort: { _ in cutShortDeliveries.increment() },
+      run: {
+        try await runUntilCancelled(observedCancellation)
+      })
 
     #expect(time.ends == [7])
     try await waitUntil { observedCancellation.value == 1 }
@@ -184,10 +194,10 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
     let observedCancellation = Counter()
 
     let wake = startWake(
-      time, deliverCutShort: { _ in cutShortDeliveries.increment() }, beforeRegistration: { time.expire() }
-    ) {
-      try await runUntilCancelled(observedCancellation)
-    }
+      time, deliverCutShort: { _ in cutShortDeliveries.increment() }, beforeRegistration: { time.expire() },
+      run: {
+        try await runUntilCancelled(observedCancellation)
+      })
 
     #expect(time.ends == [7])
     try await waitUntil { observedCancellation.value == 1 }
@@ -200,7 +210,7 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
     let time = FakeBackgroundTime()
     let cutShortDeliveries = Counter()
 
-    let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }) {}
+    let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }, run: {})
     await wake.untilRunFinishes()
     time.expire()
 
@@ -213,7 +223,7 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
     let latch = Latch()
     let cutShortDeliveries = Counter()
 
-    let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }) { await latch.wait() }
+    let wake = startWake(time, deliverCutShort: { _ in cutShortDeliveries.increment() }, run: { await latch.wait() })
     time.expire()
     await latch.open()
     await wake.untilRunFinishes()
@@ -227,8 +237,8 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
     let cutShortDeliveries = Counter()
 
     let wake = startWake(
-      time, deliverCutShort: { _ in cutShortDeliveries.increment() }, beforeCompletion: { time.expire() }
-    ) {}
+      time, deliverCutShort: { _ in cutShortDeliveries.increment() }, beforeCompletion: { time.expire() }, run: {}
+    )
     await wake.untilRunFinishes()
 
     #expect(time.ends == [7])
@@ -242,7 +252,7 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
       let time = FakeBackgroundTime()
       let barrier = ReleaseBarrier()
       // The run parks at the completion point and the expiry task parks beside it on the same barrier. Only when both are parked does one `releaseAll` resume them in a single actor call, so neither can reach the state machine before the other is ready.
-      let wake = startWake(time, beforeCompletion: { await barrier.waitForRelease() }) {}
+      let wake = startWake(time, beforeCompletion: { await barrier.waitForRelease() }, run: {})
       let expiry = Task.detached {
         await barrier.waitForRelease()
         time.expire()
@@ -272,8 +282,8 @@ func runUntilCancelled(_ observedCancellation: Counter) async throws {
         endsSeenByCallback.append("\(time.ends)")
         arrived.increment()
         release.wait()
-      }
-    ) { try await runUntilCancelled(observedCancellation) }
+      },
+      run: { try await runUntilCancelled(observedCancellation) })
     // Returns although the callback will block: the callback runs in its own task.
     time.expire()
     try await waitUntil { arrived.value == 1 }
