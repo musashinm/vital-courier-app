@@ -6,6 +6,10 @@
 set -eu
 cd "$(dirname "$0")/.."
 base_ref=${1:-origin/main}
+if ! git rev-parse --quiet --verify "$base_ref^{commit}" > /dev/null; then
+  echo "FAIL: base ref $base_ref doesn't resolve to a commit." >&2
+  exit 1
+fi
 store_dir=VitalCourierCore/Sources/VitalCourierCore
 work_dir=$(mktemp -d)
 trap 'rm -rf "$work_dir"' EXIT
@@ -27,7 +31,7 @@ extract_migrations() {
   '
 }
 
-# Each step writes to a file of its own, so a failing git or swift-format stops the script.
+# Each step writes to a file of its own, so a failing git show or swift-format stops the script.
 for swift_file in $(git ls-tree -r --name-only "$base_ref" "$store_dir/" | grep '\.swift$' | sort); do
   git show "$base_ref:$swift_file" > "$work_dir/unformatted.swift"
   xcrun swift-format format --configuration .swift-format --assume-filename "$swift_file" - < "$work_dir/unformatted.swift" > "$work_dir/formatted.swift"
