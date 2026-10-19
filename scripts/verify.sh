@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 destination=${VERIFY_DESTINATION:-platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0}
 base_ref=${VERIFY_BASE_REF:-origin/main}
 derived_data_path=build/DerivedData
-step_count=7
+step_count=8
 step_number=0
 run_started_at=$(date +%s)
 
@@ -33,6 +33,7 @@ run_step() {
 }
 
 run_step "format" scripts/check-format.sh
+run_step "lint" scripts/check-lint.sh
 run_step "package tests" swift test --package-path VitalCourierCore
 run_step "generate project" scripts/generate-project.sh
 run_step "simulator build" xcodebuild -project VitalCourier.xcodeproj -scheme VitalCourier \
