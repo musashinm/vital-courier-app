@@ -96,6 +96,7 @@ public struct AppSettings: Sendable {
       do {
         return try JSONDecoder().decode([String].self, from: data)
       } catch {
+        // swiftlint:disable:next optional_data_string_conversion - a diagnostic dump should show whatever bytes are there rather than fail
         return ["pending setup errors could not be decoded (\(error)): \(String(decoding: data, as: UTF8.self))"]
       }
     }
@@ -113,6 +114,7 @@ public struct AppSettings: Sendable {
   }
 
   private func string(forKey key: String) -> String? {
+    // swiftlint:disable:next optional_data_string_conversion - our own stored bytes; a lossy read is fine for a plain-string setting
     storage.data(forKey: key).map { String(decoding: $0, as: UTF8.self) }
   }
 

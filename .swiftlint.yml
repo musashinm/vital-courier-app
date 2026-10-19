@@ -5,15 +5,12 @@ included:
   - VitalCourierCore/Sources
   - VitalCourierCore/Tests
 
-# swift-format owns layout (.swift-format); these rules fight its output.
+# swift-format owns layout (.swift-format). These layout rules disagree with its output; the rest agree and stay on.
 disabled_rules:
   - line_length
   - trailing_comma
   - opening_brace
   - closure_parameter_position
-
-  # String(decoding:as:) is lossy on purpose here: our own encoder output and diagnostic dumps.
-  - optional_data_string_conversion
 
 opt_in_rules:
   - contains_over_first_not_nil

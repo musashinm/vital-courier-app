@@ -232,6 +232,7 @@ extension LocalStore {
   }
 
   public func appendRun(_ record: RunRecord) throws {
+    // swiftlint:disable:next optional_data_string_conversion - our own JSONEncoder output is always valid UTF-8
     let errorsJSON = String(decoding: try JSONEncoder().encode(record.errors), as: UTF8.self)
     try write { db in
       try db.execute(

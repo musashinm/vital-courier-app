@@ -101,6 +101,7 @@ final class FakeDestination: ExportDestination {
   func runOnFirstWrite(_ action: @escaping @Sendable () -> Void) { state.withLock { $0.onFirstWrite = action } }
   var paths: Set<String> { state.withLock { Set($0.files.keys) } }
   func text(at path: String) -> String? {
+    // swiftlint:disable:next optional_data_string_conversion - test fake; lossy decoding of the written bytes is fine
     state.withLock { $0.files[path] }.map { String(decoding: $0, as: UTF8.self) }
   }
   func writeCount(at path: String) -> Int { state.withLock { $0.writeCounts[path] ?? 0 } }

@@ -256,6 +256,7 @@ public final class LocalStore: Sendable {
           : []
         let zone = DayAssigner.zone(for: sample, fallback: fallbackTimeZone)
         let sampleDay = DayKey(date: sample.start, timeZone: zone)
+        // swiftlint:disable:next optional_data_string_conversion - our own JSONEncoder output is always valid UTF-8
         let metadata = String(decoding: try metadataEncoder.encode(sample.metadata), as: UTF8.self)
         var valueNumber: Double?
         var valueText: String?
