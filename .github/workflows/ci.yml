@@ -31,6 +31,16 @@ jobs:
         run: |
           brew install xcodegen
           xcodegen --version
+      # Same build as scripts/verify.sh steps 1 to 3, before the simulator boots and competes
+      # for CPU. Verify then rebuilds incrementally.
+      - name: Build
+        timeout-minutes: 15
+        run: |
+          swift build --build-tests --package-path VitalCourierCore
+          scripts/generate-project.sh
+          xcodebuild -project VitalCourier.xcodeproj -scheme VitalCourier \
+            -destination 'platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0' \
+            -derivedDataPath build/DerivedData -quiet build
       - name: Boot the simulator
         timeout-minutes: 10
         run: |
