@@ -31,7 +31,21 @@ jobs:
         run: |
           brew install xcodegen
           xcodegen --version
+      - name: Boot the simulator
+        timeout-minutes: 10
+        run: |
+          xcrun simctl list runtimes
+          simulator_udid=$(xcrun simctl list devices available --json | jq -r '.devices["com.apple.CoreSimulator.SimRuntime.iOS-27-0"][]? | select(.name == "iPhone 18 Pro") | .udid' | head -n 1)
+          if [ -z "$simulator_udid" ]; then
+            echo "No available iPhone 18 Pro on iOS 27.0" >&2
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "Booting $simulator_udid"
+          xcrun simctl boot "$simulator_udid"
+          xcrun simctl bootstatus "$simulator_udid" -b
       - name: Verify
+        timeout-minutes: 15
         run: scripts/verify.sh
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
