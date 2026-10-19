@@ -9,14 +9,14 @@ work_dir=$(mktemp -d)
 trap 'rm -rf "$work_dir"' EXIT
 
 if [ -n "$derived_data" ]; then
-    find "$derived_data" -path '*VitalCourier.build*' -name '*.stringsdata' -exec printf -- '--stringsdata\0%s\0' {} + > "$work_dir/stringsdata-args"
-    if [ ! -s "$work_dir/stringsdata-args" ]; then
-        echo "No .stringsdata files under $derived_data: build the app first." >&2
-        exit 1
-    fi
-    cp App/Resources/Localizable.xcstrings "$work_dir/Localizable.xcstrings"
-    # NUL-separated so a DerivedData path with spaces survives.
-    xargs -0 xcrun xcstringstool sync "$work_dir/Localizable.xcstrings" --skip-marking-strings-stale < "$work_dir/stringsdata-args"
+  find "$derived_data" -path '*VitalCourier.build*' -name '*.stringsdata' -exec printf -- '--stringsdata\0%s\0' {} + > "$work_dir/stringsdata-args"
+  if [ ! -s "$work_dir/stringsdata-args" ]; then
+    echo "No .stringsdata files under $derived_data: build the app first." >&2
+    exit 1
+  fi
+  cp App/Resources/Localizable.xcstrings "$work_dir/Localizable.xcstrings"
+  # NUL-separated so a DerivedData path with spaces survives.
+  xargs -0 xcrun xcstringstool sync "$work_dir/Localizable.xcstrings" --skip-marking-strings-stale < "$work_dir/stringsdata-args"
 fi
 
 python3 -I - "$work_dir" "$derived_data" <<'PY'
