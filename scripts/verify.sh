@@ -4,6 +4,10 @@
 # VERIFY_DESTINATION: simulator destination (default: iPhone 18 Pro, iOS 27.0).
 # VERIFY_BASE_REF: ref the migrations are compared with (default: origin/main).
 set -eu
+if [ "$#" -ne 0 ]; then
+    echo "usage: scripts/verify.sh (no arguments; set VERIFY_DESTINATION or VERIFY_BASE_REF instead)" >&2
+    exit 64
+fi
 cd "$(dirname "$0")/.."
 destination=${VERIFY_DESTINATION:-platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0}
 base_ref=${VERIFY_BASE_REF:-origin/main}
