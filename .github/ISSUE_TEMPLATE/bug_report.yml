@@ -44,9 +44,17 @@ body:
       label: Data types involved
       options:
         - label: Steps
+        - label: Exercise minutes
         - label: Resting heart rate
+        - label: Walking heart rate average
+        - label: Heart rate
+        - label: Respiratory rate
+        - label: Blood glucose
+        - label: Blood oxygen
         - label: Sleep
         - label: Weight
+        - label: Menstrual flow
+        - label: Spotting
   - type: dropdown
     id: export-folder
     attributes:

@@ -2,7 +2,7 @@
 
 An iOS app that exports Apple Health data to a folder you pick, such as one in iCloud Drive or an Obsidian vault, and keeps the files up to date in the background after setup. It has no account and no server. The app is in English and Brazilian Portuguese, following the iPhone's language.
 
-The app isn't released yet. It is heading to TestFlight first.
+The first App Store release, 0.3.0, is in App Review.
 
 ## What it exports
 
@@ -74,9 +74,7 @@ project.yml          XcodeGen spec
 
 ## Contributing
 
-Bug reports and feature requests go through the issue forms. Issues are public, so don't paste health data into one. Pull requests follow `.github/pull_request_template.md`.
-
-Database migrations on `main` are frozen. Change the schema by adding a new migration with a new ID.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Issues are public, so don't paste health data into one. To report a security problem privately, see [SECURITY.md](SECURITY.md).
 
 ## License
 
