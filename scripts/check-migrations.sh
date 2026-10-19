@@ -1,6 +1,7 @@
 #!/bin/sh
 # Compares the GRDB migrations registered on the base ref with the working tree.
 # Fails when a migration from the base was edited, removed or reordered.
+# Both sides are formatted with .swift-format before the comparison, so formatting-only changes don't count as edits.
 # Prints the IDs of new migrations, so the caller knows whether a deeper check is needed.
 set -eu
 cd "$(dirname "$0")/.."
@@ -26,11 +27,15 @@ extract_migrations() {
   '
 }
 
+# Each step writes to a file of its own, so a failing git or swift-format stops the script.
 for swift_file in $(git ls-tree -r --name-only "$base_ref" "$store_dir/" | grep '\.swift$' | sort); do
-  git show "$base_ref:$swift_file" | extract_migrations
+  git show "$base_ref:$swift_file" > "$work_dir/unformatted.swift"
+  xcrun swift-format format --configuration .swift-format --assume-filename "$swift_file" - < "$work_dir/unformatted.swift" > "$work_dir/formatted.swift"
+  extract_migrations < "$work_dir/formatted.swift"
 done > "$work_dir/base"
 for swift_file in $(find "$store_dir" -name '*.swift' | sort); do
-  extract_migrations < "$swift_file"
+  xcrun swift-format format --configuration .swift-format "$swift_file" > "$work_dir/formatted.swift"
+  extract_migrations < "$work_dir/formatted.swift"
 done > "$work_dir/head"
 
 grep '^== ' "$work_dir/base" | cut -c4- > "$work_dir/base_ids" || true
