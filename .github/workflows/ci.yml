@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: xcode-27
+    timeout-minutes: 30
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Fetch main for the migration check
+        run: git fetch --no-tags --depth=1 origin main:refs/remotes/origin/main
+      - name: Select Xcode 27.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.1.app
+          xcodebuild -version
+      - name: Install XcodeGen
+        run: |
+          brew install xcodegen
+          xcodegen --version
+      - name: Boot the simulator
+        timeout-minutes: 10
+        run: |
+          xcrun simctl list runtimes
+          simulator_udid=$(xcrun simctl list devices available --json | jq -r '.devices["com.apple.CoreSimulator.SimRuntime.iOS-27-0"][]? | select(.name == "iPhone 18 Pro") | .udid' | head -n 1)
+          if [ -z "$simulator_udid" ]; then
+            echo "No available iPhone 18 Pro on iOS 27.0" >&2
+            xcrun simctl list devices available
+            exit 1
+          fi
+          simulator_state=$(xcrun simctl list devices available --json | jq -r --arg udid "$simulator_udid" '.devices["com.apple.CoreSimulator.SimRuntime.iOS-27-0"][]? | select(.udid == $udid) | .state' | head -n 1)
+          case "$simulator_state" in
+            Shutdown)
+              echo "Booting $simulator_udid"
+              xcrun simctl boot "$simulator_udid"
+              ;;
+            Booting|Booted)
+              echo "$simulator_udid is already $simulator_state"
+              ;;
+            *)
+              echo "Unexpected simulator state '$simulator_state' for $simulator_udid" >&2
+              exit 1
+              ;;
+          esac
+          xcrun simctl bootstatus "$simulator_udid" -b
+      - name: Verify
+        timeout-minutes: 15
+        env:
+          TEST_RUNNER_SKIP_STOREKIT_PURCHASE_TESTS: "1"
+        run: scripts/verify.sh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: xcresult
+          path: build/DerivedData/Logs/Test/*.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
