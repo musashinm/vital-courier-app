@@ -83,7 +83,7 @@ private struct HealthPermissionStep: View {
       .foregroundStyle(Color.vcTertiaryText)
       if let requestError {
         VStack(alignment: .leading, spacing: 8) {
-          HStack(spacing: 12) {
+          SymbolTextRow {
             SymbolImage("heart.slash.fill", size: SymbolSize.status, color: .vcError)
               .accessibilityHidden(true)
             Text("Health access couldn’t be requested")
@@ -154,7 +154,7 @@ private struct FolderStep: View {
           Text("Saving folder…").foregroundStyle(Color.vcSecondaryText)
         }
       case .saved(let displayPath):
-        HStack(spacing: 12) {
+        SymbolTextRow {
           SymbolImage("checkmark.circle.fill", size: SymbolSize.status, color: .vcSuccess)
             .accessibilityHidden(true)
           Text(FolderPathText.localized(displayPath)).font(.headline).foregroundStyle(Color.vcPrimaryText)

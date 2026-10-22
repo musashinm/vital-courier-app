@@ -24,6 +24,21 @@ struct SymbolImage: View {
   }
 }
 
+/// A symbol beside its text, stacked above it at accessibility text sizes (`StatusRowAxis`).
+struct SymbolTextRow<Content: View>: View {
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+  @ViewBuilder let content: Content
+
+  var body: some View {
+    let layout =
+      switch StatusRowAxis(dynamicTypeSize: dynamicTypeSize) {
+      case .horizontal: AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+      case .vertical: AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+      }
+    layout { content }
+  }
+}
+
 /// An exact saved error: monospaced, selectable, wrapping, never truncated.
 struct ErrorTextView: View {
   let text: String

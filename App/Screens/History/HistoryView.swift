@@ -19,7 +19,7 @@ struct HistoryView: View {
           if let loadError = history.loadError {
             Section {
               VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 12) {
+                SymbolTextRow {
                   SymbolImage("clock.badge.exclamationmark.fill", size: SymbolSize.status, color: .vcError)
                     .accessibilityHidden(true)
                   Text("History couldn’t be loaded").font(.headline).foregroundStyle(Color.vcPrimaryText)
@@ -74,7 +74,7 @@ private struct RunRow: View {
 
   var body: some View {
     let outcome = RunRowOutcome(run: run)
-    HStack(alignment: .center, spacing: 12) {
+    SymbolTextRow {
       SymbolImage(outcome.symbolName, size: SymbolSize.status, color: outcome.color)
         .accessibilityHidden(true)
       VStack(alignment: .leading, spacing: 2) {

@@ -19,6 +19,7 @@ enum AppLinks {
 
 struct SettingsView: View {
   @Environment(AppModel.self) private var model
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   @State private var isPickerPresented = false
   @State private var confirmsRebuild = false
   @State private var confirmsClear = false
@@ -81,7 +82,7 @@ struct SettingsView: View {
         }
         clearRow
         if let clearError = model.clearError {
-          HStack(spacing: 12) {
+          SymbolTextRow {
             SymbolImage("exclamationmark.circle.fill", size: SymbolSize.status, color: .vcError)
               .accessibilityHidden(true)
             Text("Local copy couldn’t be cleared").font(.headline).foregroundStyle(Color.vcPrimaryText)
@@ -148,31 +149,56 @@ struct SettingsView: View {
     Button {
       isPickerPresented = true
     } label: {
-      HStack(spacing: 12) {
-        SymbolImage(
-          model.folderState.isLost ? "folder.badge.minus" : "folder.fill", size: SymbolSize.row,
-          color: model.folderState.isLost ? .vcError : .vcSecondaryText
-        )
-        .accessibilityHidden(true)
-        VStack(alignment: .leading, spacing: 4) {
-          Text("Folder").foregroundStyle(Color.vcPrimaryText)
-          switch model.folderState {
-          case .none:
-            Text("Pick a folder").font(.subheadline).foregroundStyle(Color.vcAccent)
-          case .valid(let displayPath):
-            Text(FolderPathText.localized(displayPath)).font(.subheadline).foregroundStyle(Color.vcSecondaryText)
-          case .lost:
-            Text("Pick again").font(.subheadline).foregroundStyle(Color.vcError)
-          }
+      switch StatusRowAxis(dynamicTypeSize: dynamicTypeSize) {
+      case .horizontal:
+        HStack(spacing: 12) {
+          folderSymbol
+          folderLabels
+          Spacer()
+          folderChevron
         }
-        Spacer()
-        Image(systemName: "chevron.right")
-          .font(.footnote.weight(.semibold))
-          .foregroundStyle(Color.vcTertiaryText)
+        .frame(minHeight: 56)
+      case .vertical:
+        HStack(alignment: .center, spacing: 12) {
+          VStack(alignment: .leading, spacing: 8) {
+            folderSymbol
+            folderLabels
+          }
+          Spacer()
+          folderChevron
+        }
+        .frame(minHeight: 56)
       }
-      .frame(minHeight: 56)
     }
     .disabled(model.folderSave == .saving)
+  }
+
+  private var folderSymbol: some View {
+    SymbolImage(
+      model.folderState.isLost ? "folder.badge.minus" : "folder.fill", size: SymbolSize.row,
+      color: model.folderState.isLost ? .vcError : .vcSecondaryText
+    )
+    .accessibilityHidden(true)
+  }
+
+  private var folderLabels: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text("Folder").foregroundStyle(Color.vcPrimaryText)
+      switch model.folderState {
+      case .none:
+        Text("Pick a folder").font(.subheadline).foregroundStyle(Color.vcAccent)
+      case .valid(let displayPath):
+        Text(FolderPathText.localized(displayPath)).font(.subheadline).foregroundStyle(Color.vcSecondaryText)
+      case .lost:
+        Text("Pick again").font(.subheadline).foregroundStyle(Color.vcError)
+      }
+    }
+  }
+
+  private var folderChevron: some View {
+    Image(systemName: "chevron.right")
+      .font(.footnote.weight(.semibold))
+      .foregroundStyle(Color.vcTertiaryText)
   }
 
   private var rebuildTitle: LocalizedStringKey {
