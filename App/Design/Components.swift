@@ -84,16 +84,47 @@ struct SilentTypeHint: View {
   }
 
   private static var reviewAccessLink: Text {
+    Text("\(Text(ReviewAccess.label(linked: true)))\u{00A0}\(ReviewAccess.chevron)")
+  }
+}
+
+/// What "Review access" shares between the inline hint and the standalone Home button: the app's page in Settings and the chevron that follows the label.
+enum ReviewAccess {
+  static var settingsURL: URL? { URL(string: UIApplication.openSettingsURLString) }
+
+  /// The localized, underlined, accent-coloured "Review access" words. With `linked`, they also link to the Settings page.
+  static func label(linked: Bool = false) -> AttributedString {
     var label = AttributedString(localized: "Review access")
     label.underlineStyle = .single
     label.foregroundColor = Color.vcAccent
-    if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+    if linked, let settingsURL {
       label.link = settingsURL
     }
-    let chevron = Text(Image(systemName: "chevron.right"))
+    return label
+  }
+
+  static var chevron: Text {
+    Text(Image(systemName: "chevron.right"))
       .font(.footnote.weight(.semibold))
       .foregroundStyle(Color.vcAccent)
-    return Text("\(Text(label))\u{00A0}\(chevron)")
+  }
+}
+
+/// "Review access" as a standalone action under a summary row. It opens the app's page in Settings and keeps the 44 pt touch target.
+struct ReviewAccessButton: View {
+  var body: some View {
+    Button {
+      if let settingsURL = ReviewAccess.settingsURL {
+        UIApplication.shared.open(settingsURL)
+      }
+    } label: {
+      Text("\(Text(ReviewAccess.label()))\u{00A0}\(ReviewAccess.chevron)")
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(Color.vcAccent)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+    }
+    .buttonStyle(.borderless)
+    .accessibilityLabel(Text("Review access"))
   }
 }
 

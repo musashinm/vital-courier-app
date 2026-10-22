@@ -13,7 +13,7 @@ struct HomeSummaryText: Equatable {
 }
 
 extension HomeSummary {
-  // swiftlint:disable:next function_body_length - long by design; splitting it is a separate refactor
+  // swiftlint:disable:next function_body_length cyclomatic_complexity - long by design; splitting it is a separate refactor
   func text(formatter: StatusDateFormatter, now: Date) -> HomeSummaryText {
     let localization = formatter.localization
     return switch self {
@@ -75,6 +75,12 @@ extension HomeSummary {
         detail: localization.string(
           "Checked \(formatter.moment(run.startedAt, now: now)) · \(RunLabels.trigger(run.trigger, in: localization))"),
         errorText: nil, showsMoreErrorsNote: false, action: .runDetails)
+    case .noHealthDataYet:
+      HomeSummaryText(
+        symbolName: "heart.text.square", title: localization.string("No health data yet"),
+        detail: localization.string(
+          "Vital Courier exports the data stored in Apple Health. Add data in Apple Health or review access, and it appears here. Vital Courier doesn’t import files."
+        ), errorText: nil, showsMoreErrorsNote: false, action: .reviewAccess)
     case .waitingForFirstExport:
       HomeSummaryText(
         symbolName: "clock.badge.questionmark", title: localization.string("Waiting for the first export"),

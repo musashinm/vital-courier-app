@@ -1296,6 +1296,16 @@
         }
       }
     },
+    "No health data yet" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum dado de saúde ainda"
+          }
+        }
+      }
+    },
     "No runs yet" : {
       "localizations" : {
         "pt-BR" : {
@@ -1899,6 +1909,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O Vital Courier não conseguiu abrir os dados locais. %@"
+          }
+        }
+      }
+    },
+    "Vital Courier exports the data stored in Apple Health. Add data in Apple Health or review access, and it appears here. Vital Courier doesn’t import files." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Vital Courier exporta os dados guardados no app Saúde. Adicione dados no app Saúde ou revise o acesso, e eles aparecem aqui. O Vital Courier não importa arquivos."
           }
         }
       }

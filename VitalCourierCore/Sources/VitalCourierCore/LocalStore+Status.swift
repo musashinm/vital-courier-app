@@ -17,11 +17,14 @@ public struct StoreStatusSnapshot: Equatable, Sendable {
   public var latestFlow: String?
   /// The newest day with spotting logged.
   public var latestSpottingDay: DayKey?
+  /// The `sample` table has any row, for any type (enabled or not, cycle types included). Current store state, not an "ever seen" marker: Clear local copy makes it false again.
+  public var hasStoredHealthValue: Bool
 
   public init(
     latestRun: RunRecord?, latestAppEvent: RunRecord? = nil, lastSuccessfulReadAt: Date?,
     dailyValuesFailureStreakStart: Date?, latestDailyValueDays: [HealthType: DayKey], latestSleepSource: String?,
-    latestFlowDay: DayKey? = nil, latestFlow: String? = nil, latestSpottingDay: DayKey? = nil
+    latestFlowDay: DayKey? = nil, latestFlow: String? = nil, latestSpottingDay: DayKey? = nil,
+    hasStoredHealthValue: Bool = true
   ) {
     self.latestRun = latestRun
     self.latestAppEvent = latestAppEvent
@@ -32,6 +35,7 @@ public struct StoreStatusSnapshot: Equatable, Sendable {
     self.latestFlowDay = latestFlowDay
     self.latestFlow = latestFlow
     self.latestSpottingDay = latestSpottingDay
+    self.hasStoredHealthValue = hasStoredHealthValue
   }
 }
 
@@ -60,7 +64,8 @@ extension LocalStore {
         ),
         latestFlowDay: latestFlowDay,
         latestFlow: latestFlow,
-        latestSpottingDay: latestSpottingDay
+        latestSpottingDay: latestSpottingDay,
+        hasStoredHealthValue: try Bool.fetchOne(db, sql: "SELECT EXISTS (SELECT 1 FROM sample)") ?? false
       )
     }
   }
