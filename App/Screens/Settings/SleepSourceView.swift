@@ -24,7 +24,7 @@ struct SleepSourceView: View {
       }
       if let saveError = sources.saveError {
         Section {
-          HStack(spacing: 12) {
+          SymbolTextRow {
             SymbolImage("exclamationmark.circle.fill", size: SymbolSize.status, color: .vcError)
               .accessibilityHidden(true)
             Text("Sleep source couldn’t be saved").font(.headline).foregroundStyle(Color.vcPrimaryText)

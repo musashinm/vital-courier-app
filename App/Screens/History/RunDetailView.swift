@@ -30,7 +30,7 @@ struct RunDetailView: View {
       }
       Section {
         if run.errors.isEmpty {
-          HStack(spacing: 12) {
+          SymbolTextRow {
             SymbolImage("checkmark.circle.fill", size: SymbolSize.status, color: .vcSuccess)
               .accessibilityHidden(true)
             Text("No errors").foregroundStyle(Color.vcPrimaryText)
@@ -106,7 +106,7 @@ private struct RecoverySection: View {
   }
 
   private func header(symbol: String, color: Color, text: LocalizedStringKey) -> some View {
-    HStack(alignment: .center, spacing: 12) {
+    SymbolTextRow {
       SymbolImage(symbol, size: SymbolSize.status, color: color)
         .accessibilityHidden(true)
       Text(text).foregroundStyle(Color.vcPrimaryText)

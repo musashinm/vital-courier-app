@@ -77,26 +77,31 @@ private struct SummaryRow: View {
   let hidesPickAction: Bool
   let onPickFolder: () -> Void
   let onViewRecentRuns: () -> Void
+  @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
-      // The symbol and the spinner are centred on the title and detail, like the Health data rows.
-      HStack(alignment: .center, spacing: 12) {
-        SymbolImage(text.symbolName, size: SymbolSize.status, color: symbolColor)
-          .accessibilityHidden(true)
-        VStack(alignment: .leading, spacing: 4) {
-          Text(text.title)
-            .font(.headline)
-            .foregroundStyle(Color.vcPrimaryText)
-          if let detail = text.detail {
-            Text(detail)
-              .font(.subheadline)
-              .foregroundStyle(Color.vcSecondaryText)
+      // The symbol and the spinner are centred on the title and detail, like the Health data rows; at accessibility
+      // text sizes the symbol, the text and the spinner stack instead.
+      Group {
+        switch StatusRowAxis(dynamicTypeSize: dynamicTypeSize) {
+        case .horizontal:
+          HStack(alignment: .center, spacing: 12) {
+            symbol
+            titleAndDetail
+            if case .running = summary {
+              Spacer()
+              ProgressView()
+            }
           }
-        }
-        if case .running = summary {
-          Spacer()
-          ProgressView()
+        case .vertical:
+          VStack(alignment: .leading, spacing: 8) {
+            symbol
+            titleAndDetail
+            if case .running = summary {
+              ProgressView()
+            }
+          }
         }
       }
       .accessibilityElement(children: .combine)
@@ -111,6 +116,24 @@ private struct SummaryRow: View {
       action
     }
     .padding(.vertical, 4)
+  }
+
+  private var symbol: some View {
+    SymbolImage(text.symbolName, size: SymbolSize.status, color: symbolColor)
+      .accessibilityHidden(true)
+  }
+
+  private var titleAndDetail: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text(text.title)
+        .font(.headline)
+        .foregroundStyle(Color.vcPrimaryText)
+      if let detail = text.detail {
+        Text(detail)
+          .font(.subheadline)
+          .foregroundStyle(Color.vcSecondaryText)
+      }
+    }
   }
 
   @ViewBuilder private var action: some View {
@@ -181,7 +204,7 @@ private struct HealthRow: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
-      HStack(spacing: 12) {
+      SymbolTextRow {
         SymbolImage(
           showsSilentHint ? "exclamationmark.circle" : type.symbolName, size: SymbolSize.row,
           color: showsSilentHint ? .vcWarning : .vcSecondaryText
