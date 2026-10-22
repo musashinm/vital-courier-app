@@ -82,6 +82,13 @@ import VitalCourierCore
           detail: "Keep your iPhone unlocked while Vital Courier reads your Health data.", errorText: nil,
           showsMoreErrorsNote: false, action: .none))
     #expect(HomeSummary.running(lastCompleted: nil).text(formatter: english, now: now).title == "Checking for updates…")
+    #expect(
+      HomeSummary.noHealthDataYet.text(formatter: english, now: now)
+        == HomeSummaryText(
+          symbolName: "heart.text.square", title: "No health data yet",
+          detail:
+            "Vital Courier exports the data stored in Apple Health. Add data in Apple Health or review access, and it appears here. Vital Courier doesn’t import files.",
+          errorText: nil, showsMoreErrorsNote: false, action: .reviewAccess))
   }
 
   @Test func protectionFailuresShowTheSavedError() {
@@ -183,6 +190,13 @@ import VitalCourierCore
     #expect(text(.dailyValuesOverdue).detail == "Desbloqueie este iPhone e abra o Vital Courier para tentar de novo.")
     #expect(text(.daysUpdated(run: run("2026-10-03T11:16:00Z", written: 0))).title == "0 dias atualizados")
     #expect(text(.upToDate(run: run("2026-10-03T11:16:00Z"))).title == "Tudo em dia")
+    #expect(text(.noHealthDataYet).title == "Nenhum dado de saúde ainda")
+    #expect(
+      text(.noHealthDataYet).detail
+        == "O Vital Courier exporta os dados guardados no app Saúde. Adicione dados no app Saúde ou revise o acesso, e eles aparecem aqui. O Vital Courier não importa arquivos."
+    )
+    #expect(text(.noHealthDataYet).symbolName == "heart.text.square")
+    #expect(text(.noHealthDataYet).action == .reviewAccess)
     #expect(text(.waitingForFirstExport).title == "Aguardando a primeira exportação")
     #expect(
       text(.waitingForFirstExport).detail

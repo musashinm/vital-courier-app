@@ -148,4 +148,21 @@ import Testing
     #expect(snapshot.latestFlow == "heavy")
     #expect(snapshot.latestSpottingDay == day("2026-10-12"))
   }
+
+  @Test func theSnapshotKnowsWhetherAnyHealthValueIsStored() throws {
+    let store = try LocalStore.inMemory()
+    #expect(try store.statusSnapshot().hasStoredHealthValue == false)
+
+    try store.applyChanges(
+      HealthChanges(added: [makeSample(start: "2026-09-30T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+    #expect(try store.statusSnapshot().hasStoredHealthValue)
+
+    try store.clearLocalCopy()
+    #expect(try store.statusSnapshot().hasStoredHealthValue == false)
+
+    let flow = makeSample(
+      type: .menstrualFlow, start: "2026-09-30T00:00:00Z", end: "2026-09-30T23:59:00Z", value: .category("medium"))
+    try store.applyChanges(HealthChanges(added: [flow]), for: .menstrualFlow, fallbackTimeZone: saoPaulo)
+    #expect(try store.statusSnapshot().hasStoredHealthValue)
+  }
 }

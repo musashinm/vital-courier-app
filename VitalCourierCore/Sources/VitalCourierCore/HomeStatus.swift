@@ -13,11 +13,13 @@ public struct HomeInputs: Sendable {
   public var pendingProtectionFailure: String?
   /// The newest history row when it is an App event row (`StoreStatusSnapshot.latestAppEvent`, Task 3A). It is never `latestRun`; Home reads it only to keep showing a protection failure that a saved App event row holds.
   public var latestAppEvent: RunRecord?
+  /// The local store currently holds at least one health value, for any type (`StoreStatusSnapshot.hasStoredHealthValue`).
+  public var hasStoredHealthValue: Bool
 
   public init(
     folder: FolderState, isRunActive: Bool, awaitingReread: Bool, latestRun: RunRecord?, lastSuccessfulReadAt: Date?,
     dailyValuesFailureStreakStart: Date?, now: Date, pendingProtectionFailure: String? = nil,
-    latestAppEvent: RunRecord? = nil
+    latestAppEvent: RunRecord? = nil, hasStoredHealthValue: Bool = true
   ) {
     self.folder = folder
     self.isRunActive = isRunActive
@@ -28,6 +30,7 @@ public struct HomeInputs: Sendable {
     self.now = now
     self.pendingProtectionFailure = pendingProtectionFailure
     self.latestAppEvent = latestAppEvent
+    self.hasStoredHealthValue = hasStoredHealthValue
   }
 }
 
@@ -37,6 +40,7 @@ public enum HomeSummaryAction: Equatable, Sendable {
   case pickFolder
   case pickFolderAgain
   case viewRecentRuns
+  case reviewAccess
 }
 
 /// The Home export summary (design iOS App v2, §3). The migration blocker is not a case: it replaces the whole root.
@@ -50,13 +54,14 @@ public enum HomeSummary: Equatable, Sendable {
   case writeFailure(run: RunRecord)
   case readOverdue
   case dailyValuesOverdue
+  case noHealthDataYet
   case daysUpdated(run: RunRecord)
   case upToDate(run: RunRecord)
   case waitingForFirstExport
 
   public static let overdueInterval: TimeInterval = 24 * 60 * 60
 
-  /// Design §3 priority: folder lost, no folder, active run, waiting to reread, write failure, overdue read, overdue daily values, success, never run. This plan adds two cases between waiting to reread and write failure: a file-protection failure still queued and not yet in a history row, then one recorded in the latest run (Task 3A).
+  /// Design §3 priority: folder lost, no folder, active run, waiting to reread, write failure, overdue read, overdue daily values, a completed read with no stored health data, success, never run. This plan adds two cases between waiting to reread and write failure: a file-protection failure still queued and not yet in a history row, then one recorded in the latest run (Task 3A).
   public static func resolve(_ inputs: HomeInputs) -> HomeSummary {
     if case .lost(let errorText) = inputs.folder { return .folderLost(errorText: errorText) }
     if inputs.folder == .none { return .noFolder }
@@ -81,6 +86,7 @@ public enum HomeSummary: Equatable, Sendable {
     {
       return .dailyValuesOverdue
     }
+    if !inputs.hasStoredHealthValue { return .noHealthDataYet }
     return run.daysWritten > 0 ? .daysUpdated(run: run) : .upToDate(run: run)
   }
 }

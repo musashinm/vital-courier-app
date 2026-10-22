@@ -88,7 +88,8 @@ final class AppModel {
         dailyValuesFailureStreakStart: snapshot?.dailyValuesFailureStreakStart,
         now: now,
         pendingProtectionFailure: pendingProtectionFailure,
-        latestAppEvent: snapshot?.latestAppEvent
+        latestAppEvent: snapshot?.latestAppEvent,
+        hasStoredHealthValue: snapshot?.hasStoredHealthValue ?? true
       ))
   }
 

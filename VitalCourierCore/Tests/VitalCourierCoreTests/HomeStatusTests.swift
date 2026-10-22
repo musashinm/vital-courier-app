@@ -23,12 +23,14 @@ import Testing
     lastRead: Date? = nil,
     streakStart: Date? = nil,
     pendingProtection: String? = nil,
-    appEvent: RunRecord? = nil
+    appEvent: RunRecord? = nil,
+    hasStoredHealthValue: Bool = true
   ) -> HomeInputs {
     HomeInputs(
       folder: folder ?? valid, isRunActive: isRunActive, awaitingReread: awaitingReread, latestRun: latestRun,
       lastSuccessfulReadAt: lastRead, dailyValuesFailureStreakStart: streakStart, now: now,
-      pendingProtectionFailure: pendingProtection, latestAppEvent: appEvent)
+      pendingProtectionFailure: pendingProtection, latestAppEvent: appEvent,
+      hasStoredHealthValue: hasStoredHealthValue)
   }
 
   @Test func theFolderComesBeforeEverythingElse() {
@@ -116,6 +118,53 @@ import Testing
   @Test func successSaysHowManyDaysWereUpdated() {
     let wrote = run("2026-10-03T11:16:00Z", written: 3, trigger: .observerWake)
     #expect(HomeSummary.resolve(inputs(latestRun: wrote, lastRead: now)) == .daysUpdated(run: wrote))
+  }
+
+  @Test func aCompletedReadWithNothingStoredSaysThereIsNoHealthDataYet() {
+    let latest = run("2026-10-03T11:00:00Z")
+    #expect(
+      HomeSummary.resolve(inputs(latestRun: latest, lastRead: now, hasStoredHealthValue: false)) == .noHealthDataYet)
+    #expect(
+      HomeSummary.resolve(inputs(latestRun: latest, lastRead: now, hasStoredHealthValue: true))
+        == .upToDate(run: latest))
+    let wrote = run("2026-10-03T11:00:00Z", written: 2)
+    #expect(
+      HomeSummary.resolve(inputs(latestRun: wrote, lastRead: now, hasStoredHealthValue: true))
+        == .daysUpdated(run: wrote))
+  }
+
+  @Test func everyFailureAndOverdueStateBeatsNoHealthDataYet() {
+    let latest = run("2026-10-03T11:00:00Z")
+    let failing = run("2026-10-03T11:00:00Z", failed: 1)
+    func resolve(_ inputs: HomeInputs) -> HomeSummary { HomeSummary.resolve(inputs) }
+
+    #expect(
+      resolve(inputs(latestRun: failing, lastRead: now, hasStoredHealthValue: false)) == .writeFailure(run: failing))
+    #expect(
+      resolve(
+        inputs(latestRun: latest, lastRead: now.addingTimeInterval(-25 * 60 * 60), hasStoredHealthValue: false))
+        == .readOverdue)
+    #expect(
+      resolve(
+        inputs(
+          latestRun: latest, lastRead: now, streakStart: now.addingTimeInterval(-24 * 60 * 60),
+          hasStoredHealthValue: false)) == .dailyValuesOverdue)
+    #expect(
+      resolve(inputs(latestRun: latest, lastRead: now, pendingProtection: "x", hasStoredHealthValue: false))
+        == .protectionFailurePending(errorText: "x"))
+    #expect(resolve(inputs(hasStoredHealthValue: false)) == .waitingForFirstExport)
+    #expect(
+      resolve(inputs(latestRun: latest, hasStoredHealthValue: false)) == .waitingForFirstExport)
+  }
+
+  @Test func anActiveRunOrARereadBeatsNoHealthDataYet() {
+    let latest = run("2026-10-03T11:00:00Z")
+    #expect(
+      HomeSummary.resolve(inputs(isRunActive: true, latestRun: latest, lastRead: now, hasStoredHealthValue: false))
+        == .running(lastCompleted: latest.startedAt))
+    #expect(
+      HomeSummary.resolve(inputs(awaitingReread: true, latestRun: latest, lastRead: now, hasStoredHealthValue: false))
+        == .awaitingReread)
   }
 
   @Test func aTypeGoesSilentAfterSevenDays() {

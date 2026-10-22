@@ -127,6 +127,8 @@ private struct SummaryRow: View {
       if !hidesPickAction { Button("Pick it again", action: onPickFolder) }
     case .viewRecentRuns:
       Button("View recent runs", action: onViewRecentRuns)
+    case .reviewAccess:
+      ReviewAccessButton()
     }
   }
 
@@ -143,7 +145,7 @@ private struct SummaryRow: View {
     case .daysUpdated, .upToDate: .vcSuccess
     case .folderLost, .writeFailure, .protectionFailure, .protectionFailurePending: .vcError
     case .noFolder, .readOverdue, .dailyValuesOverdue: .vcWarning
-    case .running, .awaitingReread, .waitingForFirstExport: .vcSecondaryText
+    case .running, .awaitingReread, .waitingForFirstExport, .noHealthDataYet: .vcSecondaryText
     }
   }
 }
