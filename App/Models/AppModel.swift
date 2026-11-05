@@ -227,14 +227,18 @@ final class AppModel {
     let environment = self.environment
     Task {
       repeat {
-        appOpenRequestedDuringRun = false
-        do {
-          _ = try await environment.request(.appOpen)
-        } catch {
-          statusError = String(describing: error)
-        }
+        repeat {
+          appOpenRequestedDuringRun = false
+          do {
+            _ = try await environment.request(.appOpen)
+          } catch {
+            statusError = String(describing: error)
+          }
+        } while appOpenRequestedDuringRun
+        // Refresh the count while the flag is still up, so Home never flashes "Export paused". A request that lands during this await sends us round again.
+        await refreshPendingDays()
       } while appOpenRequestedDuringRun
-      await refreshPendingDays()
+      // No suspension point between the last flag check and this drop, so no request can be lost.
       isAppOpenRunActive = false
       await refreshStatus()
     }

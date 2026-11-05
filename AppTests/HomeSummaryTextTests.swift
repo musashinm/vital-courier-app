@@ -292,6 +292,37 @@ import VitalCourierCore
         == "Faltam 1.825 dias. Deixe o Vital Courier aberto e o iPhone desbloqueado para terminar mais rápido.")
   }
 
+  @Test func runningCopyAtEveryDayCountInBothLanguages() {
+    let quietEnglish =
+      "The first export can take up to several minutes. Keep Vital Courier open and this iPhone unlocked to finish sooner."
+    let quietPortuguese =
+      "A primeira exportação pode levar vários minutos. Deixe o Vital Courier aberto e o iPhone desbloqueado para terminar mais rápido."
+    for (daysLeft, englishDetail, portugueseDetail) in [
+      (1, quietEnglish, quietPortuguese), (6, quietEnglish, quietPortuguese),
+      (
+        7, "7 days left. Keep Vital Courier open and this iPhone unlocked to finish sooner.",
+        "Faltam 7 dias. Deixe o Vital Courier aberto e o iPhone desbloqueado para terminar mais rápido."
+      ),
+      (
+        1_825, "1,825 days left. Keep Vital Courier open and this iPhone unlocked to finish sooner.",
+        "Faltam 1.825 dias. Deixe o Vital Courier aberto e o iPhone desbloqueado para terminar mais rápido."
+      ),
+    ] {
+      let summary = HomeSummary.running(lastCompleted: nil, daysLeft: daysLeft)
+      let englishText = summary.text(formatter: english, now: now)
+      #expect(englishText.title == "Exporting your Health data…")
+      #expect(englishText.detail == englishDetail)
+      let portugueseText = summary.text(formatter: portuguese, now: now)
+      #expect(portugueseText.title == "Exportando seus dados de saúde…")
+      #expect(portugueseText.detail == portugueseDetail)
+    }
+    for daysLeft in [1, 6] {
+      let summary = HomeSummary.running(lastCompleted: date("2026-10-03T00:42:00Z"), daysLeft: daysLeft)
+      #expect(summary.text(formatter: english, now: now).title == "Checking for updates…")
+      #expect(summary.text(formatter: portuguese, now: now).title == "Procurando atualizações…")
+    }
+  }
+
   @Test func exportPausedCopyInBothLanguages() {
     for (daysLeft, englishDaysLeft, portugueseDaysLeft) in [
       (1, "1 day left.", "Falta 1 dia."), (6, "6 days left.", "Faltam 6 dias."),
