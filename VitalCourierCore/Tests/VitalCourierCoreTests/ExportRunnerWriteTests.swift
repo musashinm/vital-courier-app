@@ -116,7 +116,9 @@ import Testing
 
   func queueStepsInSeptemberAndAugust(health: FakeHealthSource) async {
     await health.queue(
-      HealthChanges(added: [makeSample(start: "2026-08-15T12:00:00Z"), makeSample(start: "2026-09-27T12:00:00Z")]),
+      HealthChanges(added: [makeSample(start: "2026-07-10T12:00:00Z"), makeSample(start: "2026-08-15T12:00:00Z"),
+        makeSample(start: "2026-09-27T12:00:00Z"),
+      ]),
       for: .steps)
     await health.setStatistic(1, for: .steps, day: day("2026-08-15"))
     await health.setStatistic(2, for: .steps, day: day("2026-09-27"))
@@ -159,7 +161,10 @@ import Testing
   @Test func aRefusedStatisticStillWritesFreshDays() async throws {
     let store = try LocalStore.inMemory()
     try store.applyChanges(
-      HealthChanges(added: [makeSample(start: "2026-08-15T12:00:00Z"), makeSample(start: "2026-09-27T12:00:00Z")]),
+      HealthChanges(added: [
+        makeSample(start: "2026-07-10T12:00:00Z"), makeSample(start: "2026-08-15T12:00:00Z"),
+        makeSample(start: "2026-09-27T12:00:00Z"),
+      ]),
       for: .steps, fallbackTimeZone: saoPaulo)
     try store.saveDailyValue(DailyValue(value: 2), type: .steps, day: day("2026-09-27"))
     let health = FakeHealthSource()
@@ -173,7 +178,8 @@ import Testing
     #expect(destination.text(at: note27)?.contains("vc_steps: 2") == true)
     #expect(await health.statisticCallCount == 1)
     #expect(outcome.daysWritten == 1)
-    #expect(outcome.daysPending == 1)
+    #expect(outcome.daysPending == 2)
+    #expect(try store.dirtyEntries().map(\.day).sorted() == [day("2026-07-10"), day("2026-08-15")])
   }
 
   @Test func theReadmeIsWrittenOncePerRun() async throws {
