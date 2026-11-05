@@ -911,6 +911,16 @@
         }
       }
     },
+    "Daily Markdown" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markdown diário"
+          }
+        }
+      }
+    },
     "Daily summaries haven’t refreshed in 24 hours" : {
       "localizations" : {
         "pt-BR" : {
@@ -996,6 +1006,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pasta de exportação"
+          }
+        }
+      }
+    },
+    "Export formats" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formatos de exportação"
           }
         }
       }
@@ -1182,6 +1202,16 @@
     },
     "https://vitalcourier.app/privacy" : {
       "shouldTranslate" : false
+    },
+    "JSON" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        }
+      }
     },
     "JSON and daily Markdown" : {
       "localizations" : {
@@ -1886,6 +1916,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tentar de novo"
+          }
+        }
+      }
+    },
+    "Turning a format on writes it for all your data. Turning one off stops updating its files; what’s already exported stays." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ao ativar um formato, ele é gravado para todos os seus dados. Ao desativar, os arquivos param de ser atualizados; o que já foi exportado permanece."
           }
         }
       }

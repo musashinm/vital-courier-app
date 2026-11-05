@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import Testing
 
 @testable import VitalCourierCore
@@ -351,5 +352,217 @@ import Testing
     #expect(outcome.daysFailed == 0)
     #expect(outcome.errors.isEmpty)
     #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
+  }
+}
+
+/// Settings-driven format selection (spec, Format setting).
+@Suite struct ExportRunnerFormatTests {
+  let now = date("2026-09-30T15:00:00Z")
+  let stepsJSON = "Vital Courier/json/steps/2026-09.json"
+  let readmePath = "Vital Courier/README.md"
+  let note27 = "Vital Courier/daily/2026-09-27.md"
+
+  /// The selected and covered formats, changeable between and during runs.
+  final class FormatSettings: Sendable {
+    private let state = Mutex<(selected: Set<ExportFormat>, covered: Set<ExportFormat>)>(
+      (ExportFormat.defaultSelection, ExportFormat.defaultSelection))
+    var selected: Set<ExportFormat> {
+      get { state.withLock { $0.selected } }
+      set { state.withLock { $0.selected = newValue } }
+    }
+    var covered: Set<ExportFormat> {
+      get { state.withLock { $0.covered } }
+      set { state.withLock { $0.covered = newValue } }
+    }
+  }
+
+  func makeRunner(
+    store: LocalStore, health: FakeHealthSource, destination: FakeDestination?, formats: FormatSettings
+  ) -> ExportRunner {
+    let fixedNow = now
+    return ExportRunner(
+      store: store, health: health, destination: { destination }, now: { fixedNow }, timeZone: { saoPaulo },
+      exportFormats: { formats.selected }, coveredExportFormats: { formats.covered },
+      setCoveredExportFormats: { formats.covered = $0 })
+  }
+
+  func queueStepsSample(health: FakeHealthSource, uuid: UUID = UUID(), start: String = "2026-09-27T12:00:00Z") async {
+    await health.queue(HealthChanges(added: [makeSample(start: start, uuid: uuid)]), for: .steps)
+    await health.setStatistic(8412, for: .steps, day: day("2026-09-27"))
+  }
+
+  func run(_ runner: ExportRunner, _ trigger: Trigger = .observerWake) async -> RunOutcome {
+    await runner.run(trigger: trigger, options: .forTrigger(trigger)) {}
+  }
+
+  @Test func markdownOnlyWritesNoJSONAndClearsMarks() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await queueStepsSample(health: health)
+    let destination = FakeDestination()
+    let formats = FormatSettings()
+    formats.selected = [.markdown]
+
+    let outcome = await run(makeRunner(store: store, health: health, destination: destination, formats: formats))
+
+    #expect(outcome.daysWritten == 1)
+    #expect(destination.paths == [note27, readmePath])
+    #expect(try store.dirtyEntries().isEmpty)
+  }
+
+  @Test func jsonOnlyWritesNoNotesAndClearsFreshMarks() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await queueStepsSample(health: health)
+    let destination = FakeDestination()
+    let formats = FormatSettings()
+    formats.selected = [.json]
+
+    let outcome = await run(makeRunner(store: store, health: health, destination: destination, formats: formats))
+
+    #expect(outcome.daysWritten == 1)
+    #expect(destination.paths == [stepsJSON, readmePath])
+    #expect(destination.text(at: readmePath)?.contains("daily/") == false)
+    #expect(try store.dirtyEntries().isEmpty)
+  }
+
+  @Test func markdownOnlyLockedRebuildWritesOnlyTheReadmeAndKeepsMarks() async throws {
+    let store = try LocalStore.inMemory()
+    try store.applyChanges(
+      HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+    let health = FakeHealthSource()
+    await health.setReadable(false)
+    let destination = FakeDestination()
+    let formats = FormatSettings()
+    formats.selected = [.markdown]
+
+    let outcome = await run(
+      makeRunner(store: store, health: health, destination: destination, formats: formats), .rebuildAll)
+
+    #expect(destination.paths == [readmePath])
+    #expect(outcome.daysWritten == 0)
+    #expect(outcome.daysPending == 1)
+    #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
+  }
+
+  @Test func aStoredCSVFormatWritesNothingAndKeepsMarks() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await queueStepsSample(health: health)
+    let destination = FakeDestination()
+    let formats = FormatSettings()
+    formats.selected = [.csv]
+
+    let outcome = await run(makeRunner(store: store, health: health, destination: destination, formats: formats))
+
+    #expect(destination.paths.isEmpty)
+    #expect(outcome.daysWritten == 0)
+    #expect(outcome.daysPending == 1)
+    #expect(try store.dirtyEntries().count == 1)
+    #expect(formats.covered == [.json, .markdown])
+  }
+
+  /// One steps day with its daily value saved and no marks left, as after a finished run.
+  func storeWithAFinishedStepsDay() throws -> LocalStore {
+    let store = try LocalStore.inMemory()
+    try store.applyChanges(
+      HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+    try store.saveDailyValue(DailyValue(value: 8412), type: .steps, day: day("2026-09-27"))
+    try store.clearDirty(type: .steps, day: day("2026-09-27"))
+    return store
+  }
+
+  @Test func aNewlySelectedFormatBackfillsWithoutHealthQueries() async throws {
+    let store = try storeWithAFinishedStepsDay()
+    let health = FakeHealthSource()
+    await health.setRefuseReads(true)
+    let destination = FakeDestination()
+    let formats = FormatSettings()
+    formats.covered = [.markdown]
+
+    let outcome = await run(makeRunner(store: store, health: health, destination: destination, formats: formats))
+
+    #expect(outcome.daysWritten == 1)
+    #expect(destination.paths == [stepsJSON, note27, readmePath])
+    #expect(await health.statisticCallCount == 0)
+    #expect(formats.covered == [.json, .markdown])
+    #expect(try store.dirtyEntries().isEmpty)
+  }
+
+  @Test func aFormatTurnedOnDuringARunBackfillsInTheNextRun() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await queueStepsSample(health: health)
+    let destination = FakeDestination()
+    let formats = FormatSettings()
+    formats.selected = [.markdown]
+    destination.runOnFirstWrite(to: note27) { formats.selected = [.json, .markdown] }
+    let runner = makeRunner(store: store, health: health, destination: destination, formats: formats)
+
+    _ = await run(runner)
+
+    #expect(!destination.paths.contains(stepsJSON))
+    #expect(try store.dirtyEntries().isEmpty)
+    #expect(formats.covered == [.markdown])
+
+    let followUp = await run(runner)
+
+    #expect(followUp.daysWritten == 1)
+    #expect(destination.paths.contains(stepsJSON))
+    #expect(destination.writeCount(at: note27) == 2)
+    #expect(formats.covered == [.json, .markdown])
+  }
+
+  @Test func aFormatTurnedOffThenOnAcrossARunBackfillsAgain() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await queueStepsSample(health: health)
+    let destination = FakeDestination()
+    let formats = FormatSettings()
+    let runner = makeRunner(store: store, health: health, destination: destination, formats: formats)
+    _ = await run(runner)
+    #expect(destination.writeCount(at: stepsJSON) == 1)
+
+    formats.selected = [.markdown]
+    let laterSample = UUID()
+    await queueStepsSample(health: health, uuid: laterSample, start: "2026-09-27T14:00:00Z")
+    _ = await run(runner)
+    #expect(formats.covered == [.markdown])
+    #expect(destination.writeCount(at: stepsJSON) == 1)
+
+    formats.selected = [.json, .markdown]
+    _ = await run(runner)
+
+    #expect(destination.writeCount(at: stepsJSON) == 2)
+    #expect(destination.text(at: stepsJSON)?.contains(laterSample.uuidString) == true)
+    #expect(formats.covered == [.json, .markdown])
+  }
+
+  @Test func aFailedBackfillMarkLeavesCoveredUnchanged() async throws {
+    let store = try storeWithAFinishedStepsDay()
+    try await store.dbQueue.write { db in try db.execute(sql: "DROP TABLE dirty") }
+    let health = FakeHealthSource()
+    let destination = FakeDestination()
+    let formats = FormatSettings()
+    formats.covered = [.markdown]
+
+    let outcome = await run(makeRunner(store: store, health: health, destination: destination, formats: formats))
+
+    #expect(outcome.errors.contains { $0.hasPrefix("export formats:") })
+    #expect(formats.covered == [.markdown])
+    #expect(destination.paths.isEmpty)
+    #expect(await health.statisticCallCount == 0)
+  }
+
+  @Test func dailyValuesAreStoredWhateverTheFormats() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await queueStepsSample(health: health)
+    let formats = FormatSettings()
+    formats.selected = [.json]
+
+    _ = await run(makeRunner(store: store, health: health, destination: FakeDestination(), formats: formats))
+
+    #expect(try store.dailyValues(day: day("2026-09-27")) == [.steps: DailyValue(value: 8412)])
   }
 }

@@ -13,6 +13,8 @@ public struct AppSettings: Sendable {
     static let cycleTrackingEnabled = "cycleTrackingEnabled"
     static let healthTypesAskedAbout = "healthTypesAskedAbout"
     static let hasTipped = "hasTipped"
+    static let exportFormats = "exportFormats"
+    static let exportFormatsCovered = "exportFormatsCovered"
   }
 
   let storage: any KeyValueStorage
@@ -81,6 +83,45 @@ public struct AppSettings: Sendable {
       } catch {
         pendingSetupErrors.append("health types asked about could not be encoded: \(error)")
       }
+    }
+  }
+
+  /// The formats the app writes. Stored as a JSON array of raw values; values a later version wrote are ignored. Missing, corrupt or empty data gives `ExportFormat.defaultSelection`.
+  public var exportFormats: Set<ExportFormat> {
+    formats(forKey: Key.exportFormats)
+  }
+
+  /// Saves the selection. An empty set is refused and returns false, because zero formats would clear marks with no files written.
+  @discardableResult
+  public func setExportFormats(_ formats: Set<ExportFormat>) -> Bool {
+    guard !formats.isEmpty else { return false }
+    return store(formats, forKey: Key.exportFormats)
+  }
+
+  /// The formats the store has already been marked for (Format setting, Backfill without a flag). A run that finds a selected format outside this set marks every stored day for rewrite first.
+  public var exportFormatsCovered: Set<ExportFormat> {
+    get { formats(forKey: Key.exportFormatsCovered) }
+    nonmutating set { store(newValue, forKey: Key.exportFormatsCovered) }
+  }
+
+  private func formats(forKey key: String) -> Set<ExportFormat> {
+    guard let data = storage.data(forKey: key) else { return ExportFormat.defaultSelection }
+    do {
+      let formats = Set(try JSONDecoder().decode([String].self, from: data).compactMap(ExportFormat.init(rawValue:)))
+      return formats.isEmpty ? ExportFormat.defaultSelection : formats
+    } catch {
+      return ExportFormat.defaultSelection
+    }
+  }
+
+  @discardableResult
+  private func store(_ formats: Set<ExportFormat>, forKey key: String) -> Bool {
+    do {
+      storage.set(try JSONEncoder().encode(formats.map(\.rawValue).sorted()), forKey: key)
+      return true
+    } catch {
+      pendingSetupErrors.append("export formats could not be encoded: \(error)")
+      return false
     }
   }
 

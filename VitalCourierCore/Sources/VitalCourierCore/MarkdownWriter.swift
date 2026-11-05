@@ -66,15 +66,22 @@ public struct DailySummary: Equatable, Sendable {
 public enum MarkdownWriter {
   public static let schemaVersion = 1
 
-  public static let readme = """
-    # Vital Courier
-
-    Vital Courier writes and owns everything in this folder. Any edit made here gets overwritten the next time the app exports, so keep your own notes somewhere else.
-
-    - `json/<type>/<YYYY-MM>.json` holds every raw sample of one type for one month.
-    - `daily/<YYYY-MM-DD>.md` holds one note per day with that day's values as properties.
-
-    """
+  /// The folder README. It lists only the formats the app writes now.
+  public static func readme(formats: Set<ExportFormat>) -> String {
+    var lines = [
+      "# Vital Courier",
+      "",
+      "Vital Courier writes and owns everything in this folder. Any edit made here gets overwritten the next time the app exports, so keep your own notes somewhere else.",
+      "",
+    ]
+    if formats.contains(.json) {
+      lines.append("- `json/<type>/<YYYY-MM>.json` holds every raw sample of one type for one month.")
+    }
+    if formats.contains(.markdown) {
+      lines.append("- `daily/<YYYY-MM-DD>.md` holds one note per day with that day's values as properties.")
+    }
+    return lines.joined(separator: "\n") + "\n"
+  }
 
   // swiftlint:disable:next cyclomatic_complexity - many simple branches; splitting it is a separate refactor
   public static func note(for summary: DailySummary) -> Data {

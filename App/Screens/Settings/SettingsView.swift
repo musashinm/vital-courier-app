@@ -53,6 +53,18 @@ struct SettingsView: View {
       }
 
       Section {
+        formatToggle("JSON", format: .json)
+        formatToggle("Daily Markdown", format: .markdown)
+      } header: {
+        Text("Export formats").foregroundStyle(Color.vcTertiaryText)
+      } footer: {
+        Text(
+          "Turning a format on writes it for all your data. Turning one off stops updating its files; what’s already exported stays."
+        )
+        .foregroundStyle(Color.vcTertiaryText)
+      }
+
+      Section {
         folderRow
         if case .lost(let errorText) = model.folderState {
           ErrorTextView(text: errorText)
@@ -143,6 +155,14 @@ struct SettingsView: View {
     .folderPicker(
       isPresented: $isPickerPresented, onPick: { model.pickFolder($0) },
       onError: { model.folderSave = .failed(errorText: $0) })
+  }
+
+  /// The last format that is on stays on: zero formats would clear marks with no files written.
+  private func formatToggle(_ title: LocalizedStringKey, format: ExportFormat) -> some View {
+    let isOn = model.exportFormats.contains(format)
+    return Toggle(title, isOn: Binding(get: { isOn }, set: { model.setExportFormat(format, isOn: $0) }))
+      .frame(minHeight: 44)
+      .disabled(isOn && model.exportFormats.count == 1)
   }
 
   private var folderRow: some View {
