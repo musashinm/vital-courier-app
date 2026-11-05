@@ -77,6 +77,11 @@ private struct HealthPermissionStep: View {
         FactRow(symbol: "folder.fill", text: "A folder you choose in Files")
       }
       Text(
+        "The first export reads your full history for the data you allow, and it can take up to several minutes. Keep Vital Courier open and this iPhone unlocked to finish sooner. If you leave, it pauses and continues later."
+      )
+      .font(.footnote)
+      .foregroundStyle(Color.vcTertiaryText)
+      Text(
         "Vital Courier keeps a protected local working copy so exports can finish in the background. You can clear it in Settings."
       )
       .font(.footnote)

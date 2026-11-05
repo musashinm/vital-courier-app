@@ -950,6 +950,16 @@
         }
       }
     },
+    "Exporting your Health data…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportando seus dados de saúde…"
+          }
+        }
+      }
+    },
     "Failed" : {
       "localizations" : {
         "pt-BR" : {
@@ -1726,6 +1736,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Não deu para acessar a pasta de exportação."
+          }
+        }
+      }
+    },
+    "The first export can take up to several minutes. Keep Vital Courier open and this iPhone unlocked to finish sooner." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A primeira exportação pode levar vários minutos. Deixe o Vital Courier aberto e o iPhone desbloqueado para terminar mais rápido."
+          }
+        }
+      }
+    },
+    "The first export reads your full history for the data you allow, and it can take up to several minutes. Keep Vital Courier open and this iPhone unlocked to finish sooner. If you leave, it pauses and continues later." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A primeira exportação lê todo o histórico dos dados que você permitir e pode levar vários minutos. Deixe o Vital Courier aberto e o iPhone desbloqueado para terminar mais rápido. Se você sair, ela pausa e continua depois."
           }
         }
       }

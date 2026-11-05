@@ -36,7 +36,10 @@ import VitalCourierCore
     #expect(
       HomeSummary.running(lastCompleted: date("2026-10-03T00:42:00Z")).text(formatter: english, now: now).detail
         == "Last completed yesterday at 9:42 PM.")
-    #expect(HomeSummary.running(lastCompleted: nil).text(formatter: english, now: now).detail == nil)
+    #expect(
+      HomeSummary.running(lastCompleted: nil).text(formatter: english, now: now).detail
+        == "The first export can take up to several minutes. Keep Vital Courier open and this iPhone unlocked to finish sooner."
+    )
     #expect(
       HomeSummary.writeFailure(run: failing).text(formatter: english, now: now)
         == HomeSummaryText(
@@ -81,7 +84,9 @@ import VitalCourierCore
           symbolName: "clock.badge.questionmark", title: "Waiting for the first export",
           detail: "Keep your iPhone unlocked while Vital Courier reads your Health data.", errorText: nil,
           showsMoreErrorsNote: false, action: .none))
-    #expect(HomeSummary.running(lastCompleted: nil).text(formatter: english, now: now).title == "Checking for updates…")
+    #expect(
+      HomeSummary.running(lastCompleted: nil).text(formatter: english, now: now).title
+        == "Exporting your Health data…")
     #expect(
       HomeSummary.noHealthDataYet.text(formatter: english, now: now)
         == HomeSummaryText(
@@ -155,6 +160,21 @@ import VitalCourierCore
         == "Deixe o iPhone desbloqueado enquanto o Vital Courier lê seus dados do app Saúde.")
   }
 
+  @Test func firstExportRunningExplainsTheWait() {
+    let text = HomeSummary.running(lastCompleted: nil).text(formatter: english, now: now)
+    #expect(text.title == "Exporting your Health data…")
+    #expect(
+      text.detail
+        == "The first export can take up to several minutes. Keep Vital Courier open and this iPhone unlocked to finish sooner."
+    )
+  }
+
+  @Test func laterRunningStaysCheckingForUpdates() {
+    let text = HomeSummary.running(lastCompleted: date("2026-10-03T00:42:00Z")).text(formatter: english, now: now)
+    #expect(text.title == "Checking for updates…")
+    #expect(text.detail == "Last completed yesterday at 9:42 PM.")
+  }
+
   @Test func portugueseCoversEveryHomeCase() {
     let failing = run(
       "2026-10-03T10:00:00Z", failed: 1, errors: ["note 2026-10-01: x", "file protection: ProtectionFailed()"])
@@ -165,8 +185,11 @@ import VitalCourierCore
     #expect(text(.noFolder).title == "Escolher uma pasta")
     #expect(
       text(.noFolder).detail == "Os dados de saúde podem ser lidos no iPhone, mas os arquivos precisam de um destino.")
-    #expect(text(.running(lastCompleted: nil)).title == "Procurando atualizações…")
-    #expect(text(.running(lastCompleted: nil)).detail == nil)
+    #expect(text(.running(lastCompleted: nil)).title == "Exportando seus dados de saúde…")
+    #expect(
+      text(.running(lastCompleted: nil)).detail
+        == "A primeira exportação pode levar vários minutos. Deixe o Vital Courier aberto e o iPhone desbloqueado para terminar mais rápido."
+    )
     #expect(text(.running(lastCompleted: date("2026-10-03T00:42:00Z"))).title == "Procurando atualizações…")
     #expect(text(.awaitingReread).title == "Aguardando para ler os dados de saúde de novo")
     #expect(

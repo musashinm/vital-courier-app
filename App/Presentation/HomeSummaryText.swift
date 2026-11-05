@@ -27,10 +27,18 @@ extension HomeSummary {
         detail: localization.string("Health data can be read locally, but files need a destination."), errorText: nil,
         showsMoreErrorsNote: false, action: .pickFolder)
     case .running(let lastCompleted):
-      HomeSummaryText(
-        symbolName: "arrow.triangle.2.circlepath", title: localization.string("Checking for updates…"),
-        detail: lastCompleted.map { localization.string("Last completed \(formatter.moment($0, now: now)).") },
-        errorText: nil, showsMoreErrorsNote: false, action: .none)
+      if let lastCompleted {
+        HomeSummaryText(
+          symbolName: "arrow.triangle.2.circlepath", title: localization.string("Checking for updates…"),
+          detail: localization.string("Last completed \(formatter.moment(lastCompleted, now: now))."),
+          errorText: nil, showsMoreErrorsNote: false, action: .none)
+      } else {
+        HomeSummaryText(
+          symbolName: "arrow.triangle.2.circlepath", title: localization.string("Exporting your Health data…"),
+          detail: localization.string(
+            "The first export can take up to several minutes. Keep Vital Courier open and this iPhone unlocked to finish sooner."
+          ), errorText: nil, showsMoreErrorsNote: false, action: .none)
+      }
     case .awaitingReread:
       HomeSummaryText(
         symbolName: "arrow.clockwise.circle", title: localization.string("Waiting to reread health data"),
