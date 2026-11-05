@@ -62,16 +62,35 @@ import Testing
     #expect(try store.dirtyEntries().isEmpty)
   }
 
-  @Test func aLockedRunWritesJSONButSkipsNotesWithStaleValues() async throws {
-    let store = try LocalStore.inMemory()
+  func lockedStaleStepsDay(store: LocalStore) throws -> FakeHealthSource {
     try store.applyChanges(
       HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
-    let health = FakeHealthSource()
+    return FakeHealthSource()
+  }
+
+  @Test func aLockedRunWritesOnlyTheReadmeForStaleDays() async throws {
+    let store = try LocalStore.inMemory()
+    let health = try lockedStaleStepsDay(store: store)
     await health.setReadable(false)
     let destination = FakeDestination()
 
     let outcome = await makeRunner(store: store, health: health, destination: destination).run(
       trigger: .appIntent, options: .forTrigger(.appIntent)
+    ) {}
+
+    #expect(destination.paths == [readmePath])
+    #expect(outcome.daysPending == 1)
+    #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
+  }
+
+  @Test func aLockedRebuildStillWritesJSONForStaleDays() async throws {
+    let store = try LocalStore.inMemory()
+    let health = try lockedStaleStepsDay(store: store)
+    await health.setReadable(false)
+    let destination = FakeDestination()
+
+    let outcome = await makeRunner(store: store, health: health, destination: destination).run(
+      trigger: .rebuildAll, options: .forTrigger(.rebuildAll)
     ) {}
 
     #expect(destination.paths == [readmePath, stepsJSON])
@@ -81,8 +100,28 @@ import Testing
 
   @Test func aFailedJSONWriteOnAStaleDayCountsAsFailed() async throws {
     let store = try LocalStore.inMemory()
-    try store.applyChanges(
-      HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+    let health = try lockedStaleStepsDay(store: store)
+    await health.setReadable(false)
+    let destination = FakeDestination()
+    destination.failWrites(to: stepsJSON)
+
+    let outcome = await makeRunner(store: store, health: health, destination: destination).run(
+      trigger: .rebuildAll, options: .forTrigger(.rebuildAll)
+    ) {}
+
+    #expect(outcome.daysFailed == 1)
+    #expect(outcome.daysPending == 0)
+    #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
+  }
+
+  @Test(arguments: [("2026-09-05", "2026-09-10"), ("2026-09-20", "2026-09-10")])
+  func aFailedMonthFileCountsTheStaleDayAsPendingWhateverTheDayOrder(staleDay: String, freshDay: String) async throws {
+    let store = try LocalStore.inMemory()
+    for dayText in [staleDay, freshDay] {
+      try store.applyChanges(
+        HealthChanges(added: [makeSample(start: "\(dayText)T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+    }
+    try store.saveDailyValue(DailyValue(value: 1), type: .steps, day: day(freshDay))
     let health = FakeHealthSource()
     await health.setReadable(false)
     let destination = FakeDestination()
@@ -93,8 +132,86 @@ import Testing
     ) {}
 
     #expect(outcome.daysFailed == 1)
-    #expect(outcome.daysPending == 0)
-    #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
+    #expect(outcome.daysPending == 1)
+  }
+
+  func queueStepsInSeptemberAndAugust(health: FakeHealthSource) async {
+    await health.queue(
+      HealthChanges(added: [makeSample(start: "2026-08-15T12:00:00Z"), makeSample(start: "2026-09-27T12:00:00Z")]),
+      for: .steps)
+    await health.setStatistic(1, for: .steps, day: day("2026-08-15"))
+    await health.setStatistic(2, for: .steps, day: day("2026-09-27"))
+  }
+
+  @Test func monthsAreExportedNewestFirst() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await queueStepsInSeptemberAndAugust(health: health)
+    let destination = FakeDestination()
+
+    _ = await makeRunner(store: store, health: health, destination: destination).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
+
+    let order = destination.writeOrder
+    let septemberNote = try #require(order.firstIndex(of: note27))
+    let augustJSON = try #require(order.firstIndex(of: "Vital Courier/json/steps/2026-08.json"))
+    #expect(septemberNote < augustJSON)
+  }
+
+  @Test func aCancelBetweenMonthsLeavesTheFinishedMonthsFiles() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await queueStepsInSeptemberAndAugust(health: health)
+    await health.cancelCurrentTaskOnStatisticCall(number: 2)
+    let destination = FakeDestination()
+    let runner = makeRunner(store: store, health: health, destination: destination)
+
+    let outcome = await Task { await runner.run(trigger: .backgroundRefresh, options: .forTrigger(.observerWake)) {} }
+      .value
+
+    #expect(destination.text(at: note27)?.contains("vc_steps: 2") == true)
+    #expect(destination.text(at: "Vital Courier/daily/2026-08-15.md") == nil)
+    #expect(try store.dirtyEntries().map(\.day) == [day("2026-08-15")])
+    #expect(outcome.daysWritten == 1)
+    #expect(outcome.daysPending == 1)
+  }
+
+  @Test func aRefusedStatisticStillWritesFreshDays() async throws {
+    let store = try LocalStore.inMemory()
+    try store.applyChanges(
+      HealthChanges(added: [
+        makeSample(start: "2026-07-10T12:00:00Z"), makeSample(start: "2026-08-15T12:00:00Z"),
+        makeSample(start: "2026-09-27T12:00:00Z"),
+      ]),
+      for: .steps, fallbackTimeZone: saoPaulo)
+    try store.saveDailyValue(DailyValue(value: 2), type: .steps, day: day("2026-09-27"))
+    let health = FakeHealthSource()
+    await health.setRefuseStatistics(true)
+    let destination = FakeDestination()
+
+    let outcome = await makeRunner(store: store, health: health, destination: destination).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
+
+    #expect(destination.text(at: note27)?.contains("vc_steps: 2") == true)
+    #expect(await health.statisticCallCount == 1)
+    #expect(outcome.daysWritten == 1)
+    #expect(outcome.daysPending == 2)
+    #expect(try store.dirtyEntries().map(\.day).sorted() == [day("2026-07-10"), day("2026-08-15")])
+  }
+
+  @Test func theReadmeIsWrittenOncePerRun() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await queueStepsInSeptemberAndAugust(health: health)
+    let destination = FakeDestination()
+
+    _ = await makeRunner(store: store, health: health, destination: destination).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
+
+    #expect(destination.writeCount(at: readmePath) == 1)
   }
 
   @Test func aFailedNoteWriteKeepsTheMarks() async throws {
@@ -216,7 +333,8 @@ import Testing
   @Test func aSampleArrivingMidRunKeepsItsStaleMark() async throws {
     let store = try LocalStore.inMemory()
     let destination = FakeDestination()
-    destination.runOnFirstWrite {
+    // The README is written before the daily values now, so the late sample arrives with the month's JSON instead.
+    destination.runOnFirstWrite(to: stepsJSON) {
       do {
         try store.applyChanges(
           HealthChanges(added: [makeSample(start: "2026-09-27T13:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
