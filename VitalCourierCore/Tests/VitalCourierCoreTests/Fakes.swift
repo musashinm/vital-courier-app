@@ -100,25 +100,36 @@ final class FakeDestination: ExportDestination {
   private struct State {
     var files: [String: Data] = [:]
     var writeCounts: [String: Int] = [:]
+    var writeOrder: [String] = []
     var failingPaths: Set<String> = []
     var cancelCurrentTaskOnFirstWriteTo: String?
     var onFirstWrite: (@Sendable () -> Void)?
+    var onFirstWritePath: String?
   }
 
   private let state = Mutex(State())
 
   func failWrites(to path: String) { state.withLock { $0.failingPaths.insert(path) } }
   func cancelCurrentTaskOnFirstWrite(to path: String) { state.withLock { $0.cancelCurrentTaskOnFirstWriteTo = path } }
-  func runOnFirstWrite(_ action: @escaping @Sendable () -> Void) { state.withLock { $0.onFirstWrite = action } }
+  /// Runs once, before the first write, or before the first write to `path` when one is given.
+  func runOnFirstWrite(to path: String? = nil, _ action: @escaping @Sendable () -> Void) {
+    state.withLock {
+      $0.onFirstWrite = action
+      $0.onFirstWritePath = path
+    }
+  }
   var paths: Set<String> { state.withLock { Set($0.files.keys) } }
   func text(at path: String) -> String? {
     // swiftlint:disable:next optional_data_string_conversion - test fake; lossy decoding of the written bytes is fine
     state.withLock { $0.files[path] }.map { String(decoding: $0, as: UTF8.self) }
   }
+  /// Every successful write, in order.
+  var writeOrder: [String] { state.withLock { $0.writeOrder } }
   func writeCount(at path: String) -> Int { state.withLock { $0.writeCounts[path] ?? 0 } }
 
   func write(_ data: Data, to relativePath: String) throws {
     let hook = state.withLock { current -> (@Sendable () -> Void)? in
+      guard current.onFirstWritePath == nil || current.onFirstWritePath == relativePath else { return nil }
       let action = current.onFirstWrite
       current.onFirstWrite = nil
       return action
@@ -128,6 +139,7 @@ final class FakeDestination: ExportDestination {
       if current.failingPaths.contains(relativePath) { throw FakeWriteError() }
       current.files[relativePath] = data
       current.writeCounts[relativePath, default: 0] += 1
+      current.writeOrder.append(relativePath)
       let cancel = current.cancelCurrentTaskOnFirstWriteTo == relativePath
       if cancel { current.cancelCurrentTaskOnFirstWriteTo = nil }
       return cancel

@@ -1,6 +1,5 @@
 import Foundation
 
-// swiftlint:disable type_body_length - the runner owns the whole export pass; splitting it is a separate refactor
 /// One run (spec, Data flow): read, verify, daily values, write.
 public final class ExportRunner: Sendable {
   static let verifyWindow: TimeInterval = 30 * 24 * 60 * 60
@@ -60,11 +59,13 @@ public final class ExportRunner: Sendable {
     }
     onReadCommitted()
     // HealthKit was readable for this run, even when one type's read failed part way.
-    if readOutcome == .read || readOutcome == .failed {
+    let healthWasReadable = readOutcome == .read || readOutcome == .failed
+    if healthWasReadable {
       await verifyStep(scope: options.verify, types: readable, zone: zone, errors: &errors)
-      _ = await dailyValuesStep(types: types, readable: readable, zone: zone, errors: &errors)
     }
-    let counts = writeStep(types: types, zone: zone, errors: &errors)
+    let counts = await exportStep(
+      types: types, readable: readable, zone: zone, queriesHealth: healthWasReadable,
+      writesStaleJSON: options.markAllDirty, errors: &errors)
     do {
       // Snapshot, history row and discard of the pending protection failures happen as one serialized drain.
       try store.drainPendingProtectionFailures { pendingFailures in
@@ -176,16 +177,14 @@ public final class ExportRunner: Sendable {
     return windows
   }
 
-  /// Runs after Verify, so stored values never lag behind samples Verify added or removed. Entries of a type that isn't enabled are left alone. Returns false when HealthKit refused a statistics query, so the caller stops querying.
-  @discardableResult
-  func dailyValuesStep(types: [HealthType], readable: [HealthType], zone: TimeZone, errors: inout [String]) async
-    -> Bool
-  {
-    let enabled = Set(types)
+  /// Entries of a type that isn't enabled are left alone, and so are entries outside `month` when one is given. Stored values never lag behind samples Verify added or removed. Returns false when HealthKit refused a statistics query, so the caller stops querying.
+  func dailyValuesStep(
+    types: [HealthType], readable: [HealthType], zone: TimeZone, month: String? = nil, errors: inout [String]
+  ) async -> Bool {
     let dirtyEntries: [DirtyEntry]
     let preferredSleepSource: String?
     do {
-      dirtyEntries = try store.dirtyEntries().filter { enabled.contains($0.type) }
+      dirtyEntries = try self.dirtyEntries(of: types, month: month)
       preferredSleepSource = try store.sleepSourcePreference()
     } catch {
       errors.append("daily values: \(error)")
@@ -263,94 +262,4 @@ public final class ExportRunner: Sendable {
   static func notePath(day: DayKey) -> String {
     "Vital Courier/daily/\(day).md"
   }
-
-  // swiftlint:disable:next cyclomatic_complexity function_body_length large_tuple - long by design, with a three-count result; splitting it is a separate refactor
-  func writeStep(types: [HealthType], zone: TimeZone, errors: inout [String]) -> (
-    written: Int, failed: Int, pending: Int
-  ) {
-    let enabled = Set(types)
-    let entries: [DirtyEntry]
-    do {
-      entries = try store.dirtyEntries().filter { enabled.contains($0.type) }
-    } catch {
-      errors.append("write: \(error)")
-      return (0, 0, 0)
-    }
-    let entriesByDay = Dictionary(grouping: entries, by: \.day)
-    if entriesByDay.isEmpty { return (0, 0, 0) }
-    guard let destination = destination() else {
-      errors.append("no folder picked")
-      return (0, 0, entriesByDay.count)
-    }
-    // README first, so a failure can't leave it missing with no dirty state to retry it: on failure the days are still written but no mark clears.
-    var readmeWritten = true
-    do {
-      try destination.write(Data(MarkdownWriter.readme.utf8), to: Self.readmePath)
-    } catch {
-      readmeWritten = false
-      errors.append("readme: \(error)")
-    }
-    let generatedAt = now()
-    var monthFileWritten: [String: Bool] = [:]
-    var written = 0
-    var failed = 0
-    var pending = 0
-    let days = entriesByDay.keys.sorted()
-    for (index, day) in days.enumerated() {
-      if Task.isCancelled {
-        pending += days.count - index
-        break
-      }
-      guard let dayEntries = entriesByDay[day] else {
-        preconditionFailure("days holds only keys of entriesByDay")
-      }
-      var everyFileWritten = true
-      for entry in dayEntries {
-        let path = Self.jsonPath(type: entry.type, monthKey: day.monthKey)
-        if monthFileWritten[path] == nil {
-          do {
-            let samples = try store.samples(type: entry.type, month: day.monthKey)
-            let data = try JSONWriter.monthFile(
-              type: entry.type, monthKey: day.monthKey, samples: samples, timeZone: zone, generatedAt: generatedAt)
-            try destination.write(data, to: path)
-            monthFileWritten[path] = true
-          } catch {
-            monthFileWritten[path] = false
-            errors.append("json \(entry.type.folderName) \(day.monthKey): \(error)")
-          }
-        }
-        if monthFileWritten[path] != true { everyFileWritten = false }
-      }
-      guard dayEntries.allSatisfy(\.fresh) else {
-        if everyFileWritten { pending += 1 } else { failed += 1 }
-        continue
-      }
-      do {
-        // Stored cycle keys are kept whatever the switch says, so a note doesn't change with when it was last rewritten.
-        let summary = DailySummary(
-          day: day, values: try store.dailyValues(day: day), cycle: try store.cycleDay(day: day))
-        try destination.write(MarkdownWriter.note(for: summary), to: Self.notePath(day: day))
-      } catch {
-        everyFileWritten = false
-        errors.append("note \(day): \(error)")
-      }
-      guard everyFileWritten, readmeWritten else {
-        failed += 1
-        continue
-      }
-      do {
-        // A mark that went stale again mid-run stays dirty: the day is pending, not written.
-        if try store.clearDirty(day: day, types: dayEntries.map(\.type)) {
-          written += 1
-        } else {
-          pending += 1
-        }
-      } catch {
-        failed += 1
-        errors.append("clear \(day): \(error)")
-      }
-    }
-    return (written, failed, pending)
-  }
 }
-// swiftlint:enable type_body_length
