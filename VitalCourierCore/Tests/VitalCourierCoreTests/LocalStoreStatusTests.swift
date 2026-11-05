@@ -165,4 +165,36 @@ import Testing
     try store.applyChanges(HealthChanges(added: [flow]), for: .menstrualFlow, fallbackTimeZone: saoPaulo)
     #expect(try store.statusSnapshot().hasStoredHealthValue)
   }
+
+  func markDirty(_ store: LocalStore, _ type: HealthType, _ days: String...) throws {
+    try store.dbQueue.write { db in
+      for dayText in days { try LocalStore.markDirty(db, type: type.rawValue, day: dayText) }
+    }
+  }
+
+  @Test func pendingDayCountCountsDaysNotEntries() throws {
+    let store = try LocalStore.inMemory()
+    try markDirty(store, .steps, "2026-09-20", "2026-09-21")
+    try markDirty(store, .heartRate, "2026-09-21")
+
+    #expect(try store.pendingDayCount(types: HealthType.baseTypes) == 2)
+  }
+
+  @Test func pendingDayCountSkipsMarksOfDisabledTypes() throws {
+    let store = try LocalStore.inMemory()
+    try markDirty(store, .steps, "2026-09-20")
+    try markDirty(store, .menstrualFlow, "2026-09-21", "2026-09-22")
+
+    #expect(try store.pendingDayCount(types: HealthType.baseTypes) == 1)
+    #expect(try store.pendingDayCount(types: HealthType.enabledTypes(cycleTrackingEnabled: true)) == 3)
+    #expect(try store.pendingDayCount(types: []) == 0)
+  }
+
+  @Test func aTypeHealthHasNotBeenAskedAboutStaysCounted() throws {
+    let store = try LocalStore.inMemory()
+    // A statistics type with a mark and no daily value yet: the runner leaves it dirty until Health is asked.
+    try markDirty(store, .bloodGlucose, "2026-09-20")
+
+    #expect(try store.pendingDayCount(types: HealthType.baseTypes) == 1)
+  }
 }

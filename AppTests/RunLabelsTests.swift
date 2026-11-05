@@ -33,6 +33,15 @@ import VitalCourierCore
       RunLabels.dayCounts(run(written: 1, failed: 1, pending: 2), in: .english) == "1 written · 1 failed · 2 pending")
   }
 
+  @Test func daysLeftFollowsEachLanguagesPluralRule() {
+    #expect(RunLabels.daysLeft(1, in: .english) == "1 day left")
+    #expect(RunLabels.daysLeft(2, in: .english) == "2 days left")
+    #expect(RunLabels.daysLeft(1_825, in: .english) == "1,825 days left")
+    #expect(RunLabels.daysLeft(1, in: .portuguese) == "Falta 1 dia")
+    #expect(RunLabels.daysLeft(2, in: .portuguese) == "Faltam 2 dias")
+    #expect(RunLabels.daysLeft(1_825, in: .portuguese) == "Faltam 1.825 dias")
+  }
+
   @Test func zeroCountsUseTheirOwnKey() {
     #expect(RunLabels.daysUpdated(0, in: .english) == "0 days updated")
     #expect(RunLabels.daysUpdated(1, in: .english) == "1 day updated")

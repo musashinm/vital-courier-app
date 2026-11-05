@@ -30,6 +30,10 @@ struct RootView: View {
       syncBootPresentation(newPhase: newPhase, isInitial: oldPhase == newPhase)
     }
     .task { await model.boot() }
+    .onChange(of: model.isRunActive, initial: true) { _, isActive in
+      // Keeps the screen awake while a run the user can see is active; a locked screen would pause the export.
+      UIApplication.shared.isIdleTimerDisabled = isActive
+    }
     .onChange(of: scenePhase, initial: true) { oldPhase, newPhase in
       // Initial too: on a cold launch the scene is usually active before boot is ready, and no later transition fires.
       model.sceneActivityChanged(isActive: newPhase == .active)

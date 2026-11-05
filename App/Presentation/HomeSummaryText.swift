@@ -26,8 +26,14 @@ extension HomeSummary {
         symbolName: "folder.badge.questionmark", title: localization.string("Pick a folder"),
         detail: localization.string("Health data can be read locally, but files need a destination."), errorText: nil,
         showsMoreErrorsNote: false, action: .pickFolder)
-    case .running(let lastCompleted):
-      if let lastCompleted {
+    case .running(let lastCompleted, let daysLeft):
+      if daysLeft >= HomeSummary.catchUpDayThreshold {
+        HomeSummaryText(
+          symbolName: "arrow.triangle.2.circlepath", title: localization.string("Exporting your Health data…"),
+          detail: localization.string(
+            "\(RunLabels.daysLeft(daysLeft, in: localization)). Keep Vital Courier open and this iPhone unlocked to finish sooner."
+          ), errorText: nil, showsMoreErrorsNote: false, action: .none)
+      } else if let lastCompleted {
         HomeSummaryText(
           symbolName: "arrow.triangle.2.circlepath", title: localization.string("Checking for updates…"),
           detail: localization.string("Last completed \(formatter.moment(lastCompleted, now: now))."),
@@ -39,6 +45,12 @@ extension HomeSummary {
             "The first export can take up to several minutes. Keep Vital Courier open and this iPhone unlocked to finish sooner."
           ), errorText: nil, showsMoreErrorsNote: false, action: .none)
       }
+    case .exportPaused(let daysLeft):
+      HomeSummaryText(
+        symbolName: "pause.circle", title: localization.string("Export paused"),
+        detail: localization.string(
+          "\(RunLabels.daysLeft(daysLeft, in: localization)). Open Vital Courier with this iPhone unlocked to finish."),
+        errorText: nil, showsMoreErrorsNote: false, action: .runDetails)
     case .awaitingReread:
       HomeSummaryText(
         symbolName: "arrow.clockwise.circle", title: localization.string("Waiting to reread health data"),

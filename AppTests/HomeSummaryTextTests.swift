@@ -34,10 +34,11 @@ import VitalCourierCore
       HomeSummary.upToDate(run: checked).text(formatter: english, now: now).detail
         == "Checked today at 8:16 AM · App open")
     #expect(
-      HomeSummary.running(lastCompleted: date("2026-10-03T00:42:00Z")).text(formatter: english, now: now).detail
+      HomeSummary.running(lastCompleted: date("2026-10-03T00:42:00Z"), daysLeft: 0).text(formatter: english, now: now)
+        .detail
         == "Last completed yesterday at 9:42 PM.")
     #expect(
-      HomeSummary.running(lastCompleted: nil).text(formatter: english, now: now).detail
+      HomeSummary.running(lastCompleted: nil, daysLeft: 0).text(formatter: english, now: now).detail
         == "The first export can take up to several minutes. Keep Vital Courier open and this iPhone unlocked to finish sooner."
     )
     #expect(
@@ -85,7 +86,7 @@ import VitalCourierCore
           detail: "Keep your iPhone unlocked while Vital Courier reads your Health data.", errorText: nil,
           showsMoreErrorsNote: false, action: .none))
     #expect(
-      HomeSummary.running(lastCompleted: nil).text(formatter: english, now: now).title
+      HomeSummary.running(lastCompleted: nil, daysLeft: 0).text(formatter: english, now: now).title
         == "Exporting your Health data…")
     #expect(
       HomeSummary.noHealthDataYet.text(formatter: english, now: now)
@@ -143,7 +144,9 @@ import VitalCourierCore
       HomeSummary.upToDate(run: run("2026-10-03T11:16:00Z")).text(formatter: portuguese, now: now).title
         == "Tudo em dia")
     #expect(
-      HomeSummary.running(lastCompleted: date("2026-10-03T00:42:00Z")).text(formatter: portuguese, now: now).detail
+      HomeSummary.running(lastCompleted: date("2026-10-03T00:42:00Z"), daysLeft: 0).text(
+        formatter: portuguese, now: now
+      ).detail
         == "Última conclusão: ontem às 21:42.")
     #expect(
       HomeSummary.writeFailure(run: run("2026-10-03T11:16:00Z", failed: 2)).text(formatter: portuguese, now: now).title
@@ -161,7 +164,7 @@ import VitalCourierCore
   }
 
   @Test func firstExportRunningExplainsTheWait() {
-    let text = HomeSummary.running(lastCompleted: nil).text(formatter: english, now: now)
+    let text = HomeSummary.running(lastCompleted: nil, daysLeft: 0).text(formatter: english, now: now)
     #expect(text.title == "Exporting your Health data…")
     #expect(
       text.detail
@@ -170,7 +173,8 @@ import VitalCourierCore
   }
 
   @Test func laterRunningStaysCheckingForUpdates() {
-    let text = HomeSummary.running(lastCompleted: date("2026-10-03T00:42:00Z")).text(formatter: english, now: now)
+    let text = HomeSummary.running(lastCompleted: date("2026-10-03T00:42:00Z"), daysLeft: 0).text(
+      formatter: english, now: now)
     #expect(text.title == "Checking for updates…")
     #expect(text.detail == "Last completed yesterday at 9:42 PM.")
   }
@@ -185,12 +189,13 @@ import VitalCourierCore
     #expect(text(.noFolder).title == "Escolher uma pasta")
     #expect(
       text(.noFolder).detail == "Os dados de saúde podem ser lidos no iPhone, mas os arquivos precisam de um destino.")
-    #expect(text(.running(lastCompleted: nil)).title == "Exportando seus dados de saúde…")
+    #expect(text(.running(lastCompleted: nil, daysLeft: 0)).title == "Exportando seus dados de saúde…")
     #expect(
-      text(.running(lastCompleted: nil)).detail
+      text(.running(lastCompleted: nil, daysLeft: 0)).detail
         == "A primeira exportação pode levar vários minutos. Deixe o Vital Courier aberto e o iPhone desbloqueado para terminar mais rápido."
     )
-    #expect(text(.running(lastCompleted: date("2026-10-03T00:42:00Z"))).title == "Procurando atualizações…")
+    #expect(
+      text(.running(lastCompleted: date("2026-10-03T00:42:00Z"), daysLeft: 0)).title == "Procurando atualizações…")
     #expect(text(.awaitingReread).title == "Aguardando para ler os dados de saúde de novo")
     #expect(
       text(.awaitingReread).detail
@@ -248,5 +253,95 @@ import VitalCourierCore
     #expect(
       TypeRecency.noDataYet.valueText(formatter: portuguese, today: today, source: "Apple Watch") == "Nenhum dado ainda"
     )
+  }
+
+  @Test func runningBelowTheThresholdKeepsItsQuietCopy() {
+    let belowThreshold = HomeSummary.catchUpDayThreshold - 1
+    let firstExport = HomeSummary.running(lastCompleted: nil, daysLeft: belowThreshold)
+    #expect(firstExport.text(formatter: english, now: now).title == "Exporting your Health data…")
+    #expect(
+      firstExport.text(formatter: english, now: now).detail
+        == "The first export can take up to several minutes. Keep Vital Courier open and this iPhone unlocked to finish sooner."
+    )
+    let later = HomeSummary.running(lastCompleted: date("2026-10-03T00:42:00Z"), daysLeft: 1)
+    #expect(later.text(formatter: english, now: now).title == "Checking for updates…")
+    #expect(later.text(formatter: english, now: now).detail == "Last completed yesterday at 9:42 PM.")
+    #expect(firstExport.text(formatter: portuguese, now: now).title == "Exportando seus dados de saúde…")
+  }
+
+  @Test func runningAtTheThresholdCountsTheDaysLeft() {
+    #expect(HomeSummary.catchUpDayThreshold == 7)
+    for lastCompleted in [nil, date("2026-10-03T00:42:00Z")] {
+      let atThreshold = HomeSummary.running(lastCompleted: lastCompleted, daysLeft: 7).text(
+        formatter: english, now: now)
+      #expect(atThreshold.title == "Exporting your Health data…")
+      #expect(
+        atThreshold.detail
+          == "7 days left. Keep Vital Courier open and this iPhone unlocked to finish sooner.")
+      #expect(atThreshold.symbolName == "arrow.triangle.2.circlepath")
+      #expect(atThreshold.action == .none)
+    }
+    #expect(
+      HomeSummary.running(lastCompleted: nil, daysLeft: 1_825).text(formatter: english, now: now).detail
+        == "1,825 days left. Keep Vital Courier open and this iPhone unlocked to finish sooner.")
+    let portugueseText = HomeSummary.running(lastCompleted: nil, daysLeft: 1_825).text(
+      formatter: portuguese, now: now)
+    #expect(portugueseText.title == "Exportando seus dados de saúde…")
+    #expect(
+      portugueseText.detail
+        == "Faltam 1.825 dias. Deixe o Vital Courier aberto e o iPhone desbloqueado para terminar mais rápido.")
+  }
+
+  @Test func runningCopyAtEveryDayCountInBothLanguages() {
+    let quietEnglish =
+      "The first export can take up to several minutes. Keep Vital Courier open and this iPhone unlocked to finish sooner."
+    let quietPortuguese =
+      "A primeira exportação pode levar vários minutos. Deixe o Vital Courier aberto e o iPhone desbloqueado para terminar mais rápido."
+    for (daysLeft, englishDetail, portugueseDetail) in [
+      (1, quietEnglish, quietPortuguese), (6, quietEnglish, quietPortuguese),
+      (
+        7, "7 days left. Keep Vital Courier open and this iPhone unlocked to finish sooner.",
+        "Faltam 7 dias. Deixe o Vital Courier aberto e o iPhone desbloqueado para terminar mais rápido."
+      ),
+      (
+        1_825, "1,825 days left. Keep Vital Courier open and this iPhone unlocked to finish sooner.",
+        "Faltam 1.825 dias. Deixe o Vital Courier aberto e o iPhone desbloqueado para terminar mais rápido."
+      ),
+    ] {
+      let summary = HomeSummary.running(lastCompleted: nil, daysLeft: daysLeft)
+      let englishText = summary.text(formatter: english, now: now)
+      #expect(englishText.title == "Exporting your Health data…")
+      #expect(englishText.detail == englishDetail)
+      let portugueseText = summary.text(formatter: portuguese, now: now)
+      #expect(portugueseText.title == "Exportando seus dados de saúde…")
+      #expect(portugueseText.detail == portugueseDetail)
+    }
+    for daysLeft in [1, 6] {
+      let summary = HomeSummary.running(lastCompleted: date("2026-10-03T00:42:00Z"), daysLeft: daysLeft)
+      #expect(summary.text(formatter: english, now: now).title == "Checking for updates…")
+      #expect(summary.text(formatter: portuguese, now: now).title == "Procurando atualizações…")
+    }
+  }
+
+  @Test func exportPausedCopyInBothLanguages() {
+    for (daysLeft, englishDaysLeft, portugueseDaysLeft) in [
+      (1, "1 day left.", "Falta 1 dia."), (6, "6 days left.", "Faltam 6 dias."),
+      (7, "7 days left.", "Faltam 7 dias."), (1_825, "1,825 days left.", "Faltam 1.825 dias."),
+    ] {
+      let paused = HomeSummary.exportPaused(daysLeft: daysLeft)
+      #expect(
+        paused.text(formatter: english, now: now)
+          == HomeSummaryText(
+            symbolName: "pause.circle", title: "Export paused",
+            detail: "\(englishDaysLeft) Open Vital Courier with this iPhone unlocked to finish.", errorText: nil,
+            showsMoreErrorsNote: false, action: .runDetails))
+      #expect(
+        paused.text(formatter: portuguese, now: now)
+          == HomeSummaryText(
+            symbolName: "pause.circle", title: "Exportação pausada",
+            detail: "\(portugueseDaysLeft) Abra o Vital Courier com o iPhone desbloqueado para terminar.",
+            errorText: nil,
+            showsMoreErrorsNote: false, action: .runDetails))
+    }
   }
 }

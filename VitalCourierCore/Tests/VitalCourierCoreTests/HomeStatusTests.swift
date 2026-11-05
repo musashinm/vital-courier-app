@@ -24,13 +24,14 @@ import Testing
     streakStart: Date? = nil,
     pendingProtection: String? = nil,
     appEvent: RunRecord? = nil,
-    hasStoredHealthValue: Bool = true
+    hasStoredHealthValue: Bool = true,
+    pendingDayCount: Int = 0
   ) -> HomeInputs {
     HomeInputs(
       folder: folder ?? valid, isRunActive: isRunActive, awaitingReread: awaitingReread, latestRun: latestRun,
       lastSuccessfulReadAt: lastRead, dailyValuesFailureStreakStart: streakStart, now: now,
       pendingProtectionFailure: pendingProtection, latestAppEvent: appEvent,
-      hasStoredHealthValue: hasStoredHealthValue)
+      hasStoredHealthValue: hasStoredHealthValue, pendingDayCount: pendingDayCount)
   }
 
   @Test func theFolderComesBeforeEverythingElse() {
@@ -45,7 +46,7 @@ import Testing
     let latest = run("2026-10-03T00:42:00Z", failed: 2)
     #expect(
       HomeSummary.resolve(inputs(isRunActive: true, awaitingReread: true, latestRun: latest))
-        == .running(lastCompleted: latest.startedAt))
+        == .running(lastCompleted: latest.startedAt, daysLeft: 0))
     #expect(HomeSummary.resolve(inputs(awaitingReread: true, latestRun: latest)) == .awaitingReread)
     #expect(HomeSummary.resolve(inputs(latestRun: latest, lastRead: now)) == .writeFailure(run: latest))
   }
@@ -64,7 +65,7 @@ import Testing
         == .protectionFailure(run: event))
     #expect(
       HomeSummary.resolve(inputs(isRunActive: true, latestRun: failing, lastRead: now))
-        == .running(lastCompleted: failing.startedAt))
+        == .running(lastCompleted: failing.startedAt, daysLeft: 0))
     #expect(
       HomeSummary.resolve(inputs(folder: .lost(errorText: "gone"), latestRun: failing, lastRead: now))
         == .folderLost(errorText: "gone"))
@@ -83,7 +84,7 @@ import Testing
         == .folderLost(errorText: "gone"))
     #expect(
       HomeSummary.resolve(inputs(isRunActive: true, latestRun: healthy, lastRead: now, pendingProtection: "x"))
-        == .running(lastCompleted: healthy.startedAt))
+        == .running(lastCompleted: healthy.startedAt, daysLeft: 0))
   }
 
   @Test func neverHavingReadWaitsForTheFirstExportInsteadOfWarning() {
@@ -161,10 +162,52 @@ import Testing
     let latest = run("2026-10-03T11:00:00Z")
     #expect(
       HomeSummary.resolve(inputs(isRunActive: true, latestRun: latest, lastRead: now, hasStoredHealthValue: false))
-        == .running(lastCompleted: latest.startedAt))
+        == .running(lastCompleted: latest.startedAt, daysLeft: 0))
     #expect(
       HomeSummary.resolve(inputs(awaitingReread: true, latestRun: latest, lastRead: now, hasStoredHealthValue: false))
         == .awaitingReread)
+  }
+
+  @Test func aFinishedRunWithDaysLeftIsPausedNotUpToDate() {
+    let latest = run("2026-10-03T11:00:00Z")
+    #expect(
+      HomeSummary.resolve(inputs(latestRun: latest, lastRead: now, pendingDayCount: 1))
+        == .exportPaused(daysLeft: 1))
+    #expect(
+      HomeSummary.resolve(inputs(latestRun: latest, lastRead: now, pendingDayCount: 0)) == .upToDate(run: latest))
+  }
+
+  @Test func aFinishedRunThatWroteSomeDaysWithDaysLeftIsPaused() {
+    let wrote = run("2026-10-03T11:00:00Z", written: 30)
+    #expect(
+      HomeSummary.resolve(inputs(latestRun: wrote, lastRead: now, pendingDayCount: 1_795))
+        == .exportPaused(daysLeft: 1_795))
+  }
+
+  @Test func aWriteFailureStillOutranksPaused() {
+    let failing = run("2026-10-03T11:00:00Z", failed: 1)
+    #expect(
+      HomeSummary.resolve(inputs(latestRun: failing, lastRead: now, pendingDayCount: 40)) == .writeFailure(run: failing)
+    )
+  }
+
+  @Test func overdueStatesOutrankPaused() {
+    let latest = run("2026-10-03T11:00:00Z")
+    #expect(
+      HomeSummary.resolve(
+        inputs(latestRun: latest, lastRead: now.addingTimeInterval(-25 * 60 * 60), pendingDayCount: 3))
+        == .readOverdue)
+  }
+
+  @Test func runningCarriesDaysLeft() {
+    let latest = run("2026-10-03T11:00:00Z")
+    #expect(
+      HomeSummary.resolve(inputs(isRunActive: true, latestRun: latest, lastRead: now, pendingDayCount: 12))
+        == .running(lastCompleted: latest.startedAt, daysLeft: 12))
+    #expect(
+      HomeSummary.resolve(inputs(isRunActive: true, pendingDayCount: 1_825))
+        == .running(lastCompleted: nil, daysLeft: 1_825)
+    )
   }
 
   @Test func aTypeGoesSilentAfterSevenDays() {

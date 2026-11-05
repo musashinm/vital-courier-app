@@ -5,6 +5,8 @@ struct HomeView: View {
   @Environment(AppModel.self) private var model
   @State private var isPickerPresented = false
 
+  private static let pendingDayRefreshInterval = Duration.seconds(5)
+
   var body: some View {
     let formatter = StatusDateFormatter()
     let summary = model.homeSummary
@@ -15,6 +17,7 @@ struct HomeView: View {
         SummaryRow(
           summary: summary,
           text: summary.text(formatter: formatter, now: model.now),
+          latestRun: model.snapshot?.latestRun,
           hidesPickAction: { if case .failed = model.folderSave { true } else { false } }(),
           onPickFolder: { isPickerPresented = true },
           onViewRecentRuns: { model.selectedTab = .history }
@@ -61,12 +64,26 @@ struct HomeView: View {
       isPresented: $isPickerPresented, onPick: { model.pickFolder($0) },
       onError: { model.folderSave = .failed(errorText: $0) }
     )
+    .task(id: model.isRunActive) {
+      // While a run is active the count is the only progress Home shows; refresh it every few seconds.
+      while model.isRunActive {
+        do {
+          try await Task.sleep(for: Self.pendingDayRefreshInterval)
+        } catch {
+          return  // Cancelled: the run ended or the view went away.
+        }
+        await model.refreshPendingDays()
+      }
+    }
     .onChange(of: model.isAppOpenRunActive) { _, isActive in
       // Announce the start and the result once each; never the spinner (design, Accessibility).
-      let announcement =
-        isActive
-        ? String(localized: "Checking for updates") : model.homeSummary.text(formatter: formatter, now: model.now).title
-      AccessibilityNotification.Announcement(announcement).post()
+      if isActive {
+        AccessibilityNotification.Announcement(String(localized: "Checking for updates")).post()
+      } else if model.statusError == nil {
+        // A failed status read leaves the old summary on screen; announcing it would report a stale result.
+        AccessibilityNotification.Announcement(model.homeSummary.text(formatter: formatter, now: model.now).title)
+          .post()
+      }
     }
   }
 }
@@ -74,6 +91,8 @@ struct HomeView: View {
 private struct SummaryRow: View {
   let summary: HomeSummary
   let text: HomeSummaryText
+  /// The newest run, for the paused summary: it carries no run of its own, but the user opens run details to see why it stopped.
+  let latestRun: RunRecord?
   let hidesPickAction: Bool
   let onPickFolder: () -> Void
   let onViewRecentRuns: () -> Void
@@ -159,6 +178,7 @@ private struct SummaryRow: View {
   private var summaryRun: RunRecord? {
     switch summary {
     case .protectionFailure(let run), .writeFailure(let run), .daysUpdated(let run), .upToDate(let run): run
+    case .exportPaused: latestRun
     default: nil
     }
   }
@@ -168,7 +188,7 @@ private struct SummaryRow: View {
     case .daysUpdated, .upToDate: .vcSuccess
     case .folderLost, .writeFailure, .protectionFailure, .protectionFailurePending: .vcError
     case .noFolder, .readOverdue, .dailyValuesOverdue: .vcWarning
-    case .running, .awaitingReread, .waitingForFirstExport, .noHealthDataYet: .vcSecondaryText
+    case .running, .exportPaused, .awaitingReread, .waitingForFirstExport, .noHealthDataYet: .vcSecondaryText
     }
   }
 }

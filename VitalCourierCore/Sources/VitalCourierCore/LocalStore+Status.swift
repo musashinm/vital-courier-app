@@ -70,6 +70,17 @@ extension LocalStore {
     }
   }
 
+  /// How many distinct days still have a pending mark for `types`. Marks of other types, such as a disabled Cycle tracking type, are not counted, matching the runner's work set.
+  public func pendingDayCount(types: [HealthType]) throws -> Int {
+    guard !types.isEmpty else { return 0 }
+    let placeholders = Array(repeating: "?", count: types.count).joined(separator: ", ")
+    return try dbQueue.read { db in
+      try Int.fetchOne(
+        db, sql: "SELECT COUNT(DISTINCT day) FROM dirty WHERE type IN (\(placeholders))",
+        arguments: StatementArguments(types.map(\.rawValue))) ?? 0
+    }
+  }
+
   static func cycleDayKey(_ text: String) throws -> DayKey {
     guard let day = DayKey(text) else { throw LocalStoreError.corruptRow("cycleDailyValue \(text)") }
     return day
