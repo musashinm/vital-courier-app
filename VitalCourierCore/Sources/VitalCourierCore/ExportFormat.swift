@@ -1,4 +1,4 @@
-/// A kind of file the app can write. CSV is stored and compared like the others, but nothing writes it until the CSV writer ships.
+/// A kind of file the app can write.
 public enum ExportFormat: String, CaseIterable, Sendable {
   case json
   case markdown
@@ -8,5 +8,5 @@ public enum ExportFormat: String, CaseIterable, Sendable {
   public static let defaultSelection: Set<ExportFormat> = [.json, .markdown]
 
   /// The formats a run has a writer for. A stored format outside this set writes nothing.
-  static let writable: Set<ExportFormat> = [.json, .markdown]
+  static let writable: Set<ExportFormat> = [.json, .markdown, .csv]
 }

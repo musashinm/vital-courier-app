@@ -6,18 +6,19 @@ Vital Courier is on the App Store: https://apps.apple.com/br/app/vital-courier/i
 
 ## What it exports
 
-It exports the Apple Health data you allow, plus cycle data when Cycle tracking is on in Settings. Everything goes into a `Vital Courier` folder inside the folder you pick. Settings has an Export formats section with a switch for JSON and one for Daily Markdown; both are on by default, and at least one stays on. The folder holds:
+It exports the Apple Health data you allow, plus cycle data when Cycle tracking is on in Settings. Everything goes into a `Vital Courier` folder inside the folder you pick. Settings has an Export formats section with a switch for JSON, one for Daily Markdown and one for CSV; JSON and Markdown are on by default, and at least one stays on. The folder holds:
 
 ```
 Vital Courier/
   README.md                     says the app owns this folder and overwrites edits; lists only the formats that are on
   json/<type>/<YYYY-MM>.json    every raw sample of one type for one month
   daily/<YYYY-MM-DD>.md         one note per day, with that day's values as properties
+  csv/<type>/<YYYY-MM>.csv      the same samples as the JSON, one row each (off by default)
 ```
 
 Turning a format on writes it for all your data, without reading Health again. Turning one off stops updating its files and deletes nothing. The app keeps the daily values whatever the formats are.
 
-The JSON is an export of each stored sample, with its source name, device name and metadata (metadata values are saved as text). The daily notes hold that day's values in YAML frontmatter, always metric, so Obsidian Bases or Dataview can query them. The keys are `date`, `vc_steps`, `vc_exercise_minutes`, `vc_resting_hr_bpm`, `vc_walking_hr_avg`, `vc_hr_avg`, `vc_hr_min`, `vc_hr_max`, `vc_respiratory_rate`, `vc_respiratory_rate_min`, `vc_respiratory_rate_max`, `vc_glucose_mg_dl`, `vc_glucose_mg_dl_min`, `vc_glucose_mg_dl_max`, `vc_blood_oxygen_pct_min`, `vc_blood_oxygen_pct_max`, `vc_sleep_hours`, `vc_sleep_deep_hours`, `vc_sleep_rem_hours`, `vc_sleep_source`, `vc_weight_kg`, `vc_menstrual_flow`, `vc_period_start`, `vc_spotting` and `vc_schema`. `date` and `vc_schema` are always there; a health key is left out when the day has no value for it. The two cycle flags are written only when true. The file names match Obsidian's daily notes. Blood oxygen values in the JSON are HealthKit's fractions, so 0.97 there is 97% in the note.
+The JSON is an export of each stored sample, with its source name, device name and metadata (metadata values are saved as text). The CSV has the header `uuid,start,end,value,unit,source,device,metadata`, one row per sample sorted like the JSON, with the same timestamps, a `.` decimal, LF line endings and UTF-8 without a byte order mark. `metadata` is a JSON string. A `source` or `device` that starts with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading `'` so a spreadsheet doesn't run it as a formula. Excel in pt-BR may put everything in one column or garble accents, since the file has no byte order mark; Numbers, Google Sheets and pandas read it fine. The daily notes hold that day's values in YAML frontmatter, always metric, so Obsidian Bases or Dataview can query them. The keys are `date`, `vc_steps`, `vc_exercise_minutes`, `vc_resting_hr_bpm`, `vc_walking_hr_avg`, `vc_hr_avg`, `vc_hr_min`, `vc_hr_max`, `vc_respiratory_rate`, `vc_respiratory_rate_min`, `vc_respiratory_rate_max`, `vc_glucose_mg_dl`, `vc_glucose_mg_dl_min`, `vc_glucose_mg_dl_max`, `vc_blood_oxygen_pct_min`, `vc_blood_oxygen_pct_max`, `vc_sleep_hours`, `vc_sleep_deep_hours`, `vc_sleep_rem_hours`, `vc_sleep_source`, `vc_weight_kg`, `vc_menstrual_flow`, `vc_period_start`, `vc_spotting` and `vc_schema`. `date` and `vc_schema` are always there; a health key is left out when the day has no value for it. The two cycle flags are written only when true. The file names match Obsidian's daily notes. Blood oxygen values in the JSON are HealthKit's fractions, so 0.97 there is 97% in the note.
 
 ## When it runs
 
@@ -27,7 +28,7 @@ The JSON is an export of each stored sample, with its source name, device name a
 | App open | Reads new data and checks the last 30 days against HealthKit for deletions. |
 | Background refresh | The same as App open, when iOS gives the app background time. HealthKit can't be read while the phone is locked, so a locked run only writes days whose daily values are already saved. |
 | Export now | An App Intent for Shortcuts. Writes days whose daily values are already saved, without reading HealthKit, so it works on a locked phone. |
-| Rebuild all | In Settings. Rereads every enabled data type and rewrites every day and month the app knows about. The phone must be unlocked for the full rebuild. While it is locked, the HealthKit read is skipped, only the saved monthly JSON files are rewritten (when JSON is on), and the daily notes wait until the phone is unlocked. |
+| Rebuild all | In Settings. Rereads every enabled data type and rewrites every day and month the app knows about. The phone must be unlocked for the full rebuild. While it is locked, the HealthKit read is skipped, only the saved monthly JSON and CSV files are rewritten (when those formats are on), and the daily notes wait until the phone is unlocked. |
 
 A run that reads HealthKit works month by month, newest first, writing each month's files before it computes the next, so a run cut short keeps the months it finished.
 
@@ -69,7 +70,7 @@ scripts/check-translations.sh build/DerivedData
 App/                 The SwiftUI app: screens, models, triggers and the String Catalogs
 AppTests/            Unit tests for the app layer (target VitalCourierTests)
 VitalCourierCore/    Swift package with the export logic
-  VitalCourierCore       Reading, storing (GRDB), and writing the JSON and Markdown files
+  VitalCourierCore       Reading, storing (GRDB), and writing the JSON, Markdown and CSV files
   VitalCourierHealthKit  The HealthKit reader
 Config/              Info.plist and the entitlements (HealthKit with background delivery)
 scripts/             Project generation and the translation and migration checks

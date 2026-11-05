@@ -269,6 +269,10 @@ public final class ExportRunner: Sendable {
     "Vital Courier/json/\(type.folderName)/\(monthKey).json"
   }
 
+  static func csvPath(type: HealthType, monthKey: String) -> String {
+    "Vital Courier/csv/\(type.folderName)/\(monthKey).csv"
+  }
+
   static func notePath(day: DayKey) -> String {
     "Vital Courier/daily/\(day).md"
   }

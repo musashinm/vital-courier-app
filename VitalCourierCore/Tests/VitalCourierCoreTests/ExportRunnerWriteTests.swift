@@ -445,7 +445,7 @@ import Testing
     #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
   }
 
-  @Test func aStoredCSVFormatWritesNothingAndKeepsMarks() async throws {
+  @Test func csvOnlyWritesTheCSVAndClearsMarks() async throws {
     let store = try LocalStore.inMemory()
     let health = FakeHealthSource()
     await queueStepsSample(health: health)
@@ -455,11 +455,10 @@ import Testing
 
     let outcome = await run(makeRunner(store: store, health: health, destination: destination, formats: formats))
 
-    #expect(destination.paths.isEmpty)
-    #expect(outcome.daysWritten == 0)
-    #expect(outcome.daysPending == 1)
-    #expect(try store.dirtyEntries().count == 1)
-    #expect(formats.covered == [.json, .markdown])
+    #expect(destination.paths == ["Vital Courier/csv/steps/2026-09.csv", readmePath])
+    #expect(outcome.daysWritten == 1)
+    #expect(try store.dirtyEntries().isEmpty)
+    #expect(formats.covered == [.csv])
   }
 
   /// One steps day with its daily value saved and no marks left, as after a finished run.

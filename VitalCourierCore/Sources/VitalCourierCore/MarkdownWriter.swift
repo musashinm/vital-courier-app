@@ -80,6 +80,11 @@ public enum MarkdownWriter {
     if formats.contains(.markdown) {
       lines.append("- `daily/<YYYY-MM-DD>.md` holds one note per day with that day's values as properties.")
     }
+    if formats.contains(.csv) {
+      lines.append(
+        "- `csv/<type>/<YYYY-MM>.csv` holds the same samples as the JSON file, one row each, with a header row. Excel in some languages, Brazilian Portuguese among them, may put everything in one column or garble accents; Numbers, Google Sheets and pandas read it fine."
+      )
+    }
     return lines.joined(separator: "\n") + "\n"
   }
 
