@@ -116,9 +116,7 @@ import Testing
 
   func queueStepsInSeptemberAndAugust(health: FakeHealthSource) async {
     await health.queue(
-      HealthChanges(added: [makeSample(start: "2026-07-10T12:00:00Z"), makeSample(start: "2026-08-15T12:00:00Z"),
-        makeSample(start: "2026-09-27T12:00:00Z"),
-      ]),
+      HealthChanges(added: [makeSample(start: "2026-08-15T12:00:00Z"), makeSample(start: "2026-09-27T12:00:00Z")]),
       for: .steps)
     await health.setStatistic(1, for: .steps, day: day("2026-08-15"))
     await health.setStatistic(2, for: .steps, day: day("2026-09-27"))
