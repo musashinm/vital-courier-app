@@ -143,17 +143,17 @@ final class AppModel {
     }
   }
 
-  /// An app-open run through the coordinator, counted in `trackedRunCount` while it lasts. The pending count is read before the counter drops, so Home never shows "Export paused" for a run that just finished.
+  /// An app-open run through the coordinator, counted in `trackedRunCount` while it lasts. Status is refreshed before the counter drops, so Home never shows a stale state for a run that just finished.
   private func requestTrackedAppOpenRun() async throws {
     trackedRunCount += 1
     defer { trackedRunCount -= 1 }
     do {
       _ = try await environment.request(.appOpen)
     } catch {
-      await refreshPendingDays()
+      await refreshStatus()
       throw error
     }
-    await refreshPendingDays()
+    await refreshStatus()
   }
 
   /// Design §1: resolve the store, the folder and setup before choosing the root; show progress only after 300 ms.
@@ -235,12 +235,11 @@ final class AppModel {
             statusError = String(describing: error)
           }
         } while appOpenRequestedDuringRun
-        // Refresh the count while the flag is still up, so Home never flashes "Export paused". A request that lands during this await sends us round again.
-        await refreshPendingDays()
+        // Refresh while the flag is still up, so Home never shows a stale state. A request that lands during this await sends us round again.
+        await refreshStatus()
       } while appOpenRequestedDuringRun
       // No suspension point between the last flag check and this drop, so no request can be lost.
       isAppOpenRunActive = false
-      await refreshStatus()
     }
   }
 
@@ -255,20 +254,32 @@ final class AppModel {
     }
   }
 
+  /// Loads the snapshot and the pending count in one detached task and assigns them together, so Home never renders one new and one old.
   func refreshStatus() async {
     let environment = self.environment
-    do {
-      let (newSnapshot, pendingFailure) = try await Task.detached {
+    let types = enabledTypes
+    let (snapshotResult, pendingDaysResult) = await Task.detached {
+      let snapshotResult = Result {
         let store = try environment.readyStore()
         return (try store.statusSnapshot(), store.pendingProtectionFailures().first)
-      }.value
+      }
+      let pendingDaysResult = Result { try environment.readyStore().pendingDayCount(types: types) }
+      return (snapshotResult, pendingDaysResult)
+    }.value
+    switch snapshotResult {
+    case .success(let (newSnapshot, pendingFailure)):
       snapshot = newSnapshot
       pendingProtectionFailure = pendingFailure
       statusError = nil
-    } catch {
+    case .failure(let error):
       statusError = String(describing: error)
     }
-    await refreshPendingDays()
+    switch pendingDaysResult {
+    case .success(let count):
+      pendingDayCount = count
+    case .failure(let error):
+      statusError = String(describing: error)
+    }
     folderState = environment.folderAccess.state
     awaitingReread = environment.settings.awaitingRereadAfterClear
     now = Date()
@@ -318,8 +329,9 @@ final class AppModel {
       } catch {
         rebuildError = String(describing: error)
       }
-      maintenance = .idle
+      // Refresh while `maintenance` still holds the running state, then drop it with no suspension in between.
       await refreshStatus()
+      maintenance = .idle
     }
   }
 
@@ -331,8 +343,9 @@ final class AppModel {
     Task {
       do {
         try await environment.clearLocalCopy()
-        maintenance = .idle
         await refreshStatus()
+        // No suspension point between these two, so `isRunActive` has no gap; `requestAppOpenRun` sets its flag before it first suspends.
+        maintenance = .idle
         requestAppOpenRun()
       } catch {
         maintenance = .idle
