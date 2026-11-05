@@ -62,7 +62,7 @@ public final class ExportRunner: Sendable {
     // HealthKit was readable for this run, even when one type's read failed part way.
     if readOutcome == .read || readOutcome == .failed {
       await verifyStep(scope: options.verify, types: readable, zone: zone, errors: &errors)
-      await dailyValuesStep(types: types, readable: readable, zone: zone, errors: &errors)
+      _ = await dailyValuesStep(types: types, readable: readable, zone: zone, errors: &errors)
     }
     let counts = writeStep(types: types, zone: zone, errors: &errors)
     do {
@@ -176,8 +176,11 @@ public final class ExportRunner: Sendable {
     return windows
   }
 
-  /// Runs after Verify, so stored values never lag behind samples Verify added or removed. Entries of a type that isn't enabled are left alone.
-  func dailyValuesStep(types: [HealthType], readable: [HealthType], zone: TimeZone, errors: inout [String]) async {
+  /// Runs after Verify, so stored values never lag behind samples Verify added or removed. Entries of a type that isn't enabled are left alone. Returns false when HealthKit refused a statistics query, so the caller stops querying.
+  @discardableResult
+  func dailyValuesStep(types: [HealthType], readable: [HealthType], zone: TimeZone, errors: inout [String]) async
+    -> Bool
+  {
     let enabled = Set(types)
     let dirtyEntries: [DirtyEntry]
     let preferredSleepSource: String?
@@ -186,11 +189,10 @@ public final class ExportRunner: Sendable {
       preferredSleepSource = try store.sleepSourcePreference()
     } catch {
       errors.append("daily values: \(error)")
-      return
+      return true
     }
-    // Every dirty entry, fresh or not: a day left dirty by a skipped or failed write must not keep stale values.
     for entry in dirtyEntries {
-      if Task.isCancelled { return }
+      if Task.isCancelled { return true }
       // A statistics type HealthKit hasn't been asked about can't be queried yet; its day stays dirty for a later run.
       if entry.type.usesStatisticsQuery && !readable.contains(entry.type) {
         // An earlier run may have left this mark fresh after a failed write. Without this, writeStep would write the old stored value and clear the day's marks.
@@ -201,23 +203,23 @@ public final class ExportRunner: Sendable {
         }
         continue
       }
+      // Nothing relevant changed since this value was computed. A cut-short run resumes after the entries it finished.
+      if entry.fresh { continue }
       do {
         if HealthType.cycleTypes.contains(entry.type) {
           try store.saveCycleDay(try cycleDayUpdate(for: entry), day: entry.day)
         } else {
           let value = try await dailyValue(for: entry, zone: zone, preferredSleepSource: preferredSleepSource)
+          if Task.isCancelled { return true }
           try store.saveDailyValue(value, type: entry.type, day: entry.day)
         }
+      } catch HealthSourceError.readRefused {
+        return false
       } catch {
         errors.append("daily values \(entry.type.rawValue) \(entry.day): \(error)")
-        // A value fresh from an earlier run must not be written as if it were current.
-        do {
-          try store.markNotFresh(type: entry.type, day: entry.day)
-        } catch {
-          errors.append("daily values \(entry.type.rawValue) \(entry.day) invalidate: \(error)")
-        }
       }
     }
+    return true
   }
 
   /// A cycle sample counts on its stored start day only (Cycle Tracking Spec, Day assignment).

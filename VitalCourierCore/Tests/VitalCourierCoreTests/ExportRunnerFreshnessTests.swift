@@ -13,23 +13,18 @@ import Testing
       store: store, health: health, destination: { destination }, now: { fixedNow }, timeZone: { saoPaulo })
   }
 
-  @Test func aFailingDailyQueryInvalidatesAnEntryThatWasFreshFromAnEarlierRun() async throws {
+  @Test func aFailingDailyQueryLeavesANotFreshEntryNotFresh() async throws {
     let store = try LocalStore.inMemory()
     let health = FakeHealthSource()
     await health.queue(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps)
-    await health.setStatistic(8412, for: .steps, day: day("2026-09-27"))
-    // First run has no folder: the value is stored fresh, the note is not written, the mark stays.
-    _ = await makeRunner(store: store, health: health, destination: nil).run(
-      trigger: .observerWake, options: .forTrigger(.observerWake)
-    ) {}
-    #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: true)])
-
     await health.failStatistic(for: .steps, day: day("2026-09-27"))
     let destination = FakeDestination()
+
     let outcome = await makeRunner(store: store, health: health, destination: destination).run(
       trigger: .observerWake, options: .forTrigger(.observerWake)
     ) {}
 
+    #expect(outcome.errors.contains { $0.hasPrefix("daily values steps 2026-09-27") })
     #expect(destination.text(at: note27) == nil)
     #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
     #expect(outcome.daysWritten == 0)
