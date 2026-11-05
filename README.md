@@ -2,7 +2,7 @@
 
 An iOS app that exports Apple Health data to a folder you pick, such as one in iCloud Drive or an Obsidian vault, and keeps the files up to date in the background after setup. It has no account and no server. The app is in English and Brazilian Portuguese, following the iPhone's language.
 
-The first App Store release, 0.3.0, is in App Review.
+Vital Courier is on the App Store: https://apps.apple.com/br/app/vital-courier/id6822065869.
 
 ## What it exports
 
