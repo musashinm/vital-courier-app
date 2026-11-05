@@ -120,7 +120,17 @@ import Testing
   }
 
   @Test func theReadmeSaysEditsGetOverwritten() {
-    #expect(MarkdownWriter.readme.contains("overwritten"))
+    #expect(MarkdownWriter.readme(formats: ExportFormat.defaultSelection).contains("overwritten"))
+  }
+
+  @Test func readmeListsOnlySelectedFormats() {
+    let both = MarkdownWriter.readme(formats: [.json, .markdown])
+    let jsonOnly = MarkdownWriter.readme(formats: [.json])
+    let markdownOnly = MarkdownWriter.readme(formats: [.markdown])
+
+    #expect(both.contains("json/<type>") && both.contains("daily/<YYYY-MM-DD>.md"))
+    #expect(jsonOnly.contains("json/<type>") && !jsonOnly.contains("daily/"))
+    #expect(markdownOnly.contains("daily/<YYYY-MM-DD>.md") && !markdownOnly.contains("json/"))
   }
 
   @Test func writesCycleKeysAfterWeight() {

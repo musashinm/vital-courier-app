@@ -12,6 +12,10 @@ public final class ExportRunner: Sendable {
   let enabledTypes: @Sendable () -> [HealthType]
   /// The enabled types HealthKit has already been asked about. Only these are queried; the rest wait in the store (Exercise Minutes Spec, Launch read).
   let readableTypes: @Sendable () -> [HealthType]
+  /// The formats to write, read once at the top of a run.
+  let exportFormats: @Sendable () -> Set<ExportFormat>
+  let coveredExportFormats: @Sendable () -> Set<ExportFormat>
+  let setCoveredExportFormats: @Sendable (Set<ExportFormat>) -> Void
 
   public init(
     store: LocalStore,
@@ -20,7 +24,10 @@ public final class ExportRunner: Sendable {
     now: @escaping @Sendable () -> Date = { Date() },
     timeZone: @escaping @Sendable () -> TimeZone = { TimeZone.current },
     enabledTypes: @escaping @Sendable () -> [HealthType] = { HealthType.baseTypes },
-    readableTypes: (@Sendable () -> [HealthType])? = nil
+    readableTypes: (@Sendable () -> [HealthType])? = nil,
+    exportFormats: @escaping @Sendable () -> Set<ExportFormat> = { ExportFormat.defaultSelection },
+    coveredExportFormats: @escaping @Sendable () -> Set<ExportFormat> = { ExportFormat.defaultSelection },
+    setCoveredExportFormats: @escaping @Sendable (Set<ExportFormat>) -> Void = { _ in }
   ) {
     self.store = store
     self.health = health
@@ -29,6 +36,9 @@ public final class ExportRunner: Sendable {
     self.timeZone = timeZone
     self.enabledTypes = enabledTypes
     self.readableTypes = readableTypes ?? enabledTypes
+    self.exportFormats = exportFormats
+    self.coveredExportFormats = coveredExportFormats
+    self.setCoveredExportFormats = setCoveredExportFormats
   }
 
   /// `onReadCommitted` is called exactly once, right after the read step, whether it read, was skipped or failed. The HealthKit observer completion handler goes here, never after file writes.
@@ -40,17 +50,14 @@ public final class ExportRunner: Sendable {
     // Read once, so the switch can't change mid-run between steps.
     let types = enabledTypes()
     let readable = readableTypes().filter(types.contains)
+    // Read once, so a format turned on mid-run can't have marks cleared without its files.
+    let formats = exportFormats().intersection(ExportFormat.writable)
     var errors: [String] = []
     var readOutcome = ReadOutcome.notRequested
+    let formatsReconciled = reconcileCoveredFormats(formats, types: types, errors: &errors)
     // Rebuild all marks every stored day dirty first, so it works even while HealthKit is locked.
-    if options.markAllDirty {
-      do {
-        try store.markAllDirty(statisticsZone: zone, types: types)
-      } catch {
-        errors.append("rebuild: \(error)")
-      }
-    }
-    if options.read {
+    if formatsReconciled && options.markAllDirty { markAllDirty(statisticsZone: zone, types: types, errors: &errors) }
+    if formatsReconciled && options.read {
       if await health.isReadable() {
         readOutcome = await readStep(types: readable, zone: zone, errors: &errors)
       } else {
@@ -63,9 +70,12 @@ public final class ExportRunner: Sendable {
     if healthWasReadable {
       await verifyStep(scope: options.verify, types: readable, zone: zone, errors: &errors)
     }
-    let counts = await exportStep(
-      types: types, readable: readable, zone: zone, queriesHealth: healthWasReadable,
-      writesStaleJSON: options.markAllDirty, errors: &errors)
+    var counts = DayCounts()
+    if formatsReconciled {
+      counts = await exportStep(
+        types: types, readable: readable, zone: zone, queriesHealth: healthWasReadable,
+        writesStaleJSON: options.markAllDirty, formats: formats, errors: &errors)
+    }
     do {
       // Snapshot, history row and discard of the pending protection failures happen as one serialized drain.
       try store.drainPendingProtectionFailures { pendingFailures in

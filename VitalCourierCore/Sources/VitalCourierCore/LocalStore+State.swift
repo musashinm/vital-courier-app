@@ -153,6 +153,23 @@ extension LocalStore {
     }
   }
 
+  /// Marks every (type, day) of `types` found in `sample` and `dailyValue` for a rewrite, without touching a mark that already exists, so a stale mark stays stale. Needs no Health access. `cycleDailyValue` is left out: it has no type column, and every row of it comes from stored samples on that day, so `sample` already marks the right cycle type on the right day.
+  public func markAllForRewrite(types: [HealthType]) throws {
+    guard !types.isEmpty else { return }
+    let typeNames = types.map(\.rawValue)
+    let questionMarks = databaseQuestionMarks(count: typeNames.count)
+    try write { db in
+      try db.execute(
+        sql: """
+          INSERT INTO dirty (type, day, fresh)
+          SELECT type, day, 1 FROM sample WHERE type IN (\(questionMarks))
+          UNION
+          SELECT type, day, 1 FROM dailyValue WHERE type IN (\(questionMarks))
+          ON CONFLICT(type, day) DO NOTHING
+          """, arguments: StatementArguments(typeNames + typeNames))
+    }
+  }
+
   /// Rows per page when Rebuild all walks the stored samples; small enough that memory stays flat for a heart rate history.
   static let overlappedDayMarkingPageSize = 2_000
 

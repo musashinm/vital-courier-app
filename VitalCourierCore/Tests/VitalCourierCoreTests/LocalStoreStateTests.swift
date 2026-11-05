@@ -76,6 +76,54 @@ import Testing
       ])
   }
 
+  /// Stored steps samples on the 27th and a weight value on the 20th with no sample, all with their marks cleared.
+  func storeWithClearedMarks() throws -> LocalStore {
+    let store = try storeWithOneDirtyStepsDay()
+    try store.saveDailyValue(DailyValue(value: 70), type: .weight, day: day("2026-09-20"))
+    try store.clearDirty(type: .steps, day: day("2026-09-27"))
+    try store.clearDirty(type: .weight, day: day("2026-09-20"))
+    return store
+  }
+
+  @Test func markAllForRewriteMarksSampleAndDailyDaysFresh() throws {
+    let store = try storeWithClearedMarks()
+
+    try store.markAllForRewrite(types: [.steps, .weight])
+
+    #expect(
+      try store.dirtyEntries() == [
+        DirtyEntry(type: .weight, day: day("2026-09-20"), fresh: true),
+        DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: true),
+      ])
+  }
+
+  @Test func aFlowOnlyDayIsNotMarkedForSpotting() throws {
+    let store = try LocalStore.inMemory()
+    let flow = makeSample(type: .menstrualFlow, start: "2026-10-12T11:00:00Z", value: .category("medium"))
+    try store.applyChanges(HealthChanges(added: [flow]), for: .menstrualFlow, fallbackTimeZone: saoPaulo)
+    try store.clearDirty(type: .menstrualFlow, day: day("2026-10-12"))
+
+    try store.markAllForRewrite(types: [.menstrualFlow, .spotting])
+
+    #expect(try store.dirtyEntries() == [DirtyEntry(type: .menstrualFlow, day: day("2026-10-12"), fresh: true)])
+  }
+
+  @Test func markAllForRewriteKeepsAStaleMarkStale() throws {
+    let store = try storeWithOneDirtyStepsDay()
+
+    try store.markAllForRewrite(types: [.steps])
+
+    #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
+  }
+
+  @Test func markAllForRewriteSkipsTypesNotEnabled() throws {
+    let store = try storeWithClearedMarks()
+
+    try store.markAllForRewrite(types: [.steps])
+
+    #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: true)])
+  }
+
   @Test func storesTheSleepSourcePreference() throws {
     let store = try LocalStore.inMemory()
     #expect(try store.sleepSourcePreference() == nil)

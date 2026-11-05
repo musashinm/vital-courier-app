@@ -61,6 +61,8 @@ final class AppModel {
   var now = Date()
   var selectedTab: AppTab = .home
   var cycleTrackingEnabled: Bool
+  /// The formats Settings shows as on (Format setting, spec).
+  var exportFormats: Set<ExportFormat>
 
   init(environment: AppEnvironment) {
     self.environment = environment
@@ -68,6 +70,7 @@ final class AppModel {
     sleepSources = SleepSourceModel(environment: environment)
     tipJar = TipJarModel(settings: environment.settings)
     cycleTrackingEnabled = environment.settings.cycleTrackingEnabled
+    exportFormats = environment.settings.exportFormats
     foregroundEntry = ForegroundEntry(
       authorizationRequestStatus: {
         try await environment.health.readAuthorizationRequestStatus(for: environment.enabledTypes)
@@ -140,6 +143,22 @@ final class AppModel {
         ObserverRegistration.update(environment: environment)
       }
       await refreshStatus()
+    }
+  }
+
+  /// The Settings toggle for one export format. The last format on can't be turned off. Turning one on asks for a run: the runner finds the format uncovered at its start and marks every stored day for rewrite, so no Health query is needed. Turning one off only stops its files from updating.
+  func setExportFormat(_ format: ExportFormat, isOn: Bool) {
+    var formats = exportFormats
+    if isOn { formats.insert(format) } else { formats.remove(format) }
+    guard formats != exportFormats, environment.settings.setExportFormats(formats) else { return }
+    exportFormats = formats
+    guard isOn else { return }
+    Task {
+      do {
+        try await requestTrackedAppOpenRun()
+      } catch {
+        statusError = String(describing: error)
+      }
     }
   }
 

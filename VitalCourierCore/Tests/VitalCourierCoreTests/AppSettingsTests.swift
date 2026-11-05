@@ -126,4 +126,45 @@ import Testing
     settings.hasTipped = true
     #expect(AppSettings(storage: storage).hasTipped == true)
   }
+
+  @Test func exportFormatsDefaultsWhenMissingCorruptOrEmpty() {
+    let storage = InMemoryStorage()
+    let settings = AppSettings(storage: storage)
+    #expect(settings.exportFormats == [.json, .markdown])
+    #expect(settings.exportFormatsCovered == [.json, .markdown])
+
+    storage.set(Data("not json".utf8), forKey: AppSettings.Key.exportFormats)
+    #expect(settings.exportFormats == [.json, .markdown])
+
+    storage.set(Data("[]".utf8), forKey: AppSettings.Key.exportFormats)
+    #expect(settings.exportFormats == [.json, .markdown])
+  }
+
+  @Test func unknownFormatValuesAreIgnored() throws {
+    let storage = InMemoryStorage()
+    let settings = AppSettings(storage: storage)
+
+    storage.set(try JSONEncoder().encode(["json", "aFormatFromALaterVersion"]), forKey: AppSettings.Key.exportFormats)
+    #expect(settings.exportFormats == [.json])
+
+    storage.set(try JSONEncoder().encode(["aFormatFromALaterVersion"]), forKey: AppSettings.Key.exportFormats)
+    #expect(settings.exportFormats == [.json, .markdown])
+  }
+
+  @Test func settingNoFormatsIsRefused() {
+    let storage = InMemoryStorage()
+    let settings = AppSettings(storage: storage)
+
+    #expect(settings.setExportFormats([.markdown]))
+    #expect(settings.setExportFormats([]) == false)
+
+    #expect(AppSettings(storage: storage).exportFormats == [.markdown])
+  }
+
+  @Test func coveredFormatsRoundTrip() {
+    let storage = InMemoryStorage()
+    AppSettings(storage: storage).exportFormatsCovered = [.json]
+
+    #expect(AppSettings(storage: storage).exportFormatsCovered == [.json])
+  }
 }

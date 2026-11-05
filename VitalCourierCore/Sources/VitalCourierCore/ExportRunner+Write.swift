@@ -8,11 +8,37 @@ struct DayCounts {
 }
 
 extension ExportRunner {
+
+  /// Marks every stored day for rewrite when a selected format hasn't been covered yet, then saves the selection as covered. Returns false when the marking failed: the run stops there and covered stays, so the next run retries. A format with no writer yet isn't in `formats`, so it is never recorded as covered.
+  func reconcileCoveredFormats(_ formats: Set<ExportFormat>, types: [HealthType], errors: inout [String]) -> Bool {
+    guard !formats.isEmpty else { return true }
+    let covered = coveredExportFormats()
+    if !formats.isSubset(of: covered) {
+      do {
+        try store.markAllForRewrite(types: types)
+      } catch {
+        errors.append("export formats: \(error)")
+        return false
+      }
+    }
+    if formats != covered { setCoveredExportFormats(formats) }
+    return true
+  }
+
+  /// Rebuild all: marks every stored day of `types` dirty and stale.
+  func markAllDirty(statisticsZone: TimeZone, types: [HealthType], errors: inout [String]) {
+    do {
+      try store.markAllDirty(statisticsZone: statisticsZone, types: types)
+    } catch {
+      errors.append("rebuild: \(error)")
+    }
+  }
+
   // swiftlint:disable function_parameter_count - the run passes its once-read settings down
   /// Runs after Verify. A run that can query Health goes month by month, newest first: daily values for the month, then its files, so a cut-short run leaves whole months written (spec, Write as it goes). A run that can't query Health writes everything in one pass.
   func exportStep(
     types: [HealthType], readable: [HealthType], zone: TimeZone, queriesHealth: Bool, writesStaleJSON: Bool,
-    errors: inout [String]
+    formats: Set<ExportFormat>, errors: inout [String]
   ) async -> DayCounts {
     let entries: [DirtyEntry]
     do {
@@ -22,12 +48,16 @@ extension ExportRunner {
       return DayCounts()
     }
     if entries.isEmpty { return DayCounts() }
+    let daysByMonth = Dictionary(grouping: entries, by: { $0.day.monthKey }).mapValues { Set($0.map(\.day)).count }
+    let allDaysCount = Set(entries.map(\.day)).count
+    // Nothing to write (only a format without a writer is selected): the days stay dirty rather than clear with no files.
+    if formats.isEmpty { return DayCounts(pending: allDaysCount) }
     let destination = destination()
     var readmeWritten = true
     if let destination {
       // README first, so a failure can't leave it missing with no dirty state to retry it: on failure the days are still written but no mark clears.
       do {
-        try destination.write(Data(MarkdownWriter.readme.utf8), to: Self.readmePath)
+        try destination.write(Data(MarkdownWriter.readme(formats: formats).utf8), to: Self.readmePath)
       } catch {
         readmeWritten = false
         errors.append("readme: \(error)")
@@ -35,9 +65,7 @@ extension ExportRunner {
     } else {
       errors.append("no folder picked")
     }
-    let daysByMonth = Dictionary(grouping: entries, by: { $0.day.monthKey }).mapValues { Set($0.map(\.day)).count }
     let months: [String?] = queriesHealth ? daysByMonth.keys.sorted(by: >) : [nil]
-    let allDaysCount = Set(entries.map(\.day)).count
     func dayCount(of month: String?) -> Int { month.flatMap { daysByMonth[$0] } ?? allDaysCount }
     var counts = DayCounts()
     var healthRefusedStatistics = false
@@ -56,8 +84,8 @@ extension ExportRunner {
         continue
       }
       let monthCounts = writeStep(
-        types: types, zone: zone, month: month, writesStaleJSON: writesStaleJSON, readmeWritten: readmeWritten,
-        destination: destination, errors: &errors)
+        types: types, zone: zone, month: month, writesStaleJSON: writesStaleJSON, formats: formats,
+        readmeWritten: readmeWritten, destination: destination, errors: &errors)
       counts.written += monthCounts.written
       counts.failed += monthCounts.failed
       counts.pending += monthCounts.pending
@@ -76,10 +104,10 @@ extension ExportRunner {
   }
 
   // swiftlint:disable cyclomatic_complexity function_body_length function_parameter_count - long by design; splitting it is a separate refactor
-  /// Writes the files of the days in `month` (all days when nil) and clears the marks of the days it finished. A stale entry's month JSON is written only when `writesStaleJSON` is set (Rebuild all).
+  /// Writes the files of the days in `month` (all days when nil) in the selected `formats` and clears the marks of the days it finished. A stale entry's month JSON is written only when `writesStaleJSON` is set (Rebuild all). A format that is off writes nothing and counts as done.
   func writeStep(
-    types: [HealthType], zone: TimeZone, month: String?, writesStaleJSON: Bool, readmeWritten: Bool,
-    destination: any ExportDestination, errors: inout [String]
+    types: [HealthType], zone: TimeZone, month: String?, writesStaleJSON: Bool, formats: Set<ExportFormat>,
+    readmeWritten: Bool, destination: any ExportDestination, errors: inout [String]
   ) -> DayCounts {
     let entries: [DirtyEntry]
     do {
@@ -107,7 +135,7 @@ extension ExportRunner {
       for entry in dayEntries {
         let path = Self.jsonPath(type: entry.type, monthKey: day.monthKey)
         // Only Rebuild all rewrites the JSON of a stale entry.
-        if monthFileWritten[path] == nil && (entry.fresh || writesStaleJSON) {
+        if formats.contains(.json) && monthFileWritten[path] == nil && (entry.fresh || writesStaleJSON) {
           do {
             let samples = try store.samples(type: entry.type, month: day.monthKey)
             let data = try JSONWriter.monthFile(
@@ -125,14 +153,16 @@ extension ExportRunner {
         if everyFileWritten { pending += 1 } else { failed += 1 }
         continue
       }
-      do {
-        // Stored cycle keys are kept whatever the switch says, so a note doesn't change with when it was last rewritten.
-        let summary = DailySummary(
-          day: day, values: try store.dailyValues(day: day), cycle: try store.cycleDay(day: day))
-        try destination.write(MarkdownWriter.note(for: summary), to: Self.notePath(day: day))
-      } catch {
-        everyFileWritten = false
-        errors.append("note \(day): \(error)")
+      if formats.contains(.markdown) {
+        do {
+          // Stored cycle keys are kept whatever the switch says, so a note doesn't change with when it was last rewritten.
+          let summary = DailySummary(
+            day: day, values: try store.dailyValues(day: day), cycle: try store.cycleDay(day: day))
+          try destination.write(MarkdownWriter.note(for: summary), to: Self.notePath(day: day))
+        } catch {
+          everyFileWritten = false
+          errors.append("note \(day): \(error)")
+        }
       }
       guard everyFileWritten, readmeWritten else {
         failed += 1

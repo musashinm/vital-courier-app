@@ -67,7 +67,10 @@ final class AppEnvironment: Sendable {
           HealthType.observedTypes(
             enabled: HealthType.enabledTypes(cycleTrackingEnabled: settings.cycleTrackingEnabled),
             askedAbout: settings.healthTypesAskedAbout)
-        }
+        },
+        exportFormats: { settings.exportFormats },
+        coveredExportFormats: { settings.exportFormatsCovered },
+        setCoveredExportFormats: { settings.exportFormatsCovered = $0 }
       )
       return .ready(store: store, coordinator: TriggerCoordinator(runner: runner))
     } catch {
