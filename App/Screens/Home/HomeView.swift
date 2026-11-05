@@ -77,10 +77,13 @@ struct HomeView: View {
     }
     .onChange(of: model.isAppOpenRunActive) { _, isActive in
       // Announce the start and the result once each; never the spinner (design, Accessibility).
-      let announcement =
-        isActive
-        ? String(localized: "Checking for updates") : model.homeSummary.text(formatter: formatter, now: model.now).title
-      AccessibilityNotification.Announcement(announcement).post()
+      if isActive {
+        AccessibilityNotification.Announcement(String(localized: "Checking for updates")).post()
+      } else if model.statusError == nil {
+        // A failed status read leaves the old summary on screen; announcing it would report a stale result.
+        AccessibilityNotification.Announcement(model.homeSummary.text(formatter: formatter, now: model.now).title)
+          .post()
+      }
     }
   }
 }

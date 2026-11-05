@@ -254,29 +254,24 @@ final class AppModel {
     }
   }
 
-  /// Loads the snapshot and the pending count in one detached task and assigns them together, so Home never renders one new and one old.
+  /// Loads the snapshot, the pending protection failure and the pending count in one detached task and assigns them together or not at all, so Home never renders a mix of new and old.
   func refreshStatus() async {
     let environment = self.environment
     let types = enabledTypes
-    let (snapshotResult, pendingDaysResult) = await Task.detached {
-      let snapshotResult = Result {
+    let statusResult = await Task.detached {
+      Result {
         let store = try environment.readyStore()
-        return (try store.statusSnapshot(), store.pendingProtectionFailures().first)
+        return (
+          try store.statusSnapshot(), store.pendingProtectionFailures().first, try store.pendingDayCount(types: types)
+        )
       }
-      let pendingDaysResult = Result { try environment.readyStore().pendingDayCount(types: types) }
-      return (snapshotResult, pendingDaysResult)
     }.value
-    switch snapshotResult {
-    case .success(let (newSnapshot, pendingFailure)):
+    switch statusResult {
+    case .success(let (newSnapshot, pendingFailure, newPendingDayCount)):
       snapshot = newSnapshot
       pendingProtectionFailure = pendingFailure
+      pendingDayCount = newPendingDayCount
       statusError = nil
-    case .failure(let error):
-      statusError = String(describing: error)
-    }
-    switch pendingDaysResult {
-    case .success(let count):
-      pendingDayCount = count
     case .failure(let error):
       statusError = String(describing: error)
     }
