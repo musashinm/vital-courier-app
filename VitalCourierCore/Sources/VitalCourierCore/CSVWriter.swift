@@ -13,26 +13,36 @@ public enum CSVWriter {
     var formatters = JSONWriter.FormatterCache()
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-    var lines = [header]
+    var file = Data()
+    file.reserveCapacity((header.utf8.count + 1) + ordered.count * estimatedRowBytes)
+    file.append(contentsOf: header.utf8)
+    file.append(newline)
     for sample in ordered {
-      let sampleZone = DayAssigner.zone(for: sample, fallback: timeZone)
-      guard let metadata = String(bytes: try encoder.encode(sample.metadata), encoding: .utf8) else {
-        throw CSVWriterError.metadataIsNotUTF8
+      try autoreleasepool {
+        let sampleZone = DayAssigner.zone(for: sample, fallback: timeZone)
+        guard let metadata = String(bytes: try encoder.encode(sample.metadata), encoding: .utf8) else {
+          throw CSVWriterError.metadataIsNotUTF8
+        }
+        let cells = [
+          sample.uuid.uuidString,
+          formatters.string(from: sample.start, in: sampleZone, fractionalSeconds: true),
+          formatters.string(from: sample.end, in: sampleZone, fractionalSeconds: true),
+          valueText(sample.value),
+          type.siUnit,
+          withoutFormulaRisk(sample.source),
+          sample.device.map(withoutFormulaRisk) ?? "",
+          metadata,
+        ]
+        file.append(contentsOf: cells.map(escaped).joined(separator: ",").utf8)
+        file.append(newline)
       }
-      let cells = [
-        sample.uuid.uuidString,
-        formatters.string(from: sample.start, in: sampleZone, fractionalSeconds: true),
-        formatters.string(from: sample.end, in: sampleZone, fractionalSeconds: true),
-        valueText(sample.value),
-        type.siUnit,
-        withoutFormulaRisk(sample.source),
-        sample.device.map(withoutFormulaRisk) ?? "",
-        metadata,
-      ]
-      lines.append(cells.map(escaped).joined(separator: ","))
     }
-    return Data((lines.joined(separator: "\n") + "\n").utf8)
+    return file
   }
+
+  /// A UUID, two timestamps, a number, a unit and a short source and metadata come to about this many bytes.
+  private static let estimatedRowBytes = 160
+  private static let newline = UInt8(ascii: "\n")
 
   private static func valueText(_ value: SampleValue) -> String {
     switch value {
