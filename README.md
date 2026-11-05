@@ -27,7 +27,7 @@ The JSON is an export of each stored sample, with its source name, device name a
 | Export now | An App Intent for Shortcuts. Writes days whose daily values are already saved, without reading HealthKit, so it works on a locked phone. |
 | Rebuild all | In Settings. Rereads every enabled data type and rewrites every day and month the app knows about. The phone must be unlocked for the full rebuild. While it is locked, the HealthKit read is skipped, only the saved monthly JSON files are rewritten, and the daily notes wait until the phone is unlocked. |
 
-An unlocked run works month by month, newest first, writing each month's files before it computes the next, so a run cut short leaves whole months written.
+A run that reads HealthKit works month by month, newest first, writing each month's files before it computes the next, so a run cut short keeps the months it finished.
 
 The History screen lists every run with its trigger and result.
 

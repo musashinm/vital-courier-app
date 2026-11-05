@@ -114,6 +114,27 @@ import Testing
     #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
   }
 
+  @Test(arguments: [("2026-09-05", "2026-09-10"), ("2026-09-20", "2026-09-10")])
+  func aFailedMonthFileCountsTheStaleDayAsPendingWhateverTheDayOrder(staleDay: String, freshDay: String) async throws {
+    let store = try LocalStore.inMemory()
+    for dayText in [staleDay, freshDay] {
+      try store.applyChanges(
+        HealthChanges(added: [makeSample(start: "\(dayText)T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+    }
+    try store.saveDailyValue(DailyValue(value: 1), type: .steps, day: day(freshDay))
+    let health = FakeHealthSource()
+    await health.setReadable(false)
+    let destination = FakeDestination()
+    destination.failWrites(to: stepsJSON)
+
+    let outcome = await makeRunner(store: store, health: health, destination: destination).run(
+      trigger: .appIntent, options: .forTrigger(.appIntent)
+    ) {}
+
+    #expect(outcome.daysFailed == 1)
+    #expect(outcome.daysPending == 1)
+  }
+
   func queueStepsInSeptemberAndAugust(health: FakeHealthSource) async {
     await health.queue(
       HealthChanges(added: [makeSample(start: "2026-08-15T12:00:00Z"), makeSample(start: "2026-09-27T12:00:00Z")]),

@@ -119,7 +119,7 @@ extension ExportRunner {
             errors.append("json \(entry.type.folderName) \(day.monthKey): \(error)")
           }
         }
-        if monthFileWritten[path] == false { everyFileWritten = false }
+        if (entry.fresh || writesStaleJSON) && monthFileWritten[path] == false { everyFileWritten = false }
       }
       guard dayEntries.allSatisfy(\.fresh) else {
         if everyFileWritten { pending += 1 } else { failed += 1 }
