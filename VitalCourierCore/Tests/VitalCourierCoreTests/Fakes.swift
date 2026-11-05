@@ -26,6 +26,9 @@ actor FakeHealthSource: HealthSource {
   var earliestRequestedTypes: [[HealthType]] = []
   var requestedSampleIntervals: [HealthType: [DateInterval]] = [:]
   var cancelOnSamplesCall: (type: HealthType, number: Int)?
+  var refuseStatistics = false
+  var statisticCallCount = 0
+  var cancelOnStatisticCallNumber: Int?
 
   init(log: EventLog = EventLog()) { self.log = log }
 
@@ -35,6 +38,9 @@ actor FakeHealthSource: HealthSource {
   func cancelCurrentTaskOnNextChanges() { cancelOnNextChanges = true }
   /// Cancels the calling task during the given 1-based `samples` call for `type`, the way `cancelCurrentTaskOnNextChanges` does for `changes`.
   func cancelCurrentTaskOnSamplesCall(number: Int, for type: HealthType) { cancelOnSamplesCall = (type, number) }
+  func setRefuseStatistics(_ value: Bool) { refuseStatistics = value }
+  /// Cancels the calling task during the given 1-based `dailyStatistic` call, after it is logged.
+  func cancelCurrentTaskOnStatisticCall(number: Int) { cancelOnStatisticCallNumber = number }
   func setSamples(_ samples: [HealthSample], for type: HealthType) { storedSamples[type] = samples }
   func setStatistic(_ value: Double?, for type: HealthType, day: DayKey) {
     statistics["\(type.rawValue)|\(day)"] = value.map { DailyStatistic(value: $0) }
@@ -80,6 +86,11 @@ actor FakeHealthSource: HealthSource {
   func dailyStatistic(for type: HealthType, day: DayKey, timeZone: TimeZone) throws -> DailyStatistic? {
     let key = "\(type.rawValue)|\(day)"
     log.append("statistic \(key)")
+    statisticCallCount += 1
+    if cancelOnStatisticCallNumber == statisticCallCount {
+      withUnsafeCurrentTask { $0?.cancel() }
+    }
+    if refuseStatistics { throw HealthSourceError.readRefused }
     if failingStatistics.contains(key) { throw FakeWriteError() }
     return statistics[key]
   }

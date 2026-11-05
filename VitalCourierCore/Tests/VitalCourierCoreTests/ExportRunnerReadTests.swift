@@ -199,7 +199,7 @@ import Testing
     #expect(try store.dirtyEntries() == [DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false)])
   }
 
-  @Test func aFreshDirtyEntryGetsItsValueRefreshed() async throws {
+  @Test func aFreshDirtyEntryIsNotQueriedAgain() async throws {
     let store = try LocalStore.inMemory()
     try store.applyChanges(
       HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
@@ -207,11 +207,70 @@ import Testing
     #expect(try store.dirtyEntries().first?.fresh == true)
     let health = FakeHealthSource()
     await health.setStatistic(99, for: .steps, day: day("2026-09-27"))
+    let destination = FakeDestination()
 
-    _ = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake))
-    {}
+    _ = await makeRunner(store: store, health: health, destination: destination).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
 
-    #expect(try store.dailyValues(day: day("2026-09-27"))[.steps] == DailyValue(value: 99))
+    #expect(try store.dailyValues(day: day("2026-09-27"))[.steps] == DailyValue(value: 10))
+    #expect(destination.text(at: "Vital Courier/daily/2026-09-27.md")?.contains("vc_steps: 10") == true)
+    #expect(await health.statisticCallCount == 0)
+  }
+
+  @Test func aRunCutShortDuringDailyValuesDoesNotRepeatFinishedQueries() async throws {
+    let store = try LocalStore.inMemory()
+    try store.applyChanges(
+      HealthChanges(added: [
+        makeSample(start: "2026-09-26T12:00:00Z"), makeSample(start: "2026-09-27T12:00:00Z"),
+      ]), for: .steps, fallbackTimeZone: saoPaulo)
+    let health = FakeHealthSource()
+    await health.setStatistic(100, for: .steps, day: day("2026-09-26"))
+    await health.setStatistic(200, for: .steps, day: day("2026-09-27"))
+    await health.cancelCurrentTaskOnStatisticCall(number: 2)
+    let runner = makeRunner(store: store, health: health)
+
+    // The fake cancels the calling task, so the first run gets its own.
+    await Task { await runner.run(trigger: .observerWake, options: .forTrigger(.observerWake)) {} }.value
+    let firstRunQueries = await health.statisticCallCount
+    _ = await runner.run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+    #expect(firstRunQueries == 2)
+    #expect(
+      Set(try store.dirtyEntries()) == [
+        DirtyEntry(type: .steps, day: day("2026-09-26"), fresh: true),
+        DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: true),
+      ])
+    #expect(try store.dailyValues(day: day("2026-09-27"))[.steps] == DailyValue(value: 200))
+    #expect(health.log.all.filter { $0 == "statistic steps|2026-09-26" }.count == 1)
+  }
+
+  @Test func aRefusedStatisticStopsTheStepWithoutAnErrorPerEntry() async throws {
+    let store = try LocalStore.inMemory()
+    try store.applyChanges(
+      HealthChanges(added: [
+        makeSample(start: "2026-09-25T12:00:00Z"), makeSample(start: "2026-09-26T12:00:00Z"),
+        makeSample(start: "2026-09-27T12:00:00Z"),
+      ]), for: .steps, fallbackTimeZone: saoPaulo)
+    let health = FakeHealthSource()
+    await health.setRefuseStatistics(true)
+    for dayText in ["2026-09-25", "2026-09-26", "2026-09-27"] {
+      await health.setStatistic(5, for: .steps, day: day(dayText))
+    }
+    let runner = makeRunner(store: store, health: health)
+
+    let outcome = await runner.run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+    #expect(!outcome.errors.contains { $0.contains("daily values") })
+    #expect(try store.dirtyEntries().count == 3)
+    #expect(try store.dirtyEntries().allSatisfy { !$0.fresh })
+    #expect(await health.statisticCallCount == 1)
+
+    await health.setRefuseStatistics(false)
+    _ = await runner.run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
+
+    #expect(try store.dirtyEntries().allSatisfy(\.fresh))
+    #expect(try store.dailyValues(day: day("2026-09-26"))[.steps] == DailyValue(value: 5))
   }
 
   @Test func rebuildVerifyRemovesTheEarliestLocalSampleHealthKitDeleted() async throws {
