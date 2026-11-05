@@ -36,6 +36,11 @@ enum RunLabels {
     count == 0 ? localization.string("0 days failed") : localization.string("\(count) days failed")
   }
 
+  /// Home never shows 0 days left (it shows no count then), so unlike the other day counts this one has no zero key.
+  static func daysLeft(_ count: Int, in localization: AppLocalization = .system) -> String {
+    localization.string("\(count) days left")
+  }
+
   static func dayCounts(_ run: RunRecord, in localization: AppLocalization = .system) -> String {
     if run.daysPending > 0 {
       return localization.string("\(run.daysWritten) written · \(run.daysFailed) failed · \(run.daysPending) pending")

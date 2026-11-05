@@ -49,6 +49,12 @@ final class AppModel {
   var statusError: String?
   var awaitingReread = false
   var isAppOpenRunActive = false
+  /// Days with a pending mark for an enabled type. Separate from `snapshot`, which is nil during the first sync.
+  var pendingDayCount = 0
+  /// Runs started by a Settings change (Cycle tracking) that are still in flight, so Home shows the running state during a backfill.
+  private(set) var trackedRunCount = 0
+  /// `requestAppOpenRun` was called while an app-open run was in flight (the phone locked and unlocked during a first sync). The run goes once more when this one finishes.
+  private(set) var appOpenRequestedDuringRun = false
   var maintenance: Maintenance = .idle
   var rebuildError: String?
   var clearError: String?
@@ -77,11 +83,16 @@ final class AppModel {
     }
   }
 
+  /// A run the user can see: app open, Rebuild all, Clear local copy or a tracked Settings change.
+  var isRunActive: Bool {
+    isAppOpenRunActive || maintenance != .idle || trackedRunCount > 0
+  }
+
   var homeSummary: HomeSummary {
     HomeSummary.resolve(
       HomeInputs(
         folder: folderState,
-        isRunActive: isAppOpenRunActive || maintenance != .idle,
+        isRunActive: isRunActive,
         awaitingReread: awaitingReread,
         latestRun: snapshot?.latestRun,
         lastSuccessfulReadAt: snapshot?.lastSuccessfulReadAt,
@@ -89,7 +100,8 @@ final class AppModel {
         now: now,
         pendingProtectionFailure: pendingProtectionFailure,
         latestAppEvent: snapshot?.latestAppEvent,
-        hasStoredHealthValue: snapshot?.hasStoredHealthValue ?? true
+        hasStoredHealthValue: snapshot?.hasStoredHealthValue ?? true,
+        pendingDayCount: pendingDayCount
       ))
   }
 
@@ -115,7 +127,7 @@ final class AppModel {
         ObserverRegistration.update(environment: environment)
         // Through the coordinator, not `requestAppOpenRun`, which returns early while an app-open run is in flight; the coordinator merges this into the next batch.
         do {
-          _ = try await environment.request(.appOpen)
+          try await requestTrackedAppOpenRun()
         } catch {
           statusError = String(describing: error)
         }
@@ -129,6 +141,19 @@ final class AppModel {
       }
       await refreshStatus()
     }
+  }
+
+  /// An app-open run through the coordinator, counted in `trackedRunCount` while it lasts. The pending count is read before the counter drops, so Home never shows "Export paused" for a run that just finished.
+  private func requestTrackedAppOpenRun() async throws {
+    trackedRunCount += 1
+    defer { trackedRunCount -= 1 }
+    do {
+      _ = try await environment.request(.appOpen)
+    } catch {
+      await refreshPendingDays()
+      throw error
+    }
+    await refreshPendingDays()
   }
 
   /// Design §1: resolve the store, the folder and setup before choosing the root; show progress only after 300 ms.
@@ -191,19 +216,38 @@ final class AppModel {
     BackgroundRefresh.submitNextRequest(environment: environment)
   }
 
-  /// Opening the app requests the app-open run; a second one never starts while one is in flight (design §3).
+  /// Opening the app requests the app-open run; a second one never starts while one is in flight (design §3). A request made during a run is remembered and runs once more after it, without Home leaving the running state in between.
   func requestAppOpenRun() {
-    guard phase == .ready, !isAppOpenRunActive else { return }
+    guard phase == .ready else { return }
+    guard !isAppOpenRunActive else {
+      appOpenRequestedDuringRun = true
+      return
+    }
     isAppOpenRunActive = true
     let environment = self.environment
     Task {
-      do {
-        _ = try await environment.request(.appOpen)
-      } catch {
-        statusError = String(describing: error)
-      }
+      repeat {
+        appOpenRequestedDuringRun = false
+        do {
+          _ = try await environment.request(.appOpen)
+        } catch {
+          statusError = String(describing: error)
+        }
+      } while appOpenRequestedDuringRun
+      await refreshPendingDays()
       isAppOpenRunActive = false
       await refreshStatus()
+    }
+  }
+
+  /// Re-reads how many days are still pending, for Home's "N days left".
+  func refreshPendingDays() async {
+    let environment = self.environment
+    let types = enabledTypes
+    do {
+      pendingDayCount = try await Task.detached { try environment.readyStore().pendingDayCount(types: types) }.value
+    } catch {
+      statusError = String(describing: error)
     }
   }
 
@@ -220,6 +264,7 @@ final class AppModel {
     } catch {
       statusError = String(describing: error)
     }
+    await refreshPendingDays()
     folderState = environment.folderAccess.state
     awaitingReread = environment.settings.awaitingRereadAfterClear
     now = Date()

@@ -11,6 +11,26 @@
         }
       }
     },
+    "%@. Keep Vital Courier open and this iPhone unlocked to finish sooner." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. Deixe o Vital Courier aberto e o iPhone desbloqueado para terminar mais rápido."
+          }
+        }
+      }
+    },
+    "%@. Open Vital Courier with this iPhone unlocked to finish." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@. Abra o Vital Courier com o iPhone desbloqueado para terminar."
+          }
+        }
+      }
+    },
     "%@ %@" : {
       "localizations" : {
         "en" : {
@@ -55,6 +75,46 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld dias falharam"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld days left" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day left"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days left"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Falta %lld dia"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Faltam %lld dias"
                 }
               }
             }
@@ -946,6 +1006,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exportar agora"
+          }
+        }
+      }
+    },
+    "Export paused" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportação pausada"
           }
         }
       }
