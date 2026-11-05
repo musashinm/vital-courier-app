@@ -901,6 +901,16 @@
         }
       }
     },
+    "CSV" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CSV"
+          }
+        }
+      }
+    },
     "Cycle tracking" : {
       "localizations" : {
         "pt-BR" : {

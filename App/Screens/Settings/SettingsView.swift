@@ -55,6 +55,7 @@ struct SettingsView: View {
       Section {
         formatToggle("JSON", format: .json)
         formatToggle("Daily Markdown", format: .markdown)
+        formatToggle("CSV", format: .csv)
       } header: {
         Text("Export formats").foregroundStyle(Color.vcTertiaryText)
       } footer: {

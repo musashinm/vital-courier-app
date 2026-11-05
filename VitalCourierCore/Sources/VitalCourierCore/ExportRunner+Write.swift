@@ -104,7 +104,7 @@ extension ExportRunner {
   }
 
   // swiftlint:disable cyclomatic_complexity function_body_length function_parameter_count - long by design; splitting it is a separate refactor
-  /// Writes the files of the days in `month` (all days when nil) in the selected `formats` and clears the marks of the days it finished. A stale entry's month JSON is written only when `writesStaleJSON` is set (Rebuild all). A format that is off writes nothing and counts as done.
+  /// Writes the files of the days in `month` (all days when nil) in the selected `formats` and clears the marks of the days it finished. A stale entry's month files (JSON and CSV) are written only when `writesStaleJSON` is set (Rebuild all). A format that is off writes nothing and counts as done.
   func writeStep(
     types: [HealthType], zone: TimeZone, month: String?, writesStaleJSON: Bool, formats: Set<ExportFormat>,
     readmeWritten: Bool, destination: any ExportDestination, errors: inout [String]
@@ -118,7 +118,7 @@ extension ExportRunner {
     }
     let entriesByDay = Dictionary(grouping: entries, by: \.day)
     let generatedAt = now()
-    var monthFileWritten: [String: Bool] = [:]
+    var progress = MonthFileProgress()
     var written = 0
     var failed = 0
     var pending = 0
@@ -133,21 +133,16 @@ extension ExportRunner {
       }
       var everyFileWritten = true
       for entry in dayEntries {
-        let path = Self.jsonPath(type: entry.type, monthKey: day.monthKey)
-        // Only Rebuild all rewrites the JSON of a stale entry.
-        if formats.contains(.json) && monthFileWritten[path] == nil && (entry.fresh || writesStaleJSON) {
-          do {
-            let samples = try store.samples(type: entry.type, month: day.monthKey)
-            let data = try JSONWriter.monthFile(
-              type: entry.type, monthKey: day.monthKey, samples: samples, timeZone: zone, generatedAt: generatedAt)
-            try destination.write(data, to: path)
-            monthFileWritten[path] = true
-          } catch {
-            monthFileWritten[path] = false
-            errors.append("json \(entry.type.folderName) \(day.monthKey): \(error)")
-          }
+        writeMonthFiles(
+          for: entry, monthKey: day.monthKey, formats: formats, writesStaleFiles: writesStaleJSON, zone: zone,
+          generatedAt: generatedAt, destination: destination, progress: &progress, errors: &errors)
+        let paths = [
+          formats.contains(.json) ? Self.jsonPath(type: entry.type, monthKey: day.monthKey) : nil,
+          formats.contains(.csv) ? Self.csvPath(type: entry.type, monthKey: day.monthKey) : nil,
+        ]
+        if (entry.fresh || writesStaleJSON) && paths.contains(where: { $0.map(progress.failed) ?? false }) {
+          everyFileWritten = false
         }
-        if (entry.fresh || writesStaleJSON) && monthFileWritten[path] == false { everyFileWritten = false }
       }
       guard dayEntries.allSatisfy(\.fresh) else {
         if everyFileWritten { pending += 1 } else { failed += 1 }
