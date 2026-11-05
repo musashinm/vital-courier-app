@@ -115,6 +115,29 @@ import Testing
     #expect(output.contains(",12345.5,count,"))
   }
 
+  @Test(arguments: ["=asleep", "+asleep", "-asleep", "@asleep"])
+  func categoryTextIsNeverPrefixed(name: String) throws {
+    let sample = makeSample(type: .sleep, start: "2026-09-27T12:00:00Z", value: .category(name))
+
+    #expect(row(try lines([sample], type: .sleep), 1).contains(",\(name),category,"))
+  }
+
+  @Test(arguments: [8412.0, 1e100, 1e-100, 123_456_789_012.5, -0.000_001])
+  func numbersUseDoubleDescriptionAndKeepTheJSONValue(number: Double) throws {
+    let sample = makeSample(start: "2026-09-27T12:00:00Z", value: .quantity(number))
+    let json = try #require(
+      try JSONSerialization.jsonObject(
+        with: try JSONWriter.monthFile(
+          type: .steps, monthKey: "2026-09", samples: [sample], timeZone: saoPaulo,
+          generatedAt: date("2026-09-30T15:00:00Z")))
+        as? [String: Any])
+    let entry = try #require((json["samples"] as? [[String: Any]])?.first)
+    let jsonNumber = try #require(entry["value"] as? Double)
+
+    #expect(row(try lines([sample]), 1).contains(",\(number.description),count,"))
+    #expect(jsonNumber == number)
+  }
+
   @Test func theFileHasNoByteOrderMark() throws {
     let data = try CSVWriter.monthFile(type: .steps, samples: [], timeZone: saoPaulo)
 
