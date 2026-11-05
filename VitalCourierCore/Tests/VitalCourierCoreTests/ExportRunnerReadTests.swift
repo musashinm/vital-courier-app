@@ -233,6 +233,15 @@ import Testing
     // The fake cancels the calling task, so the first run gets its own.
     await Task { await runner.run(trigger: .observerWake, options: .forTrigger(.observerWake)) {} }.value
     let firstRunQueries = await health.statisticCallCount
+
+    // Cancelled mid-query: the value that query returned is not saved, so that entry stays non-fresh.
+    #expect(
+      Set(try store.dirtyEntries()) == [
+        DirtyEntry(type: .steps, day: day("2026-09-26"), fresh: true),
+        DirtyEntry(type: .steps, day: day("2026-09-27"), fresh: false),
+      ])
+    #expect(try store.dailyValues(day: day("2026-09-27"))[.steps] == nil)
+
     _ = await runner.run(trigger: .observerWake, options: .forTrigger(.observerWake)) {}
 
     #expect(firstRunQueries == 2)
@@ -271,6 +280,22 @@ import Testing
 
     #expect(try store.dirtyEntries().allSatisfy(\.fresh))
     #expect(try store.dailyValues(day: day("2026-09-26"))[.steps] == DailyValue(value: 5))
+  }
+
+  @Test func theDailyValuesStepReturnsFalseWhenHealthKitRefusesAStatisticsQuery() async throws {
+    let store = try LocalStore.inMemory()
+    try store.applyChanges(
+      HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps, fallbackTimeZone: saoPaulo)
+    let health = FakeHealthSource()
+    await health.setRefuseStatistics(true)
+    let runner = makeRunner(store: store, health: health)
+    var errors: [String] = []
+
+    let finished = await runner.dailyValuesStep(
+      types: [.steps], readable: [.steps], zone: saoPaulo, errors: &errors)
+
+    #expect(finished == false)
+    #expect(errors.isEmpty)
   }
 
   @Test func rebuildVerifyRemovesTheEarliestLocalSampleHealthKitDeleted() async throws {
