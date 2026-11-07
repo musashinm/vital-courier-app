@@ -52,6 +52,29 @@ import VitalCourierCore
     }
   }
 
+  /// The one fallback pattern section 6 may document besides the catalog names.
+  static let unknownFallbackToken = "unknown(<n>)"
+
+  /// Backticked words section 6 uses as prose (the field name and the unit), not as category values.
+  static let proseTokens: Set<String> = ["category", "value"]
+
+  @Test func section6DocumentsTheUnknownFallback() throws {
+    let section = try Self.sectionSix(try Self.schemaDocument())
+    let tokens = section.flatMap { $0.matches(of: /`([^`]+)`/).map { String($0.output.1) } }
+    #expect(
+      tokens.contains(Self.unknownFallbackToken),
+      "section 6 no longer documents \(Self.unknownFallbackToken)")
+
+    let allowed = Set(Self.categoryTypes.flatMap { Self.catalog($0).map(\.name) })
+      .union([Self.unknownFallbackToken])
+      .union(Self.proseTokens)
+    for token in tokens {
+      #expect(
+        allowed.contains(token),
+        "section 6 documents `\(token)`, which is neither a catalog name nor the fallback")
+    }
+  }
+
   @Test func mappingRoundTripsTheCatalog() {
     for type in Self.categoryTypes {
       for entry in Self.catalog(type) {
