@@ -941,6 +941,16 @@
         }
       }
     },
+    "Data read" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dados lidos"
+          }
+        }
+      }
+    },
     "Days failed" : {
       "localizations" : {
         "pt-BR" : {
@@ -1422,6 +1432,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nenhum dado de saúde ainda"
+          }
+        }
+      }
+    },
+    "No new data" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum dado novo"
           }
         }
       }
