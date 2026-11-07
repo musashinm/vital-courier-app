@@ -177,4 +177,4 @@ The `README.md` in the export folder belongs to the app and is rewritten on ever
 
 Changelog:
 
-- `1` (2026-11-07, app 0.3.13): first published version. It describes what the app has written since 0.3.11.
+- `1` (2026-11-07, app 0.3.12): first published version. It describes what the app has written since 0.3.11.
