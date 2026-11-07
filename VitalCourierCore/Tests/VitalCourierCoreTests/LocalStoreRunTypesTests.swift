@@ -30,7 +30,11 @@ import Testing
     let runs = try store.recentRuns(limit: 10)
     #expect(runs.count == 2)
     let appEvent = try #require(runs.first { $0.trigger == "appEvent" })
+    #expect(appEvent.startedAt == Date(timeIntervalSince1970: 1_790_000_100))
     #expect(appEvent.readOutcome == "notRequested")
+    #expect(appEvent.daysWritten == 0)
+    #expect(appEvent.daysFailed == 0)
+    #expect(appEvent.daysPending == 0)
     #expect(appEvent.errors == ["file protection: x"])
     #expect(appEvent.changedTypes == nil)
     let appOpen = try #require(runs.first { $0.trigger == "appOpen" })
@@ -73,6 +77,13 @@ import Testing
       )
     }
 
-    #expect(throws: LocalStoreError.self) { try store.recentRuns(limit: 1) }
+    do {
+      _ = try store.recentRuns(limit: 1)
+      Issue.record("expected recentRuns to throw")
+    } catch LocalStoreError.corruptRow(let detail) {
+      #expect(detail == "runRecord changedTypes [\"nonsense\"]")
+    } catch {
+      Issue.record("expected LocalStoreError.corruptRow, got \(error)")
+    }
   }
 }
