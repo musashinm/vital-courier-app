@@ -41,6 +41,7 @@ public final class ExportRunner: Sendable {
     self.setCoveredExportFormats = setCoveredExportFormats
   }
 
+  // swiftlint:disable function_body_length - the run's steps share one once-read context; splitting it is a separate refactor
   /// `onReadCommitted` is called exactly once, right after the read step, whether it read, was skipped or failed. The HealthKit observer completion handler goes here, never after file writes.
   public func run(trigger: Trigger, options: RunOptions, onReadCommitted: @escaping @Sendable () -> Void) async
     -> RunOutcome
@@ -53,13 +54,17 @@ public final class ExportRunner: Sendable {
     // Read once, so a format turned on mid-run can't have marks cleared without its files.
     let formats = exportFormats().intersection(ExportFormat.writable)
     var errors: [String] = []
+    // Types whose batch was committed by the read or Verify step; outer scope so both steps add to it.
+    var committedTypes: Set<HealthType> = []
+    var readStepRan = false
     var readOutcome = ReadOutcome.notRequested
     let formatsReconciled = reconcileCoveredFormats(formats, types: types, errors: &errors)
     // Rebuild all marks every stored day dirty first, so it works even while HealthKit is locked.
     if formatsReconciled && options.markAllDirty { markAllDirty(statisticsZone: zone, types: types, errors: &errors) }
     if formatsReconciled && options.read {
       if await health.isReadable() {
-        readOutcome = await readStep(types: readable, zone: zone, errors: &errors)
+        readStepRan = true
+        readOutcome = await readStep(types: readable, zone: zone, changedTypes: &committedTypes, errors: &errors)
       } else {
         readOutcome = .skippedLocked
       }
@@ -68,8 +73,11 @@ public final class ExportRunner: Sendable {
     // HealthKit was readable for this run, even when one type's read failed part way.
     let healthWasReadable = readOutcome == .read || readOutcome == .failed
     if healthWasReadable {
-      await verifyStep(scope: options.verify, types: readable, zone: zone, errors: &errors)
+      await verifyStep(
+        scope: options.verify, types: readable, zone: zone, changedTypes: &committedTypes, errors: &errors)
     }
+    // A run cancelled before committing anything never checked most types, so it can't claim "nothing new".
+    let changedTypes = readStepRan && !(Task.isCancelled && committedTypes.isEmpty) ? Array(committedTypes) : nil
     var counts = DayCounts()
     if formatsReconciled {
       counts = await exportStep(
@@ -87,7 +95,8 @@ public final class ExportRunner: Sendable {
           daysWritten: counts.written,
           daysFailed: counts.failed,
           daysPending: counts.pending,
-          errors: errors
+          errors: errors,
+          changedTypes: changedTypes
         )
       }
     } catch {
@@ -97,34 +106,13 @@ public final class ExportRunner: Sendable {
       readOutcome: readOutcome, daysWritten: counts.written, daysFailed: counts.failed, daysPending: counts.pending,
       errors: errors)
   }
-
-  func readStep(types: [HealthType], zone: TimeZone, errors: inout [String]) async -> ReadOutcome {
-    do {
-      for type in types {
-        var hasMore = true
-        while hasMore {
-          if Task.isCancelled { return .read }
-          let anchor = try store.anchor(for: type)
-          let changes = try await health.changes(for: type, since: anchor)
-          if changes.hasMore && (changes.newAnchor == nil || changes.newAnchor == anchor) {
-            throw HealthSourceError.anchorDidNotAdvance(type)
-          }
-          // Each batch commits with its anchor (spec, Data flow 1.2), so an expired run keeps what it read.
-          try store.applyChanges(changes, for: type, fallbackTimeZone: zone)
-          hasMore = changes.hasMore
-        }
-      }
-      return .read
-    } catch HealthSourceError.readRefused {
-      return .skippedLocked
-    } catch {
-      errors.append("read: \(error)")
-      return .failed
-    }
-  }
+  // swiftlint:enable function_body_length
 
   /// Catches deletions HealthKit dropped before the app saw them, within the scope only.
-  func verifyStep(scope: VerifyScope, types: [HealthType], zone: TimeZone, errors: inout [String]) async {
+  func verifyStep(
+    scope: VerifyScope, types: [HealthType], zone: TimeZone, changedTypes: inout Set<HealthType>,
+    errors: inout [String]
+  ) async {
     let end = now()
     let start: Date
     do {
@@ -158,6 +146,7 @@ public final class ExportRunner: Sendable {
           if missing.isEmpty && removed.isEmpty { continue }
           try store.applyChanges(
             HealthChanges(added: missing, deletedUUIDs: Array(removed)), for: type, fallbackTimeZone: zone)
+          changedTypes.insert(type)
         } catch {
           errors.append("verify \(type.rawValue): \(error)")
         }

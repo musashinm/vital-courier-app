@@ -22,6 +22,7 @@ actor FakeHealthSource: HealthSource {
   var statistics: [String: DailyStatistic] = [:]
   var failingStatistics: Set<String> = []
   var failingChangeTypes: Set<HealthType> = []
+  var refusingChangeTypes: Set<HealthType> = []
   var earliest: Date?
   var earliestRequestedTypes: [[HealthType]] = []
   var requestedSampleIntervals: [HealthType: [DateInterval]] = [:]
@@ -50,12 +51,13 @@ actor FakeHealthSource: HealthSource {
   }
   func failStatistic(for type: HealthType, day: DayKey) { failingStatistics.insert("\(type.rawValue)|\(day)") }
   func failChanges(for type: HealthType) { failingChangeTypes.insert(type) }
+  func refuseChanges(for type: HealthType) { refusingChangeTypes.insert(type) }
   func setEarliest(_ value: Date?) { earliest = value }
 
   func isReadable() -> Bool { readable }
 
   func changes(for type: HealthType, since anchor: Data?) throws -> HealthChanges {
-    if refuseReads { throw HealthSourceError.readRefused }
+    if refuseReads || refusingChangeTypes.contains(type) { throw HealthSourceError.readRefused }
     if failingChangeTypes.contains(type) { throw FakeWriteError() }
     log.append("changes \(type.rawValue)")
     receivedAnchors[type, default: []].append(anchor)
