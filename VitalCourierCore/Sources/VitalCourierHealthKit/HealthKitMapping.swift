@@ -70,25 +70,43 @@ public enum HealthKitMapping {
     return quantity.doubleValue(for: unit)
   }
 
+  /// Every named category value the app exports, with HealthKit's raw integer. A raw value missing here comes out as `unknown(<n>)`. Documented in `SCHEMA.md` §6.
+  public static let categoryValueCatalog: [HealthType: [(rawValue: Int, name: String)]] = [
+    .sleep: [
+      (HKCategoryValueSleepAnalysis.inBed.rawValue, "inBed"),
+      (HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue, "asleepUnspecified"),
+      (HKCategoryValueSleepAnalysis.awake.rawValue, "awake"),
+      (HKCategoryValueSleepAnalysis.asleepCore.rawValue, "asleepCore"),
+      (HKCategoryValueSleepAnalysis.asleepDeep.rawValue, "asleepDeep"),
+      (HKCategoryValueSleepAnalysis.asleepREM.rawValue, "asleepREM"),
+    ],
+    .menstrualFlow: [
+      (HKCategoryValueVaginalBleeding.unspecified.rawValue, "unspecified"),
+      (HKCategoryValueVaginalBleeding.light.rawValue, "light"),
+      (HKCategoryValueVaginalBleeding.medium.rawValue, "medium"),
+      (HKCategoryValueVaginalBleeding.heavy.rawValue, "heavy"),
+      (HKCategoryValueVaginalBleeding.none.rawValue, "none"),
+    ],
+    .spotting: [
+      (HKCategoryValue.notApplicable.rawValue, "notApplicable")
+    ],
+  ]
+
+  private static func categoryValueName(rawValue: Int, catalogType: HealthType) -> String {
+    let match = categoryValueCatalog[catalogType]?.first { $0.rawValue == rawValue }
+    return match?.name ?? "unknown(\(rawValue))"
+  }
+
   /// The strings `SleepAggregator` and the JSON use.
   public static func sleepValueName(rawValue: Int) -> String {
-    guard let value = HKCategoryValueSleepAnalysis(rawValue: rawValue) else { return "unknown(\(rawValue))" }
-    switch value {
-    case .inBed: return "inBed"
-    case .asleepUnspecified: return "asleepUnspecified"
-    case .awake: return "awake"
-    case .asleepCore: return "asleepCore"
-    case .asleepDeep: return "asleepDeep"
-    case .asleepREM: return "asleepREM"
-    @unknown default: return "unknown(\(rawValue))"
-    }
+    categoryValueName(rawValue: rawValue, catalogType: .sleep)
   }
 
   /// The string a category sample is stored and exported as. Only category types reach this.
   public static func categoryValueName(rawValue: Int, for type: HealthType) -> String {
     switch type {
     case .menstrualFlow: menstrualFlowValueName(rawValue: rawValue)
-    case .spotting: rawValue == HKCategoryValue.notApplicable.rawValue ? "notApplicable" : "unknown(\(rawValue))"
+    case .spotting: categoryValueName(rawValue: rawValue, catalogType: .spotting)
     case .steps, .exerciseMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate,
       .bloodGlucose, .bloodOxygen, .sleep, .weight:
       sleepValueName(rawValue: rawValue)
@@ -97,15 +115,7 @@ public enum HealthKitMapping {
 
   /// The strings the cycle daily rule and the JSON use (Cycle Tracking Spec, Types).
   public static func menstrualFlowValueName(rawValue: Int) -> String {
-    guard let value = HKCategoryValueVaginalBleeding(rawValue: rawValue) else { return "unknown(\(rawValue))" }
-    switch value {
-    case .unspecified: return "unspecified"
-    case .light: return "light"
-    case .medium: return "medium"
-    case .heavy: return "heavy"
-    case HKCategoryValueVaginalBleeding.none: return "none"
-    @unknown default: return "unknown(\(rawValue))"
-    }
+    categoryValueName(rawValue: rawValue, catalogType: .menstrualFlow)
   }
 
   public static func stringMetadata(_ metadata: [String: Any]?) -> [String: String] {
