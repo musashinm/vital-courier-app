@@ -135,6 +135,7 @@ import Testing
 
   @Test(arguments: [
     Set<ExportFormat>([.json]), [.markdown], [.csv], [.json, .markdown], [.json, .markdown, .csv],
+    [.json, .csv], [.markdown, .csv],
   ])
   func readmeLinksToTheSchema(formats: Set<ExportFormat>) {
     let readme = MarkdownWriter.readme(formats: formats)
