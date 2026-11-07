@@ -35,10 +35,12 @@ public struct RunRecord: Equatable, Sendable {
   public var daysFailed: Int
   public var daysPending: Int
   public var errors: [String]
+  /// The types this run committed changes for (Run Detail Types Plan, Decision 5). nil when the read step never ran, and on every row saved before v4-runRecordTypes; an empty array when it ran and found nothing new.
+  public var changedTypes: [HealthType]?
 
   public init(
     startedAt: Date, trigger: String, readOutcome: String, daysWritten: Int, daysFailed: Int, daysPending: Int,
-    errors: [String], id: Int64? = nil
+    errors: [String], changedTypes: [HealthType]? = nil, id: Int64? = nil
   ) {
     self.id = id
     self.startedAt = startedAt
@@ -48,6 +50,7 @@ public struct RunRecord: Equatable, Sendable {
     self.daysFailed = daysFailed
     self.daysPending = daysPending
     self.errors = errors
+    self.changedTypes = changedTypes
   }
 }
 
@@ -251,15 +254,21 @@ extension LocalStore {
   public func appendRun(_ record: RunRecord) throws {
     // swiftlint:disable:next optional_data_string_conversion - our own JSONEncoder output is always valid UTF-8
     let errorsJSON = String(decoding: try JSONEncoder().encode(record.errors), as: UTF8.self)
+    let changedTypesJSON: String? = try record.changedTypes.map { types in
+      let sortedRawValues = HealthType.allCases.filter(Set(types).contains).map(\.rawValue)
+      // swiftlint:disable:next optional_data_string_conversion - our own JSONEncoder output is always valid UTF-8
+      return String(decoding: try JSONEncoder().encode(sortedRawValues), as: UTF8.self)
+    }
     try write { db in
       try db.execute(
         sql: """
-          INSERT INTO runRecord (startedAt, triggerName, readOutcome, daysWritten, daysFailed, daysPending, errors)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO runRecord (startedAt, triggerName, readOutcome, daysWritten, daysFailed, daysPending, errors, changedTypes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
           """,
         arguments: [
           record.startedAt.timeIntervalSince1970, record.trigger, record.readOutcome,
           record.daysWritten, record.daysFailed, record.daysPending, errorsJSON,
+          changedTypesJSON,
         ])
     }
   }
@@ -271,6 +280,15 @@ extension LocalStore {
   static func runRecord(from row: Row) throws -> RunRecord {
     let errorsText: String = row["errors"]
     let startedAt: Double = row["startedAt"]
+    let changedTypesText: String? = row["changedTypes"]
+    let changedTypes: [HealthType]? = try changedTypesText.map { text in
+      try JSONDecoder().decode([String].self, from: Data(text.utf8)).map { rawValue in
+        guard let type = HealthType(rawValue: rawValue) else {
+          throw LocalStoreError.corruptRow("runRecord changedTypes \(text)")
+        }
+        return type
+      }
+    }
     return RunRecord(
       startedAt: Date(timeIntervalSince1970: startedAt),
       trigger: row["triggerName"],
@@ -279,6 +297,7 @@ extension LocalStore {
       daysFailed: row["daysFailed"],
       daysPending: row["daysPending"],
       errors: try JSONDecoder().decode([String].self, from: Data(errorsText.utf8)),
+      changedTypes: changedTypes,
       id: row["id"]
     )
   }
