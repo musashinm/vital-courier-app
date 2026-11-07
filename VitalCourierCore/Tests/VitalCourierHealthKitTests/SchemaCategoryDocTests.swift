@@ -29,23 +29,26 @@ import VitalCourierCore
     HealthKitMapping.categoryValueCatalog[type] ?? []
   }
 
+  /// The label each value list starts with in section 6. Other backticked words in section 6 are prose.
+  static let documentedLabels: [(label: String, type: HealthType)] = [
+    ("Sleep:", .sleep), ("Menstrual flow:", .menstrualFlow), ("Spotting:", .spotting),
+  ]
+
   @Test func catalogMatchesSection6() throws {
     #expect(Set(HealthKitMapping.categoryValueCatalog.keys) == Set(Self.categoryTypes))
     let section = try Self.sectionSix(try Self.schemaDocument())
-    let text = section.joined(separator: "\n")
-    let catalogNames = Set(Self.categoryTypes.flatMap { Self.catalog($0).map(\.name) })
 
-    for name in catalogNames {
-      #expect(text.contains("`\(name)`"), "section 6 does not document the category value \(name)")
-    }
-    // The value lists are the lines that start with a type label. Other backticked words in section 6 are prose.
-    let valueLines = section.filter {
-      $0.hasPrefix("Sleep:") || $0.hasPrefix("Menstrual flow:") || $0.hasPrefix("Spotting:")
-    }
-    #expect(valueLines.count == Self.categoryTypes.count)
-    let documented = Set(valueLines.flatMap { $0.matches(of: /`([^`]+)`/).map { String($0.output.1) } })
-    for token in documented where token != "unknown(<n>)" {
-      #expect(catalogNames.contains(token), "section 6 lists \(token), which the catalog does not have")
+    for (label, type) in Self.documentedLabels {
+      let lines = section.filter { $0.hasPrefix(label) }
+      #expect(lines.count == 1, "section 6 has \(lines.count) lines labelled \(label), expected 1")
+      let documented = Set(
+        lines.flatMap { $0.matches(of: /`([^`]+)`/).map { String($0.output.1) } })
+      let catalogNames = Set(Self.catalog(type).map(\.name))
+      #expect(!catalogNames.isEmpty, "the catalog has no values for \(type)")
+      #expect(!documented.isEmpty, "the \(label) line documents no values")
+      #expect(
+        documented == catalogNames,
+        "\(label) documents \(documented.sorted()) but the catalog has \(catalogNames.sorted())")
     }
   }
 
