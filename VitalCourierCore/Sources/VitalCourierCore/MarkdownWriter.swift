@@ -64,8 +64,6 @@ public struct DailySummary: Equatable, Sendable {
 }
 
 public enum MarkdownWriter {
-  public static let schemaVersion = 1
-
   /// The folder README. It lists only the formats the app writes now.
   public static func readme(formats: Set<ExportFormat>) -> String {
     var lines = [
@@ -85,8 +83,41 @@ public enum MarkdownWriter {
         "- `csv/<type>/<YYYY-MM>.csv` holds the same samples as the JSON file, one row each, with a header row. Excel in some languages, Brazilian Portuguese among them, may put everything in one column or garble accents; Numbers, Google Sheets and pandas read it fine."
       )
     }
+    lines.append("")
+    lines.append(
+      "Every file name, property and field is described in https://github.com/musashinm/vital-courier-app/blob/main/SCHEMA.md."
+    )
     return lines.joined(separator: "\n") + "\n"
   }
+
+  /// Every key a daily note can emit, in file order. Adding a key to `note(for:)` means adding it here and to `SCHEMA.md`.
+  public static let frontmatterKeys: [String] = [
+    "date",
+    "vc_steps",
+    "vc_exercise_minutes",
+    "vc_resting_hr_bpm",
+    "vc_walking_hr_avg",
+    "vc_hr_avg",
+    "vc_hr_min",
+    "vc_hr_max",
+    "vc_respiratory_rate",
+    "vc_respiratory_rate_min",
+    "vc_respiratory_rate_max",
+    "vc_glucose_mg_dl",
+    "vc_glucose_mg_dl_min",
+    "vc_glucose_mg_dl_max",
+    "vc_blood_oxygen_pct_min",
+    "vc_blood_oxygen_pct_max",
+    "vc_sleep_hours",
+    "vc_sleep_deep_hours",
+    "vc_sleep_rem_hours",
+    "vc_sleep_source",
+    "vc_weight_kg",
+    "vc_menstrual_flow",
+    "vc_period_start",
+    "vc_spotting",
+    "vc_schema",
+  ]
 
   // swiftlint:disable:next cyclomatic_complexity - many simple branches; splitting it is a separate refactor
   public static func note(for summary: DailySummary) -> Data {
@@ -120,7 +151,7 @@ public enum MarkdownWriter {
     if let flow = summary.menstrualFlow { lines.append("vc_menstrual_flow: \(flow)") }
     if summary.periodStart { lines.append("vc_period_start: true") }
     if summary.spotting { lines.append("vc_spotting: true") }
-    lines.append("vc_schema: \(schemaVersion)")
+    lines.append("vc_schema: \(ExportSchema.version)")
     lines.append("---")
     return Data((lines.joined(separator: "\n") + "\n").utf8)
   }

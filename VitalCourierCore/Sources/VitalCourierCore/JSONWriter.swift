@@ -5,8 +5,6 @@ public enum JSONWriterError: Error, Equatable {
 }
 
 public enum JSONWriter {
-  public static let schemaVersion = 1
-
   struct MonthFile: Encodable {
     let schemaVersion: Int
     let type: String
@@ -61,7 +59,7 @@ public enum JSONWriter {
     let ordered = samples.sorted { ($0.start, $0.uuid.uuidString) < ($1.start, $1.uuid.uuidString) }
     var formatters = FormatterCache()
     let file = MonthFile(
-      schemaVersion: schemaVersion,
+      schemaVersion: ExportSchema.version,
       type: type.rawValue,
       unit: type.siUnit,
       period: Period(
