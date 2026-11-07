@@ -233,6 +233,13 @@ public final class LocalStore: Sendable {
           ALTER TABLE dailyValue ADD COLUMN maxValue REAL;
           """)
     }
+    // Run Detail Types Plan, Decision 5: the types a run committed changes for, as a JSON array of HealthType raw values; NULL when the read step never ran and on every row from before this migration. SQL inlined on purpose: later code must never change what this migration does.
+    migrator.registerMigration("v4-runRecordTypes") { db in
+      try db.execute(
+        sql: """
+          ALTER TABLE runRecord ADD COLUMN changedTypes TEXT;
+          """)
+    }
     return migrator
   }
 

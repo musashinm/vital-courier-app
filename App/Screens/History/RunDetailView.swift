@@ -21,6 +21,7 @@ struct RunDetailView: View {
       Section {
         DetailRow(label: "Read", value: RunLabels.readOutcome(run.readOutcome))
       }
+      DataReadSection(dataRead: RunDataRead(run: run))
       Section {
         DetailRow(label: "Days written", value: "\(run.daysWritten)")
         DetailRow(label: "Days failed", value: "\(run.daysFailed)")
@@ -71,6 +72,37 @@ struct RunDetailView: View {
         hasPickedFolderHere = true
         model.folderSave = .failed(errorText: $0)
       })
+  }
+}
+
+/// The types this run committed changes for (Run Detail Types Plan, Decision 6).
+private struct DataReadSection: View {
+  let dataRead: RunDataRead
+
+  var body: some View {
+    switch dataRead {
+    case .hidden:
+      EmptyView()
+    case .noNewData:
+      Section {
+        Text("No new data").foregroundStyle(Color.vcPrimaryText)
+      } header: {
+        Text("Data read").foregroundStyle(Color.vcTertiaryText)
+      }
+    case .types(let types):
+      Section {
+        ForEach(types, id: \.self) { type in
+          SymbolTextRow {
+            SymbolImage(type.symbolName, size: SymbolSize.row, color: .vcSecondaryText)
+              .accessibilityHidden(true)
+            Text(type.displayName).foregroundStyle(Color.vcPrimaryText)
+          }
+          .accessibilityElement(children: .combine)
+        }
+      } header: {
+        Text("Data read").foregroundStyle(Color.vcTertiaryText)
+      }
+    }
   }
 }
 

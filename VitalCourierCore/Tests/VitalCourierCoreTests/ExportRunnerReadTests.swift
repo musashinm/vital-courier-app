@@ -689,4 +689,209 @@ import Testing
     // The old stored value is left alone for the run that can read the type again.
     #expect(try store.dailyValues(day: day("2026-09-27"))[.exerciseMinutes] == DailyValue(value: 30))
   }
+
+  // MARK: Changed types on the run record
+
+  func lastRecord(_ store: LocalStore) throws -> RunRecord { try #require(store.recentRuns(limit: 1).first) }
+
+  @Test func aTypeWithAddedSamplesIsListed() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.queue(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps)
+    await health.queue(HealthChanges(added: [makeSample(type: .weight, start: "2026-09-27T12:00:00Z")]), for: .weight)
+
+    _ = await makeRunner(store: store, health: health).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
+
+    #expect(try lastRecord(store).changedTypes == [.steps, .weight])
+  }
+
+  @Test func aTypeWithNoChangesIsNotListed() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.queue(HealthChanges(), for: .steps)
+    await health.queue(HealthChanges(added: [makeSample(type: .weight, start: "2026-09-27T12:00:00Z")]), for: .weight)
+
+    _ = await makeRunner(store: store, health: health).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
+
+    #expect(try lastRecord(store).changedTypes == [.weight])
+  }
+
+  @Test func aDeletionOnlyBatchIsListed() async throws {
+    let store = try LocalStore.inMemory()
+    let stored = makeSample(type: .weight, start: "2026-09-27T12:00:00Z")
+    try store.applyChanges(HealthChanges(added: [stored]), for: .weight, fallbackTimeZone: saoPaulo)
+    let health = FakeHealthSource()
+    await health.queue(HealthChanges(deletedUUIDs: [stored.uuid]), for: .weight)
+
+    _ = await makeRunner(store: store, health: health).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
+
+    #expect(try lastRecord(store).changedTypes == [.weight])
+  }
+
+  @Test func aVerifyChangeIsListed() async throws {
+    let store = try LocalStore.inMemory()
+    let dropped = makeSample(start: "2026-09-25T12:00:00Z")
+    try store.applyChanges(HealthChanges(added: [dropped]), for: .steps, fallbackTimeZone: saoPaulo)
+    let health = FakeHealthSource()
+    await health.setSamples([], for: .steps)
+
+    _ = await makeRunner(store: store, health: health).run(trigger: .appOpen, options: .forTrigger(.appOpen)) {}
+
+    #expect(try lastRecord(store).changedTypes == [.steps])
+  }
+
+  @Test func aReadWithNothingNewStoresAnEmptyList() async throws {
+    let store = try LocalStore.inMemory()
+
+    _ = await makeRunner(store: store, health: FakeHealthSource()).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
+
+    #expect(try lastRecord(store).changedTypes == [])
+  }
+
+  @Test func aLockedPhoneStoresNoList() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.setReadable(false)
+
+    _ = await makeRunner(store: store, health: health).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
+
+    #expect(try lastRecord(store).changedTypes == nil)
+  }
+
+  @Test func theAppIntentStoresNoList() async throws {
+    let store = try LocalStore.inMemory()
+
+    _ = await makeRunner(store: store, health: FakeHealthSource()).run(
+      trigger: .appIntent, options: .forTrigger(.appIntent)
+    ) {}
+
+    #expect(try lastRecord(store).changedTypes == nil)
+  }
+
+  @Test func aRunCutShortKeepsWhatItCommitted() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.queue(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps)
+    await health.queue(HealthChanges(added: [makeSample(type: .weight, start: "2026-09-27T12:00:00Z")]), for: .weight)
+    await health.cancelCurrentTaskOnNextChanges()
+    let runner = makeRunner(store: store, health: health)
+
+    _ = await Task { await runner.run(trigger: .backgroundRefresh, options: .forTrigger(.backgroundRefresh)) {} }.value
+
+    #expect(try lastRecord(store).changedTypes == [.steps])
+  }
+
+  @Test func aCancelledRunWithNothingCommittedStoresNoList() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.queue(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps)
+    let runner = makeRunner(store: store, health: health)
+    let gate = AsyncStream<Void>.makeStream()
+    let task = Task { () -> RunOutcome in
+      for await _ in gate.stream {}
+      return await runner.run(trigger: .appOpen, options: .forTrigger(.appOpen)) {}
+    }
+    task.cancel()
+    gate.continuation.finish()
+    _ = await task.value
+
+    #expect(try lastRecord(store).changedTypes == nil)
+  }
+
+  @Test func aRefusedReadWithNothingCommittedStoresAnEmptyList() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.refuseChanges(for: .steps)
+
+    let outcome = await makeRunner(store: store, health: health).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
+
+    #expect(outcome.readOutcome == .skippedLocked)
+    #expect(try lastRecord(store).changedTypes == [])
+  }
+
+  @Test func aFailedReadWithNothingCommittedStoresAnEmptyList() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.failChanges(for: .steps)
+
+    let outcome = await makeRunner(store: store, health: health).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
+
+    #expect(outcome.readOutcome == .failed)
+    #expect(try lastRecord(store).changedTypes == [])
+  }
+
+  @Test func anUncommittedBatchIsNotListed() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.queue(
+      HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")], newAnchor: nil, hasMore: true), for: .steps)
+
+    let outcome = await makeRunner(store: store, health: health).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
+
+    #expect(outcome.readOutcome == .failed)
+    #expect(try lastRecord(store).changedTypes == [])
+  }
+
+  @Test func rebuildAllListsOnlyTypesWithChanges() async throws {
+    let store = try LocalStore.inMemory()
+    let steps = makeSample(start: "2026-09-27T12:00:00Z")
+    let weight = makeSample(type: .weight, start: "2026-09-27T12:00:00Z")
+    try store.applyChanges(HealthChanges(added: [steps]), for: .steps, fallbackTimeZone: saoPaulo)
+    try store.applyChanges(HealthChanges(added: [weight]), for: .weight, fallbackTimeZone: saoPaulo)
+    let health = FakeHealthSource()
+    await health.setSamples([steps], for: .steps)
+    await health.setSamples([weight], for: .weight)
+    let runner = makeRunner(store: store, health: health)
+
+    _ = await runner.run(trigger: .rebuildAll, options: .forTrigger(.rebuildAll)) {}
+    #expect(try lastRecord(store).changedTypes == [])
+
+    await health.queue(HealthChanges(added: [makeSample(type: .weight, start: "2026-09-28T12:00:00Z")]), for: .weight)
+    _ = await runner.run(trigger: .rebuildAll, options: .forTrigger(.rebuildAll)) {}
+    #expect(try lastRecord(store).changedTypes == [.weight])
+  }
+
+  @Test func aReadRefusedMidwayKeepsWhatItCommitted() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.queue(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps)
+    await health.refuseChanges(for: .weight)
+
+    let outcome = await makeRunner(store: store, health: health).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
+
+    #expect(outcome.readOutcome == .skippedLocked)
+    #expect(try lastRecord(store).changedTypes == [.steps])
+  }
+
+  @Test func aFailedReadKeepsEarlierTypes() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.queue(HealthChanges(added: [makeSample(start: "2026-09-27T12:00:00Z")]), for: .steps)
+    await health.failChanges(for: .weight)
+
+    let outcome = await makeRunner(store: store, health: health).run(
+      trigger: .observerWake, options: .forTrigger(.observerWake)
+    ) {}
+
+    #expect(outcome.readOutcome == .failed)
+    #expect(try lastRecord(store).changedTypes == [.steps])
+  }
 }
