@@ -133,6 +133,15 @@ import Testing
     #expect(markdownOnly.contains("daily/<YYYY-MM-DD>.md") && !markdownOnly.contains("json/"))
   }
 
+  @Test(arguments: [
+    Set<ExportFormat>([.json]), [.markdown], [.csv], [.json, .markdown], [.json, .markdown, .csv],
+  ])
+  func readmeLinksToTheSchema(formats: Set<ExportFormat>) {
+    let readme = MarkdownWriter.readme(formats: formats)
+    let link = "https://github.com/musashinm/vital-courier-app/blob/main/SCHEMA.md"
+    #expect(readme.contains("\n\nEvery file name, property and field is described in \(link).\n"))
+  }
+
   @Test func writesCycleKeysAfterWeight() {
     var summary = DailySummary(day: day("2026-10-12"))
     summary.steps = 812

@@ -83,6 +83,10 @@ public enum MarkdownWriter {
         "- `csv/<type>/<YYYY-MM>.csv` holds the same samples as the JSON file, one row each, with a header row. Excel in some languages, Brazilian Portuguese among them, may put everything in one column or garble accents; Numbers, Google Sheets and pandas read it fine."
       )
     }
+    lines.append("")
+    lines.append(
+      "Every file name, property and field is described in https://github.com/musashinm/vital-courier-app/blob/main/SCHEMA.md."
+    )
     return lines.joined(separator: "\n") + "\n"
   }
 
