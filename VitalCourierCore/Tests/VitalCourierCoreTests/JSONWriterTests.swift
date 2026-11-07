@@ -16,7 +16,7 @@ import Testing
       generatedAt: date("2026-09-30T15:00:00Z"))
     let file = try decode(data)
 
-    #expect(file["schemaVersion"] as? Int == 1)
+    #expect(file["schemaVersion"] as? Int == ExportSchema.version)
     #expect(file["type"] as? String == "weight")
     #expect(file["unit"] as? String == "kg")
     #expect(file["generatedAt"] as? String == "2026-09-30T12:00:00-03:00")

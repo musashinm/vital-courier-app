@@ -64,8 +64,6 @@ public struct DailySummary: Equatable, Sendable {
 }
 
 public enum MarkdownWriter {
-  public static let schemaVersion = 1
-
   /// The folder README. It lists only the formats the app writes now.
   public static func readme(formats: Set<ExportFormat>) -> String {
     var lines = [
@@ -120,7 +118,7 @@ public enum MarkdownWriter {
     if let flow = summary.menstrualFlow { lines.append("vc_menstrual_flow: \(flow)") }
     if summary.periodStart { lines.append("vc_period_start: true") }
     if summary.spotting { lines.append("vc_spotting: true") }
-    lines.append("vc_schema: \(schemaVersion)")
+    lines.append("vc_schema: \(ExportSchema.version)")
     lines.append("---")
     return Data((lines.joined(separator: "\n") + "\n").utf8)
   }
