@@ -1920,16 +1920,6 @@
         }
       }
     },
-    "Tips aren’t available right now." : {
-      "localizations" : {
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "As contribuições não estão disponíveis agora."
-          }
-        }
-      }
-    },
     "Trigger" : {
       "localizations" : {
         "pt-BR" : {

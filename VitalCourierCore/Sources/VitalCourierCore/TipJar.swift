@@ -90,15 +90,19 @@ public struct TipJarState: Equatable, Sendable {
     TipJarState(phase: hasTipped ? .thanked : .loading, isAwaitingApproval: false, showsFailure: false)
   }
 
-  public var needsProducts: Bool { phase == .loading }
+  /// Unavailable is retried on the next visit to Settings, so a transient failure doesn't hide the tips until relaunch.
+  public var needsProducts: Bool { phase == .loading || phase == .unavailable }
+
+  /// Settings hides the tip jar entirely when the tips couldn't load, rather than opening on an error line.
+  public var showsSection: Bool { phase != .unavailable }
 
   public mutating func productsLoaded(availableTiers: Set<TipTier>) {
-    guard phase == .loading else { return }
+    guard needsProducts else { return }
     phase = availableTiers.isSuperset(of: TipTier.allCases) ? .ready : .unavailable
   }
 
   public mutating func productsFailedToLoad() {
-    guard phase == .loading else { return }
+    guard needsProducts else { return }
     phase = .unavailable
   }
 
