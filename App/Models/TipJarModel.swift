@@ -9,9 +9,15 @@ final class TipJarModel {
   private(set) var pricesByTier: [TipTier: String] = [:]
   private var productsByTier: [TipTier: Product] = [:]
   private let settings: AppSettings
+  /// AppStore.sync() in the app; tests pass their own so no sign-in prompt is needed.
+  private let syncWithAppStore: @Sendable () async throws -> Void
 
-  init(settings: AppSettings) {
+  init(
+    settings: AppSettings,
+    syncWithAppStore: @escaping @Sendable () async throws -> Void = { try await AppStore.sync() }
+  ) {
     self.settings = settings
+    self.syncWithAppStore = syncWithAppStore
     state = .initial(hasTipped: settings.hasTipped)
     // The weak capture keeps this task from retaining the model; the task ends at the next notification after the model is gone.
     Task { [weak self] in
@@ -92,6 +98,42 @@ final class TipJarModel {
       outcome = .failed
     }
     state.purchaseEnded(outcome)
+  }
+
+  /// The Restore button. sync() asks for the Apple Account, so it only ever runs from a tap. History is checked even when sync() throws, since StoreKit may already hold the tip.
+  func restore() async {
+    // The same order as the launch check: a sync can surface a tip that is still unfinished, and it must be finished, not just flagged.
+    await restore(
+      unfinished: Transaction.unfinished.map { TipVerification($0) },
+      history: Transaction.all.map { TipVerification($0) })
+  }
+
+  /// Takes the transaction sources as parameters so a test can drive restore without StoreKit.
+  func restore<
+    Unfinished: AsyncSequence, History: AsyncSequence, RestoredTransaction: TipTransaction
+  >(unfinished: sending Unfinished, history: sending History) async
+  where
+    Unfinished.Element == TipVerification<RestoredTransaction>, Unfinished.Failure == Never,
+    History.Element == TipVerification<RestoredTransaction>, History.Failure == Never
+  {
+    guard state.restoreStarted() else { return }
+    var syncError: (any Error)?
+    do {
+      try await syncWithAppStore()
+    } catch {
+      syncError = error
+    }
+    // Thanked as soon as the flag is saved, before finish(): a slow finish() must not keep a restored tip on Restoring. The later restoreEnded is a no-op from Thanked.
+    let found = await TipLedger.recordUnfinishedThenHistory(
+      unfinished: unfinished, history: history, in: settings, onRecorded: showThanksBeforeFinishing)
+    state.restoreEnded(Self.restoreOutcome(found: found || settings.hasTipped, syncError: syncError))
+  }
+
+  private static func restoreOutcome(found: Bool, syncError: (any Error)?) -> TipRestoreOutcome {
+    if found { return .restored }
+    guard let syncError else { return .nothingFound }
+    if let storeError = syncError as? StoreKitError, case .userCancelled = storeError { return .cancelled }
+    return .failed
   }
 
   /// Runs between saving the flag and finishing the transaction, so a slow `finish()` can't leave a paid buyer on Purchasing.

@@ -12,6 +12,15 @@ extension TipTier {
   }
 }
 
+extension TipJarState.RestoreNotice {
+  var message: LocalizedStringResource {
+    switch self {
+    case .nothingFound: "No earlier tip found for this Apple Account."
+    case .failed: "Couldn’t restore. Try again."
+    }
+  }
+}
+
 /// The optional tip jar at the top of Settings, hidden when the tips can't load (design: Tip Jar; moved in 0.3.15).
 struct TipJarSection: View {
   @Environment(AppModel.self) private var model
@@ -36,7 +45,7 @@ struct TipJarSection: View {
 
   private var showsFooter: Bool {
     switch state.phase {
-    case .ready, .purchasing: true
+    case .ready, .purchasing, .restoring: true
     case .loading, .unavailable, .thanked: false
     }
   }
@@ -52,7 +61,7 @@ struct TipJarSection: View {
       .accessibilityElement(children: .combine)
     case .unavailable:
       EmptyView()
-    case .ready, .purchasing:
+    case .ready, .purchasing, .restoring:
       ForEach(TipTier.allCases, id: \.self) { tier in
         TipRow(
           tier: tier,
@@ -65,6 +74,12 @@ struct TipJarSection: View {
       if state.showsFailure {
         Text("Couldn’t complete the tip. Try again.")
           .foregroundStyle(Color.vcError)
+          .frame(minHeight: 44)
+      }
+      restoreRow
+      if let notice = state.restoreNotice {
+        Text(notice.message)
+          .foregroundStyle(notice == .failed ? Color.vcError : Color.vcSecondaryText)
           .frame(minHeight: 44)
       }
     case .thanked:
@@ -85,7 +100,30 @@ struct TipJarSection: View {
     .accessibilityElement(children: .combine)
   }
 
+  @ViewBuilder private var restoreRow: some View {
+    if state.phase == .restoring {
+      HStack(spacing: 8) {
+        ProgressView()
+        Text("Restoring…").foregroundStyle(Color.vcSecondaryText)
+      }
+      .frame(minHeight: 44)
+      .accessibilityElement(children: .combine)
+    } else {
+      let isPurchasing = if case .purchasing = state.phase { true } else { false }
+      Button {
+        Task { await tipJar.restore() }
+      } label: {
+        Text("Restore an earlier tip")
+          .foregroundStyle(Color.vcAccent)
+          .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+      }
+      .disabled(isPurchasing)
+      .opacity(isPurchasing ? 0.42 : 1)
+    }
+  }
+
   private func availability(of tier: TipTier) -> TipRow.Availability {
+    if state.phase == .restoring { return .blockedByOtherPurchase }
     guard case .purchasing(let purchasingTier) = state.phase else { return .ready }
     return purchasingTier == tier ? .purchasing : .blockedByOtherPurchase
   }
@@ -119,6 +157,8 @@ private struct TipJarLifecycle: ViewModifier {
       announce(String(localized: "Waiting for approval."))
     } else if newState.showsFailure, !oldState.showsFailure {
       announce(String(localized: "Couldn’t complete the tip. Try again."))
+    } else if let notice = newState.restoreNotice, oldState.restoreNotice != notice {
+      announce(String(localized: notice.message))
     }
   }
 

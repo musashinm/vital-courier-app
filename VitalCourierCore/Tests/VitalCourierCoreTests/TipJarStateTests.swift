@@ -174,4 +174,121 @@ import Testing
       #expect(jar.showsFailure == false)
     }
   }
+
+  @Test func restoreStartsOnlyFromReady() {
+    var ready = readyJar()
+    #expect(ready.restoreStarted() == true)
+    #expect(ready.phase == .restoring)
+
+    var loading = TipJarState.initial(hasTipped: false)
+    var thanked = TipJarState.initial(hasTipped: true)
+    var purchasing = purchasingJar()
+    #expect(loading.restoreStarted() == false)
+    #expect(loading.phase == .loading)
+    #expect(thanked.restoreStarted() == false)
+    #expect(thanked.phase == .thanked)
+    #expect(purchasing.restoreStarted() == false)
+    #expect(purchasing.phase == .purchasing(.coffee))
+  }
+
+  @Test func aRestoredTipThanks() {
+    var jar = readyJar()
+    _ = jar.restoreStarted()
+    jar.restoreEnded(.restored)
+    #expect(jar.phase == .thanked)
+    #expect(jar.restoreNotice == nil)
+  }
+
+  @Test func nothingFoundAndFailedReturnToReadyWithANotice() {
+    var nothingFound = readyJar()
+    _ = nothingFound.restoreStarted()
+    nothingFound.restoreEnded(.nothingFound)
+    #expect(nothingFound.phase == .ready)
+    #expect(nothingFound.restoreNotice == .nothingFound)
+
+    var failed = readyJar()
+    _ = failed.restoreStarted()
+    failed.restoreEnded(.failed)
+    #expect(failed.phase == .ready)
+    #expect(failed.restoreNotice == .failed)
+  }
+
+  @Test func aCancelledRestoreReturnsToReadyQuietly() {
+    var jar = readyJar()
+    _ = jar.restoreStarted()
+    jar.restoreEnded(.cancelled)
+    #expect(jar.phase == .ready)
+    #expect(jar.restoreNotice == nil)
+  }
+
+  @Test func theNoticeClearsOnTheNextPurchaseOrVisit() {
+    var jar = readyJar()
+    _ = jar.restoreStarted()
+    jar.restoreEnded(.nothingFound)
+    #expect(jar.restoreNotice == .nothingFound)
+    _ = jar.purchaseStarted(.coffee)
+    #expect(jar.restoreNotice == nil)
+
+    var revisited = readyJar()
+    _ = revisited.restoreStarted()
+    revisited.restoreEnded(.failed)
+    #expect(revisited.restoreNotice == .failed)
+    revisited.sectionReappeared()
+    #expect(revisited.restoreNotice == nil)
+  }
+
+  @Test func startingARestoreClearsTheFailureLineAndTheRestoreNotice() {
+    var afterFailedPurchase = purchasingJar()
+    afterFailedPurchase.purchaseEnded(.failed)
+    #expect(afterFailedPurchase.showsFailure == true)
+    #expect(afterFailedPurchase.restoreStarted() == true)
+    #expect(afterFailedPurchase.showsFailure == false)
+
+    var afterFailedRestore = readyJar()
+    _ = afterFailedRestore.restoreStarted()
+    afterFailedRestore.restoreEnded(.failed)
+    #expect(afterFailedRestore.restoreNotice == .failed)
+    #expect(afterFailedRestore.restoreStarted() == true)
+    #expect(afterFailedRestore.restoreNotice == nil)
+  }
+
+  @Test func aTipRecordedElsewhereClearsTheFailureLineAndTheRestoreNotice() {
+    var afterFailedPurchase = purchasingJar()
+    afterFailedPurchase.purchaseEnded(.failed)
+    #expect(afterFailedPurchase.showsFailure == true)
+    afterFailedPurchase.tipRecordedElsewhere()
+    #expect(afterFailedPurchase.phase == .thanked)
+    #expect(afterFailedPurchase.showsFailure == false)
+
+    var afterFailedRestore = readyJar()
+    _ = afterFailedRestore.restoreStarted()
+    afterFailedRestore.restoreEnded(.nothingFound)
+    #expect(afterFailedRestore.restoreNotice == .nothingFound)
+    afterFailedRestore.tipRecordedElsewhere()
+    #expect(afterFailedRestore.phase == .thanked)
+    #expect(afterFailedRestore.restoreNotice == nil)
+  }
+
+  @Test func aTipRecordedMidRestoreWinsAndTheLateOutcomeIsIgnored() {
+    var jar = readyJar()
+    _ = jar.restoreStarted()
+    jar.tipRecordedElsewhere()
+    jar.restoreEnded(.failed)
+    #expect(jar.phase == .thanked)
+    #expect(jar.restoreNotice == nil)
+  }
+
+  @Test func restoreEndedOutsideRestoringIsIgnored() {
+    var jar = readyJar()
+    jar.restoreEnded(.failed)
+    #expect(jar.phase == .ready)
+    #expect(jar.restoreNotice == nil)
+  }
+
+  @Test func restoringStillHasNoProductsToLoad() {
+    var jar = readyJar()
+    _ = jar.restoreStarted()
+    #expect(jar.needsProducts == false)
+    #expect(jar.showsSection == true)
+  }
 }

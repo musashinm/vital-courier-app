@@ -901,6 +901,16 @@
         }
       }
     },
+    "Couldn’t restore. Try again." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível restaurar. Tente novamente."
+          }
+        }
+      }
+    },
     "CSV" : {
       "localizations" : {
         "pt-BR" : {
@@ -1386,6 +1396,16 @@
         }
       }
     },
+    "No earlier tip found for this Apple Account." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma contribuição anterior encontrada nesta Conta Apple."
+          }
+        }
+      }
+    },
     "No entries yet" : {
       "localizations" : {
         "pt-BR" : {
@@ -1683,6 +1703,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Frequência cardíaca em repouso"
+          }
+        }
+      }
+    },
+    "Restore an earlier tip" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurar contribuição anterior"
+          }
+        }
+      }
+    },
+    "Restoring…" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurando…"
           }
         }
       }
