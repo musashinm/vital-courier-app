@@ -111,7 +111,7 @@ final class TipJarModel {
   /// Takes the transaction sources as parameters so a test can drive restore without StoreKit.
   func restore<
     Unfinished: AsyncSequence, History: AsyncSequence, RestoredTransaction: TipTransaction
-  >(unfinished: sending Unfinished, history: sending History) async
+  >(unfinished: Unfinished, history: History) async
   where
     Unfinished.Element == TipVerification<RestoredTransaction>, Unfinished.Failure == Never,
     History.Element == TipVerification<RestoredTransaction>, History.Failure == Never

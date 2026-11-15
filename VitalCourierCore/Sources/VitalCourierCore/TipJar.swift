@@ -84,8 +84,8 @@ public enum TipLedger: Sendable {
     for await verification in verifications where await record(verification, in: settings, afterSaving: onRecorded) {}
   }
 
-  /// The fallback for finished tips: after a reinstall the saved flag is gone, but with `SKIncludeConsumableInAppPurchaseHistory` set, `Transaction.all` still lists them. Returns whether this call saved the flag. `Transaction.all` lists unfinished tips too, so call this only through `recordUnfinishedThenHistory`, after `unfinished` is drained. It never finishes anything and never clears the flag.
-  static func recordFromHistory<Verifications: AsyncSequence, Transaction: TipTransaction>(
+  /// The fallback for finished tips: after a reinstall the saved flag is gone, but with `SKIncludeConsumableInAppPurchaseHistory` set, `Transaction.all` still lists them. Returns whether this call saved the flag. `Transaction.all` lists unfinished tips too, so call this only through `recordUnfinishedThenHistory`, after `unfinished` is drained. It never finishes anything and never clears the flag. Runs on the caller's actor.
+  nonisolated(nonsending) static func recordFromHistory<Verifications: AsyncSequence, Transaction: TipTransaction>(
     _ verifications: Verifications,
     in settings: AppSettings
   ) async -> Bool where Verifications.Element == TipVerification<Transaction>, Verifications.Failure == Never {
@@ -101,9 +101,9 @@ public enum TipLedger: Sendable {
     return false
   }
 
-  /// The launch check and Restore's second look, in the only safe order: unfinished tips are recorded and finished first, and finished history is read only after that. Returns whether either step recorded a tip.
+  /// The launch check and Restore's second look, in the only safe order: unfinished tips are recorded and finished first, and finished history is read only after that. Returns whether either step recorded a tip. Runs on the caller's actor.
   @discardableResult
-  public static func recordUnfinishedThenHistory<
+  nonisolated(nonsending) public static func recordUnfinishedThenHistory<
     Unfinished: AsyncSequence, History: AsyncSequence, Transaction: TipTransaction
   >(
     unfinished: Unfinished,
