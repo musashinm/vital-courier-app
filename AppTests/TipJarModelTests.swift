@@ -7,11 +7,6 @@ import VitalCourierCore
 @testable import VitalCourier
 
 @Suite(.serialized) @MainActor struct TipJarModelTests {
-  // `xcodebuild test` doesn't sync the StoreKit configuration into a fresh simulator, so a purchase
-  // hits the real App Store and waits on a "Sign in to Apple Account" alert. CI sets this to skip them.
-  nonisolated static let skipsStoreKitPurchases =
-    ProcessInfo.processInfo.environment["SKIP_STOREKIT_PURCHASE_TESTS"] == "1"
-
   private final class BundleAnchor {}
 
   private func makeSession() throws -> SKTestSession {
@@ -137,10 +132,7 @@ import VitalCourierCore
     #expect(Set(model.pricesByTier.keys) == [.keepGoing])
   }
 
-  @Test(
-    .disabled(
-      if: Self.skipsStoreKitPurchases, "StoreKit purchases need a simulator Xcode has synced the configuration into"))
-  func aSuccessfulTipSavesTheFlagAndThanks() async throws {
+  @Test func aSuccessfulTipSavesTheFlagAndThanks() async throws {
     let session = try makeSession()
     let settings = AppEnvironment.shared.settings
     settings.hasTipped = false
@@ -158,10 +150,7 @@ import VitalCourierCore
     // Under load StoreKitTest can ignore a finish() that follows the purchase closely, so TipLedgerTests checks finishing with a fake transaction instead.
   }
 
-  @Test(
-    .disabled(
-      if: Self.skipsStoreKitPurchases, "StoreKit purchases need a simulator Xcode has synced the configuration into"))
-  func aFailedPurchaseLeavesTheRowsWithTheFailureLine() async throws {
+  @Test func aFailedPurchaseLeavesTheRowsWithTheFailureLine() async throws {
     let session = try makeSession()
     let settings = AppEnvironment.shared.settings
     settings.hasTipped = false
@@ -181,10 +170,7 @@ import VitalCourierCore
     #expect(settings.hasTipped == false)
   }
 
-  @Test(
-    .disabled(
-      if: Self.skipsStoreKitPurchases, "StoreKit purchases need a simulator Xcode has synced the configuration into"))
-  func anApprovedAskToBuyTipThanksThroughTheListener() async throws {
+  @Test func anApprovedAskToBuyTipThanksThroughTheListener() async throws {
     let session = try makeSession()
     let settings = AppEnvironment.shared.settings
     settings.hasTipped = false

@@ -32,14 +32,23 @@ run_step() {
   fi
 }
 
+# StoreKit picks the test environment when the app launches, and on a new simulator the test
+# configuration only exists after a first SKTestSession run. A small priming run comes first.
+run_app_tests() {
+  xcodebuild test -project VitalCourier.xcodeproj -scheme VitalCourier \
+    -destination "$destination" -derivedDataPath "$derived_data_path" \
+    -only-testing:'VitalCourierTests/TipJarModelTests/loadsAllThreeTiersWithStorePrices()' -quiet || return "$?"
+  xcodebuild test -project VitalCourier.xcodeproj -scheme VitalCourier \
+    -destination "$destination" -derivedDataPath "$derived_data_path" -only-testing:VitalCourierTests -quiet
+}
+
 run_step "format" scripts/check-format.sh
 run_step "lint" scripts/check-lint.sh
 run_step "package tests" swift test --package-path VitalCourierCore
 run_step "generate project" scripts/generate-project.sh
 run_step "simulator build" xcodebuild -project VitalCourier.xcodeproj -scheme VitalCourier \
   -destination "$destination" -derivedDataPath "$derived_data_path" -quiet build
-run_step "app tests" xcodebuild test -project VitalCourier.xcodeproj -scheme VitalCourier \
-  -destination "$destination" -derivedDataPath "$derived_data_path" -only-testing:VitalCourierTests -quiet
+run_step "app tests" run_app_tests
 run_step "translations" scripts/check-translations.sh "$derived_data_path"
 run_step "migrations" scripts/check-migrations.sh "$base_ref"
 
