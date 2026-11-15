@@ -52,6 +52,56 @@ import Testing
     #expect(failed.phase == .unavailable)
   }
 
+  @Test func theSectionShowsInEveryPhaseButUnavailable() {
+    #expect(TipJarState.initial(hasTipped: false).showsSection == true)
+    #expect(readyJar().showsSection == true)
+    #expect(purchasingJar().showsSection == true)
+    #expect(TipJarState.initial(hasTipped: true).showsSection == true)
+
+    var failed = TipJarState.initial(hasTipped: false)
+    failed.productsFailedToLoad()
+    #expect(failed.showsSection == false)
+
+    var partial = TipJarState.initial(hasTipped: false)
+    partial.productsLoaded(availableTiers: [.smallThanks, .coffee])
+    #expect(partial.showsSection == false)
+  }
+
+  @Test func aFailedLoadIsRetriedAndCanBecomeReady() {
+    var jar = TipJarState.initial(hasTipped: false)
+    jar.productsFailedToLoad()
+    #expect(jar.phase == .unavailable)
+    #expect(jar.showsSection == false)
+    #expect(jar.needsProducts == true)
+
+    jar.productsLoaded(availableTiers: allTiers)
+    #expect(jar.phase == .ready)
+    #expect(jar.showsSection == true)
+  }
+
+  @Test func aSecondFailedLoadStaysUnavailable() {
+    var jar = TipJarState.initial(hasTipped: false)
+    jar.productsFailedToLoad()
+    #expect(jar.phase == .unavailable)
+    #expect(jar.needsProducts == true)
+
+    jar.productsFailedToLoad()
+    #expect(jar.phase == .unavailable)
+    #expect(jar.needsProducts == true)
+
+    jar.productsLoaded(availableTiers: [.coffee])
+    #expect(jar.phase == .unavailable)
+    #expect(jar.needsProducts == true)
+  }
+
+  @Test func aReadyJarDoesNotReload() {
+    var jar = readyJar()
+    #expect(jar.needsProducts == false)
+
+    jar.productsFailedToLoad()
+    #expect(jar.phase == .ready)
+  }
+
   @Test func aSecondTapWhilePurchasingIsIgnored() {
     var jar = readyJar()
     #expect(jar.purchaseStarted(.coffee) == true)

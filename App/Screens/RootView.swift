@@ -30,6 +30,8 @@ struct RootView: View {
       syncBootPresentation(newPhase: newPhase, isInitial: oldPhase == newPhase)
     }
     .task { await model.boot() }
+    // Separate from boot so the tip jar is Ready or hidden by the time Settings opens.
+    .task { await model.tipJar.loadIfNeeded() }
     .onChange(of: model.isRunActive, initial: true) { _, isActive in
       // Keeps the screen awake while a run the user can see is active; a locked screen would pause the export.
       UIApplication.shared.isIdleTimerDisabled = isActive

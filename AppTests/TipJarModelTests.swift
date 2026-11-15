@@ -7,11 +7,6 @@ import VitalCourierCore
 @testable import VitalCourier
 
 @Suite(.serialized) @MainActor struct TipJarModelTests {
-  // `xcodebuild test` doesn't sync the StoreKit configuration into a fresh simulator, so a purchase
-  // hits the real App Store and waits on a "Sign in to Apple Account" alert. CI sets this to skip them.
-  nonisolated static let skipsStoreKitPurchases =
-    ProcessInfo.processInfo.environment["SKIP_STOREKIT_PURCHASE_TESTS"] == "1"
-
   private final class BundleAnchor {}
 
   private func makeSession() throws -> SKTestSession {
@@ -46,10 +41,98 @@ import VitalCourierCore
     #expect(model.pricesByTier[.keepGoing] == "$9.99")
   }
 
-  @Test(
-    .disabled(
-      if: Self.skipsStoreKitPurchases, "StoreKit purchases need a simulator Xcode has synced the configuration into"))
-  func aSuccessfulTipSavesTheFlagAndThanks() async throws {
+  @Test func aFailedLoadHidesTheSectionAndTheNextVisitRetries() async throws {
+    let session = try makeSession()
+    let settings = AppEnvironment.shared.settings
+    settings.hasTipped = false
+    defer {
+      session.resetToDefaultState()
+      session.clearTransactions()
+      settings.hasTipped = false
+    }
+    try await session.setSimulatedError(.generic(.unknown), forAPI: .loadProducts)
+    let model = TipJarModel(settings: settings)
+
+    await model.loadIfNeeded()
+
+    #expect(model.state.phase == .unavailable)
+    #expect(!model.state.showsSection)
+
+    try await session.setSimulatedError(nil, forAPI: .loadProducts)
+    await model.loadIfNeeded()
+
+    #expect(model.state.phase == .ready)
+    #expect(model.state.showsSection)
+  }
+
+  @Test func twoConcurrentLoadsShareOneLoadAndEndReady() async throws {
+    let session = try makeSession()
+    let settings = AppEnvironment.shared.settings
+    settings.hasTipped = false
+    defer {
+      session.clearTransactions()
+      settings.hasTipped = false
+    }
+    let model = TipJarModel(settings: settings)
+
+    async let launchLoad: Void = model.loadIfNeeded()
+    async let settingsLoad: Void = model.loadIfNeeded()
+    _ = await (launchLoad, settingsLoad)
+
+    #expect(model.state.phase == .ready)
+    #expect(model.pricesByTier.count == TipTier.allCases.count)
+  }
+
+  /// A session over the shipped configuration reduced to the given product IDs; StoreKitTest has no call to remove one product.
+  /// The caller removes `reducedURL`, the temporary copy the session reads, when the test ends.
+  private func makeSession(keepingOnly productIDs: Set<String>) throws -> (session: SKTestSession, reducedURL: URL) {
+    let configurationURL = try #require(
+      Bundle(for: BundleAnchor.self).url(forResource: "TipJar", withExtension: "storekit")
+        ?? Bundle.main.url(forResource: "TipJar", withExtension: "storekit"))
+    var configuration = try #require(
+      JSONSerialization.jsonObject(with: Data(contentsOf: configurationURL)) as? [String: Any])
+    let products = try #require(configuration["products"] as? [[String: Any]])
+    configuration["products"] = products.filter { productIDs.contains($0["productID"] as? String ?? "") }
+    let reducedURL = FileManager.default.temporaryDirectory
+      .appendingPathComponent("TipJar-\(UUID().uuidString).storekit")
+    try JSONSerialization.data(withJSONObject: configuration).write(to: reducedURL)
+    do {
+      let session = try SKTestSession(contentsOf: reducedURL)
+      session.disableDialogs = true
+      session.clearTransactions()
+      return (session, reducedURL)
+    } catch {
+      try? FileManager.default.removeItem(at: reducedURL)
+      throw error
+    }
+  }
+
+  @Test func twoPartialLoadsThatTogetherHoldEveryTierStayUnavailable() async throws {
+    let settings = AppEnvironment.shared.settings
+    settings.hasTipped = false
+    let first = try makeSession(keepingOnly: [TipTier.smallThanks.rawValue, TipTier.coffee.rawValue])
+    defer {
+      first.session.resetToDefaultState()
+      try? FileManager.default.removeItem(at: first.reducedURL)
+      settings.hasTipped = false
+    }
+    let model = TipJarModel(settings: settings)
+
+    await model.loadIfNeeded()
+    #expect(model.state.phase == .unavailable)
+
+    let second = try makeSession(keepingOnly: [TipTier.keepGoing.rawValue])
+    defer {
+      second.session.resetToDefaultState()
+      try? FileManager.default.removeItem(at: second.reducedURL)
+    }
+    await model.loadIfNeeded()
+
+    #expect(model.state.phase == .unavailable)
+    #expect(Set(model.pricesByTier.keys) == [.keepGoing])
+  }
+
+  @Test func aSuccessfulTipSavesTheFlagAndThanks() async throws {
     let session = try makeSession()
     let settings = AppEnvironment.shared.settings
     settings.hasTipped = false
@@ -67,10 +150,7 @@ import VitalCourierCore
     // Under load StoreKitTest can ignore a finish() that follows the purchase closely, so TipLedgerTests checks finishing with a fake transaction instead.
   }
 
-  @Test(
-    .disabled(
-      if: Self.skipsStoreKitPurchases, "StoreKit purchases need a simulator Xcode has synced the configuration into"))
-  func aFailedPurchaseLeavesTheRowsWithTheFailureLine() async throws {
+  @Test func aFailedPurchaseLeavesTheRowsWithTheFailureLine() async throws {
     let session = try makeSession()
     let settings = AppEnvironment.shared.settings
     settings.hasTipped = false
@@ -90,10 +170,7 @@ import VitalCourierCore
     #expect(settings.hasTipped == false)
   }
 
-  @Test(
-    .disabled(
-      if: Self.skipsStoreKitPurchases, "StoreKit purchases need a simulator Xcode has synced the configuration into"))
-  func anApprovedAskToBuyTipThanksThroughTheListener() async throws {
+  @Test func anApprovedAskToBuyTipThanksThroughTheListener() async throws {
     let session = try makeSession()
     let settings = AppEnvironment.shared.settings
     settings.hasTipped = false

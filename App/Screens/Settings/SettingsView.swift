@@ -26,6 +26,8 @@ struct SettingsView: View {
 
   var body: some View {
     List {
+      TipJarSection()
+
       Section {
         NavigationLink {
           SleepSourceView()
@@ -122,8 +124,6 @@ struct SettingsView: View {
       } header: {
         Text("Privacy and app").foregroundStyle(Color.vcTertiaryText)
       }
-
-      TipJarSection()
 
       #if DEBUG
         Section {

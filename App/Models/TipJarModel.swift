@@ -28,22 +28,40 @@ final class TipJarModel {
     state.tipRecordedElsewhere()
   }
 
+  /// The launch preload and the Settings visit share one load: a second caller awaits it instead of starting another.
+  private var loadTask: Task<Void, Never>?
+
   func loadIfNeeded() async {
     showThanksIfTipWasRecorded()
     guard state.needsProducts else { return }
+    if let loadTask {
+      await loadTask.value
+      return
+    }
+    // Unstructured on purpose: leaving Settings cancels the caller's task, and that must not cancel the load or leave the state in Loading.
+    let task = Task { [self] in
+      await loadProducts()
+      loadTask = nil
+    }
+    loadTask = task
+    await task.value
+  }
+
+  private func loadProducts() async {
     do {
       let products = try await Product.products(for: TipTier.allCases.map(\.productID))
-      // A cancelled load can still return normally; stay in Loading so the next visit retries.
-      guard !Task.isCancelled else { return }
+      // Each response replaces the stored products, so readiness and prices never mix two partial responses.
+      var loadedProducts: [TipTier: Product] = [:]
+      var loadedPrices: [TipTier: String] = [:]
       for product in products {
         guard let tier = TipTier(rawValue: product.id) else { continue }
-        productsByTier[tier] = product
-        pricesByTier[tier] = product.displayPrice
+        loadedProducts[tier] = product
+        loadedPrices[tier] = product.displayPrice
       }
-      state.productsLoaded(availableTiers: Set(productsByTier.keys))
+      productsByTier = loadedProducts
+      pricesByTier = loadedPrices
+      state.productsLoaded(availableTiers: Set(loadedProducts.keys))
     } catch {
-      // Leaving Settings cancels the load; that is not a failure, so the next visit retries.
-      guard !Task.isCancelled else { return }
       state.productsFailedToLoad()
     }
   }

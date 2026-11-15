@@ -12,7 +12,7 @@ extension TipTier {
   }
 }
 
-/// The optional tip jar at the bottom of Settings (design: Tip Jar).
+/// The optional tip jar at the top of Settings, hidden when the tips can't load (design: Tip Jar; moved in 0.3.15).
 struct TipJarSection: View {
   @Environment(AppModel.self) private var model
 
@@ -20,14 +20,16 @@ struct TipJarSection: View {
   private var state: TipJarState { tipJar.state }
 
   var body: some View {
-    Section {
-      content
-    } header: {
-      Text("Support the project").foregroundStyle(Color.vcTertiaryText)
-    } footer: {
-      if showsFooter {
-        Text("Optional one-time tips. No paywall and no recurring subscription.")
-          .foregroundStyle(Color.vcTertiaryText)
+    if state.showsSection {
+      Section {
+        content
+      } header: {
+        Text("Support the project").foregroundStyle(Color.vcTertiaryText)
+      } footer: {
+        if showsFooter {
+          Text("Optional one-time tips. No paywall and no recurring subscription.")
+            .foregroundStyle(Color.vcTertiaryText)
+        }
       }
     }
   }
@@ -49,9 +51,7 @@ struct TipJarSection: View {
       .frame(minHeight: 44)
       .accessibilityElement(children: .combine)
     case .unavailable:
-      Text("Tips aren’t available right now.")
-        .foregroundStyle(Color.vcSecondaryText)
-        .frame(minHeight: 44)
+      EmptyView()
     case .ready, .purchasing:
       ForEach(TipTier.allCases, id: \.self) { tier in
         TipRow(
