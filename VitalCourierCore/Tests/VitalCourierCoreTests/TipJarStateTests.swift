@@ -237,6 +237,38 @@ import Testing
     #expect(revisited.restoreNotice == nil)
   }
 
+  @Test func startingARestoreClearsTheFailureLineAndTheRestoreNotice() {
+    var afterFailedPurchase = purchasingJar()
+    afterFailedPurchase.purchaseEnded(.failed)
+    #expect(afterFailedPurchase.showsFailure == true)
+    #expect(afterFailedPurchase.restoreStarted() == true)
+    #expect(afterFailedPurchase.showsFailure == false)
+
+    var afterFailedRestore = readyJar()
+    _ = afterFailedRestore.restoreStarted()
+    afterFailedRestore.restoreEnded(.failed)
+    #expect(afterFailedRestore.restoreNotice == .failed)
+    #expect(afterFailedRestore.restoreStarted() == true)
+    #expect(afterFailedRestore.restoreNotice == nil)
+  }
+
+  @Test func aTipRecordedElsewhereClearsTheFailureLineAndTheRestoreNotice() {
+    var afterFailedPurchase = purchasingJar()
+    afterFailedPurchase.purchaseEnded(.failed)
+    #expect(afterFailedPurchase.showsFailure == true)
+    afterFailedPurchase.tipRecordedElsewhere()
+    #expect(afterFailedPurchase.phase == .thanked)
+    #expect(afterFailedPurchase.showsFailure == false)
+
+    var afterFailedRestore = readyJar()
+    _ = afterFailedRestore.restoreStarted()
+    afterFailedRestore.restoreEnded(.nothingFound)
+    #expect(afterFailedRestore.restoreNotice == .nothingFound)
+    afterFailedRestore.tipRecordedElsewhere()
+    #expect(afterFailedRestore.phase == .thanked)
+    #expect(afterFailedRestore.restoreNotice == nil)
+  }
+
   @Test func aTipRecordedMidRestoreWinsAndTheLateOutcomeIsIgnored() {
     var jar = readyJar()
     _ = jar.restoreStarted()
