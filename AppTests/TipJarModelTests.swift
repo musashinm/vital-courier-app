@@ -217,4 +217,131 @@ import VitalCourierCore
     #expect(model.state.phase == .thanked)
     #expect(model.pricesByTier.isEmpty)
   }
+
+  private func buyAndFinishTip(_ tier: TipTier, in session: SKTestSession) async throws {
+    let transaction = try await session.buyProduct(identifier: tier.productID)
+    await transaction.finish()
+    let deadline = ContinuousClock.now + .seconds(10)
+    while ContinuousClock.now < deadline {
+      var stillUnfinished = false
+      for await result in Transaction.unfinished where result.unsafePayloadValue.id == transaction.id {
+        stillUnfinished = true
+      }
+      if !stillUnfinished { return }
+      await transaction.finish()
+      try await Task.sleep(for: .milliseconds(100))
+    }
+    Issue.record("StoreKitTest never finished the tip")
+  }
+
+  @Test func theLaunchListenerRecordsAFinishedTipFromBeforeAReinstall() async throws {
+    let session = try makeSession()
+    // Fresh settings, so the app host's own listener cannot save the flag for this test.
+    let settings = AppSettings(storage: InMemoryStorage())
+    defer { session.clearTransactions() }
+    try await buyAndFinishTip(.coffee, in: session)
+    #expect(!settings.hasTipped)
+
+    let listenerTask = TipTransactionListener.start(settings: settings)
+    defer { listenerTask.cancel() }
+    let recordedDeadline = ContinuousClock.now + .seconds(10)
+    while !settings.hasTipped && ContinuousClock.now < recordedDeadline {
+      try await Task.sleep(for: .milliseconds(50))
+    }
+
+    #expect(settings.hasTipped)
+  }
+
+  @Test func restoreFindsAnEarlierTipAndThanks() async throws {
+    let session = try makeSession()
+    let settings = AppEnvironment.shared.settings
+    settings.hasTipped = false
+    defer {
+      session.clearTransactions()
+      settings.hasTipped = false
+    }
+    try await buyAndFinishTip(.smallThanks, in: session)
+    settings.hasTipped = false
+    let model = TipJarModel(settings: settings, syncWithAppStore: {})
+    await model.loadIfNeeded()
+
+    await model.restore()
+
+    #expect(model.state.phase == .thanked)
+    #expect(settings.hasTipped)
+  }
+
+  @Test func restoreWithNoTipSaysNothingFound() async throws {
+    let session = try makeSession()
+    let settings = AppEnvironment.shared.settings
+    settings.hasTipped = false
+    defer {
+      session.clearTransactions()
+      settings.hasTipped = false
+    }
+    let model = TipJarModel(settings: settings, syncWithAppStore: {})
+    await model.loadIfNeeded()
+
+    await model.restore()
+
+    #expect(model.state.phase == .ready)
+    #expect(model.state.restoreNotice == .nothingFound)
+    #expect(!settings.hasTipped)
+  }
+
+  @Test func aCancelledSignInRestoresQuietly() async throws {
+    let session = try makeSession()
+    let settings = AppEnvironment.shared.settings
+    settings.hasTipped = false
+    defer {
+      session.clearTransactions()
+      settings.hasTipped = false
+    }
+    let model = TipJarModel(settings: settings, syncWithAppStore: { throw StoreKitError.userCancelled })
+    await model.loadIfNeeded()
+
+    await model.restore()
+
+    #expect(model.state.phase == .ready)
+    #expect(model.state.restoreNotice == nil)
+  }
+
+  @Test func aFailedSyncWithNoTipSaysFailed() async throws {
+    let session = try makeSession()
+    let settings = AppEnvironment.shared.settings
+    settings.hasTipped = false
+    defer {
+      session.clearTransactions()
+      settings.hasTipped = false
+    }
+    let model = TipJarModel(
+      settings: settings,
+      syncWithAppStore: { throw StoreKitError.networkError(URLError(.notConnectedToInternet)) })
+    await model.loadIfNeeded()
+
+    await model.restore()
+
+    #expect(model.state.phase == .ready)
+    #expect(model.state.restoreNotice == .failed)
+  }
+
+  @Test func aFailedSyncStillFindsATipInHistory() async throws {
+    let session = try makeSession()
+    let settings = AppEnvironment.shared.settings
+    settings.hasTipped = false
+    defer {
+      session.clearTransactions()
+      settings.hasTipped = false
+    }
+    try await buyAndFinishTip(.keepGoing, in: session)
+    settings.hasTipped = false
+    let model = TipJarModel(
+      settings: settings,
+      syncWithAppStore: { throw StoreKitError.networkError(URLError(.notConnectedToInternet)) })
+    await model.loadIfNeeded()
+
+    await model.restore()
+
+    #expect(model.state.phase == .thanked)
+  }
 }
