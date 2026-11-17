@@ -668,6 +668,16 @@
         }
       }
     },
+    "Activity" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atividade"
+          }
+        }
+      }
+    },
     "App event" : {
       "localizations" : {
         "pt-BR" : {
@@ -744,6 +754,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Oxigênio no sangue"
+          }
+        }
+      }
+    },
+    "Body Measurements" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medidas corporais"
           }
         }
       }
@@ -927,6 +947,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Monitoramento do ciclo"
+          }
+        }
+      }
+    },
+    "Cycle Tracking" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acompanhamento do ciclo"
           }
         }
       }
@@ -1180,6 +1210,26 @@
         }
       }
     },
+    "Hearing" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audição"
+          }
+        }
+      }
+    },
+    "Heart" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coração"
+          }
+        }
+      }
+    },
     "Heart rate" : {
       "localizations" : {
         "pt-BR" : {
@@ -1366,6 +1416,26 @@
         }
       }
     },
+    "Mental Wellbeing" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bem-estar mental"
+          }
+        }
+      }
+    },
+    "Mobility" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mobilidade"
+          }
+        }
+      }
+    },
     "More errors in run details" : {
       "localizations" : {
         "pt-BR" : {
@@ -1489,6 +1559,16 @@
         }
       }
     },
+    "Nutrition" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutrição"
+          }
+        }
+      }
+    },
     "Observer wake" : {
       "localizations" : {
         "pt-BR" : {
@@ -1528,6 +1608,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Contribuições únicas e opcionais. Sem conteúdo bloqueado ou assinatura recorrente."
+          }
+        }
+      }
+    },
+    "Other Data" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outros dados"
           }
         }
       }
@@ -1683,6 +1773,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reconstruindo…"
+          }
+        }
+      }
+    },
+    "Respiratory" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Respiração"
           }
         }
       }
@@ -1886,6 +1986,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apoie o projeto"
+          }
+        }
+      }
+    },
+    "Symptoms" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sintomas"
           }
         }
       }
@@ -2179,6 +2289,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O Vital Courier grava dentro de uma subpasta chamada Vital Courier. Mudanças feitas lá podem ser substituídas."
+          }
+        }
+      }
+    },
+    "Vitals" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sinais vitais"
           }
         }
       }
