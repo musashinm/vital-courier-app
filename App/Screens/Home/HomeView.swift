@@ -38,21 +38,9 @@ struct HomeView: View {
       }
       Section {
         ForEach(model.enabledTypes, id: \.self) { type in
-          if HealthType.cycleTypes.contains(type) {
-            HealthRow(
-              type: type, showsSilentHint: false,
-              valueText: CycleRowText.valueText(for: type, snapshot: model.snapshot, formatter: formatter, today: today)
-            )
-          } else {
-            let recency = TypeRecency.resolve(
-              latestDay: model.snapshot?.latestDailyValueDays[type], setupDay: setupDay, today: today)
-            HealthRow(
-              type: type,
-              showsSilentHint: recency == .silentForAWeek,
-              valueText: recency.valueText(
-                formatter: formatter, today: today, source: type == .sleep ? model.snapshot?.latestSleepSource : nil)
-            )
-          }
+          HealthRow(
+            presentation: .resolve(
+              type: type, snapshot: model.snapshot, setupDay: setupDay, today: today, formatter: formatter))
         }
       } header: {
         Text("Health data").foregroundStyle(Color.vcTertiaryText)
@@ -214,36 +202,5 @@ private struct FolderSaveRow: View {
         Button("Choose another folder", action: onPickFolder)
       }
     }
-  }
-}
-
-private struct HealthRow: View {
-  let type: HealthType
-  let showsSilentHint: Bool
-  let valueText: String
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      SymbolTextRow {
-        SymbolImage(
-          showsSilentHint ? "exclamationmark.circle" : type.symbolName, size: SymbolSize.row,
-          color: showsSilentHint ? .vcWarning : .vcSecondaryText
-        )
-        .accessibilityHidden(true)
-        VStack(alignment: .leading, spacing: 2) {
-          Text(type.displayName)
-            .font(.body)
-            .foregroundStyle(Color.vcPrimaryText)
-          Text(valueText)
-            .font(.subheadline)
-            .foregroundStyle(Color.vcSecondaryText)
-        }
-      }
-      .accessibilityElement(children: .combine)
-      if showsSilentHint {
-        SilentTypeHint()
-      }
-    }
-    .frame(minHeight: 56, alignment: .leading)
   }
 }
