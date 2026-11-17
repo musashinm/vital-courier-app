@@ -37,16 +37,26 @@ struct HomeView: View {
         Text("What happens next").foregroundStyle(Color.vcTertiaryText)
       }
       Section {
-        ForEach(model.enabledTypes, id: \.self) { type in
-          HealthRow(
-            presentation: .resolve(
-              type: type, snapshot: model.snapshot, setupDay: setupDay, today: today, formatter: formatter))
+        let items = HomeHealthItems.items(enabledTypes: model.enabledTypes) { type in
+          .resolve(type: type, snapshot: model.snapshot, setupDay: setupDay, today: today, formatter: formatter)
+        }
+        ForEach(items) { item in
+          switch item {
+          case .type(let row):
+            HealthRow(presentation: row)
+          case .category(let presentation):
+            CategoryRow(
+              presentation: presentation,
+              summary: presentation.summaryText(formatter: formatter, today: today),
+              accessibilityLabel: presentation.accessibilityLabel(formatter: formatter, today: today))
+          }
         }
       } header: {
         Text("Health data").foregroundStyle(Color.vcTertiaryText)
       }
     }
     .listStyle(.insetGrouped)
+    .navigationDestination(for: HealthCategory.self) { CategoryDetailView(category: $0) }
     .navigationTitle("Vital Courier")
     .folderPicker(
       isPresented: $isPickerPresented, onPick: { model.pickFolder($0) },

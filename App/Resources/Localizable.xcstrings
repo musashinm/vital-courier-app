@@ -2126,6 +2126,16 @@
         }
       }
     },
+    "Needs attention" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Precisa de atenção"
+          }
+        }
+      }
+    },
     "No data received in 7 days" : {
       "localizations" : {
         "pt-BR" : {
@@ -2226,6 +2236,16 @@
         }
       }
     },
+    "No types to show" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum tipo para mostrar"
+          }
+        }
+      }
+    },
     "None" : {
       "shouldTranslate" : false
     },
@@ -2298,6 +2318,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Outros dados"
+          }
+        }
+      }
+    },
+    "Other types" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Outros tipos"
           }
         }
       }
@@ -2570,6 +2600,16 @@
     "Setup errors" : {
       "shouldTranslate" : false
     },
+    "Shows the health data types in this category." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra os tipos de dados de saúde desta categoria."
+          }
+        }
+      }
+    },
     "Skipped: locked" : {
       "localizations" : {
         "pt-BR" : {
@@ -2726,6 +2766,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Isso pode ser normal. Se você esperava dados, revise o acesso ao app Saúde. %@"
+          }
+        }
+      }
+    },
+    "This category no longer has any types to show." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta categoria não tem mais tipos para mostrar."
           }
         }
       }
