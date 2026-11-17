@@ -203,3 +203,41 @@ extension RunRowOutcome {
     }
   }
 }
+
+/// One Health data row: symbol, name and value line, plus the silent-type hint.
+struct HealthRow: View {
+  let presentation: HealthRowPresentation
+
+  private var type: HealthType { presentation.type }
+  private var showsSilentHint: Bool { presentation.isSilent }
+  private var valueText: String { presentation.valueText }
+
+  init(presentation: HealthRowPresentation) {
+    self.presentation = presentation
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      SymbolTextRow {
+        SymbolImage(
+          showsSilentHint ? "exclamationmark.circle" : type.symbolName, size: SymbolSize.row,
+          color: showsSilentHint ? .vcWarning : .vcSecondaryText
+        )
+        .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: 2) {
+          Text(type.displayName)
+            .font(.body)
+            .foregroundStyle(Color.vcPrimaryText)
+          Text(valueText)
+            .font(.subheadline)
+            .foregroundStyle(Color.vcSecondaryText)
+        }
+      }
+      .accessibilityElement(children: .combine)
+      if showsSilentHint {
+        SilentTypeHint()
+      }
+    }
+    .frame(minHeight: 56, alignment: .leading)
+  }
+}

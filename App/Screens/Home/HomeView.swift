@@ -37,21 +37,18 @@ struct HomeView: View {
         Text("What happens next").foregroundStyle(Color.vcTertiaryText)
       }
       Section {
-        ForEach(model.enabledTypes, id: \.self) { type in
-          if HealthType.cycleTypes.contains(type) {
-            HealthRow(
-              type: type, showsSilentHint: false,
-              valueText: CycleRowText.valueText(for: type, snapshot: model.snapshot, formatter: formatter, today: today)
-            )
-          } else {
-            let recency = TypeRecency.resolve(
-              latestDay: model.snapshot?.latestDailyValueDays[type], setupDay: setupDay, today: today)
-            HealthRow(
-              type: type,
-              showsSilentHint: recency == .silentForAWeek,
-              valueText: recency.valueText(
-                formatter: formatter, today: today, source: type == .sleep ? model.snapshot?.latestSleepSource : nil)
-            )
+        let items = HomeHealthItems.items(enabledTypes: model.enabledTypes) { type in
+          .resolve(type: type, snapshot: model.snapshot, setupDay: setupDay, today: today, formatter: formatter)
+        }
+        ForEach(items) { item in
+          switch item {
+          case .type(let row):
+            HealthRow(presentation: row)
+          case .category(let presentation):
+            CategoryRow(
+              presentation: presentation,
+              summary: presentation.summaryText(formatter: formatter, today: today),
+              accessibilityLabel: presentation.accessibilityLabel(formatter: formatter, today: today))
           }
         }
       } header: {
@@ -59,6 +56,7 @@ struct HomeView: View {
       }
     }
     .listStyle(.insetGrouped)
+    .navigationDestination(for: HealthCategory.self) { CategoryDetailView(category: $0) }
     .navigationTitle("Vital Courier")
     .folderPicker(
       isPresented: $isPickerPresented, onPick: { model.pickFolder($0) },
@@ -214,36 +212,5 @@ private struct FolderSaveRow: View {
         Button("Choose another folder", action: onPickFolder)
       }
     }
-  }
-}
-
-private struct HealthRow: View {
-  let type: HealthType
-  let showsSilentHint: Bool
-  let valueText: String
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      SymbolTextRow {
-        SymbolImage(
-          showsSilentHint ? "exclamationmark.circle" : type.symbolName, size: SymbolSize.row,
-          color: showsSilentHint ? .vcWarning : .vcSecondaryText
-        )
-        .accessibilityHidden(true)
-        VStack(alignment: .leading, spacing: 2) {
-          Text(type.displayName)
-            .font(.body)
-            .foregroundStyle(Color.vcPrimaryText)
-          Text(valueText)
-            .font(.subheadline)
-            .foregroundStyle(Color.vcSecondaryText)
-        }
-      }
-      .accessibilityElement(children: .combine)
-      if showsSilentHint {
-        SilentTypeHint()
-      }
-    }
-    .frame(minHeight: 56, alignment: .leading)
   }
 }
