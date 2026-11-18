@@ -56,7 +56,7 @@ public enum HealthKitMapping {
     }
   }
 
-  /// Daily values (spec, Daily values): steps as a count, exercise in minutes, resting heart rate and walking heart rate average in beats per minute, heart rate in beats per minute (average, minimum and maximum), respiratory rate in breaths per minute (average, minimum and maximum), blood glucose in mg/dL (average, minimum and maximum), blood oxygen as a 0–1 fraction (average, minimum and maximum; the note scales it to percent).
+  /// Daily values (spec, Daily values): steps as a count, exercise in minutes, active energy in kilocalories (sum), walking and running distance in kilometres (sum), heart rate variability (SDNN) in milliseconds (average, minimum and maximum), resting heart rate and walking heart rate average in beats per minute, heart rate in beats per minute (average, minimum and maximum), respiratory rate in breaths per minute (average, minimum and maximum), blood glucose in mg/dL (average, minimum and maximum), blood oxygen as a 0–1 fraction (average, minimum and maximum; the note scales it to percent).
   public static func statisticUnit(for type: HealthType) -> HKUnit? {
     switch type {
     case .steps: .count()

@@ -208,6 +208,12 @@ import Testing
     #expect(!note.contains("vc_hrv_ms"))
   }
 
+  @Test func writesATinyDistanceAsZeroRatherThanLeavingItOut() {
+    var summary = DailySummary(day: day("2026-09-27"))
+    summary.walkingRunningDistanceKm = 0.004
+    #expect(text(summary).contains("vc_distance_km: 0.00\n"))
+  }
+
   @Test func writesOnlyTheHRVValuesTheDayHas() {
     var summary = DailySummary(day: day("2026-09-27"))
     summary.heartRateVariabilityMs = 40
