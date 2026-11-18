@@ -106,6 +106,14 @@ import Testing
     #expect(!AppSettings.typesAskedAboutBeforeThisSetting.contains(.heartRate))
   }
 
+  @Test func theFixedPreSettingListNeverGainsEnergyDistanceOrHRV() {
+    // Existing installs must see the Health sheet before these types are observed (Energy, Distance and HRV Spec, Edge cases).
+    let asked = AppSettings.typesAskedAboutBeforeThisSetting
+    #expect(!asked.contains(.activeEnergy))
+    #expect(!asked.contains(.walkingRunningDistance))
+    #expect(!asked.contains(.heartRateVariability))
+  }
+
   @Test func concurrentRecordingsOfDifferentTypesAllSurvive() async {
     let settings = AppSettings(storage: InMemoryStorage())
 

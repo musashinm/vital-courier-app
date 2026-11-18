@@ -28,12 +28,12 @@ import VitalCourierCore
     let withoutCycle = HomeHealthItems.items(
       enabledTypes: HealthType.enabledTypes(cycleTrackingEnabled: false), resolve: resolveWithoutData)
     #expect(
-      withoutCycle.map(\.summary) == ["activity 2", "weight", "heart 3", "respiratory 2", "sleep", "bloodGlucose"])
+      withoutCycle.map(\.summary) == ["activity 4", "weight", "heart 4", "respiratory 2", "sleep", "bloodGlucose"])
     let withCycle = HomeHealthItems.items(
       enabledTypes: HealthType.enabledTypes(cycleTrackingEnabled: true), resolve: resolveWithoutData)
     #expect(
       withCycle.map(\.summary)
-        == ["activity 2", "weight", "cycleTracking 2", "heart 3", "respiratory 2", "sleep", "bloodGlucose"])
+        == ["activity 4", "weight", "cycleTracking 2", "heart 4", "respiratory 2", "sleep", "bloodGlucose"])
   }
 
   @Test func aCategoryWithNoEnabledTypeIsOmitted() {

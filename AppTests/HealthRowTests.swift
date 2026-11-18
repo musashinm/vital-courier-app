@@ -10,6 +10,22 @@ import VitalCourierCore
     #expect(HealthType.exerciseMinutes.symbolName == "figure.run")
   }
 
+  @Test func activeEnergyHasItsOwnHomeRowNameAndSymbol() {
+    #expect(HealthType.activeEnergy.displayName == String(localized: "Active energy"))
+    #expect(HealthType.activeEnergy.symbolName == "flame.fill")
+  }
+
+  @Test func walkingRunningDistanceSharesTheStepsSymbol() {
+    #expect(HealthType.walkingRunningDistance.displayName == String(localized: "Walking + running distance"))
+    #expect(HealthType.walkingRunningDistance.symbolName == "figure.walk")
+    #expect(HealthType.walkingRunningDistance.symbolName == HealthType.steps.symbolName)
+  }
+
+  @Test func heartRateVariabilitySharesTheHeartSymbol() {
+    #expect(HealthType.heartRateVariability.displayName == String(localized: "Heart rate variability"))
+    #expect(HealthType.heartRateVariability.symbolName == "heart.fill")
+  }
+
   @Test func respiratoryRateHasItsOwnHomeRowNameAndSymbol() {
     #expect(HealthType.respiratoryRate.displayName == String(localized: "Respiratory rate"))
     #expect(HealthType.respiratoryRate.symbolName == "lungs.fill")
@@ -39,9 +55,10 @@ import VitalCourierCore
   }
 
   @Test func everyOtherTypeHasItsOwnHomeRowSymbol() {
-    // The three heart rates share heart.fill and blood oxygen shares respiratory rate's lungs.fill, as in Apple's Health app; nothing else may.
+    // The heart types share heart.fill, walking + running distance shares steps' figure.walk and blood oxygen shares respiratory rate's lungs.fill, as in Apple's Health app; nothing else may.
     let typesWithTheirOwnSymbol = HealthType.allCases.filter {
-      $0 != .walkingHeartRateAverage && $0 != .heartRate && $0 != .bloodOxygen
+      $0 != .walkingHeartRateAverage && $0 != .heartRate && $0 != .bloodOxygen && $0 != .walkingRunningDistance
+        && $0 != .heartRateVariability
     }
     #expect(Set(typesWithTheirOwnSymbol.map(\.symbolName)).count == typesWithTheirOwnSymbol.count)
   }

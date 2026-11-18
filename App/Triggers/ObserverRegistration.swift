@@ -70,9 +70,14 @@ enum ObserverRegistration {
     running = (query, types)
   }
 
-  /// Heart rate arrives every few minutes from the Watch and each wake rewrites its month file, so it wakes the app at most hourly (Heart Rate Spec, Background delivery).
+  /// Heart rate and active energy arrive every few minutes from the Watch, and distance from both devices; each wake rewrites the month file, so they wake the app at most hourly (Heart Rate Spec and Energy, Distance and HRV Spec, Background delivery).
   static func backgroundDeliveryFrequency(for type: HealthType) -> HKUpdateFrequency {
-    type == .heartRate ? .hourly : .immediate
+    switch type {
+    case .heartRate, .activeEnergy, .walkingRunningDistance: .hourly
+    case .steps, .exerciseMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRateVariability,
+      .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight, .menstrualFlow, .spotting:
+      .immediate
+    }
   }
 
   private static func setBackgroundDelivery(

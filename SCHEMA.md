@@ -49,7 +49,7 @@ Only the formats you turned on are written. Turning one off deletes nothing.
 - A JSON or CSV sample goes in the month of its `start`, in that sample's zone.
 - Weight, menstrual flow and spotting count on the day of the sample's `start`, in that sample's zone.
 - Sleep belongs to the wake day: the day the last asleep sample of the night ends, in that sample's zone.
-- Eight types come from HealthKit's daily statistics instead: steps, exercise minutes, resting heart rate, walking heart rate average, heart rate, respiratory rate, blood glucose and blood oxygen. They cover local midnight to midnight in the phone's zone at export time.
+- Eleven types come from HealthKit's daily statistics instead: steps, exercise minutes, active energy, walking + running distance, resting heart rate, walking heart rate average, heart rate, heart rate variability, respiratory rate, blood glucose and blood oxygen. They cover local midnight to midnight in the phone's zone at export time.
 
 ### Types
 
@@ -59,9 +59,12 @@ One row per type. The `type` column is the JSON `type` field, `folder` is the fo
 |---|---|---|
 | `steps` | `steps` | `count` |
 | `exerciseMinutes` | `exercise-minutes` | `s` |
+| `activeEnergy` | `active-energy` | `J` |
+| `walkingRunningDistance` | `walking-running-distance` | `m` |
 | `restingHeartRate` | `resting-heart-rate` | `count/s` |
 | `walkingHeartRateAverage` | `walking-heart-rate-average` | `count/s` |
 | `heartRate` | `heart-rate` | `count/s` |
+| `heartRateVariability` | `heart-rate-variability` | `s` |
 | `respiratoryRate` | `respiratory-rate` | `count/s` |
 | `bloodGlucose` | `blood-glucose` | `g/L` |
 | `bloodOxygen` | `blood-oxygen` | `%` (HealthKit's percent unit, a 0 to 1 fraction) |
