@@ -7,13 +7,15 @@ import Testing
   @Test func cycleTypesJoinTheEnabledSetOnlyWhenSwitchedOn() {
     #expect(
       HealthType.enabledTypes(cycleTrackingEnabled: false) == [
-        .steps, .exerciseMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate,
-        .bloodGlucose, .bloodOxygen, .sleep, .weight,
+        .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingHeartRate,
+        .walkingHeartRateAverage, .heartRate, .heartRateVariability, .respiratoryRate, .bloodGlucose, .bloodOxygen,
+        .sleep, .weight,
       ])
     #expect(
       HealthType.enabledTypes(cycleTrackingEnabled: true) == [
-        .steps, .exerciseMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate,
-        .bloodGlucose, .bloodOxygen, .sleep, .weight, .menstrualFlow, .spotting,
+        .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingHeartRate,
+        .walkingHeartRateAverage, .heartRate, .heartRateVariability, .respiratoryRate, .bloodGlucose, .bloodOxygen,
+        .sleep, .weight, .menstrualFlow, .spotting,
       ])
     #expect(HealthType.baseTypes + HealthType.cycleTypes == HealthType.allCases)
   }

@@ -13,11 +13,16 @@ import Testing
     var summary = DailySummary(day: day("2026-09-27"))
     summary.steps = 8412.4
     summary.exerciseMinutes = 34.9
+    summary.activeEnergyKcal = 511.6
+    summary.walkingRunningDistanceKm = 6.4249
     summary.restingHeartRateBPM = 58.46
     summary.walkingHeartRateAverageBPM = 92.46
     summary.heartRateBPM = 72.4
     summary.heartRateBPMMin = 48
     summary.heartRateBPMMax = 151.6
+    summary.heartRateVariabilityMs = 42.4
+    summary.heartRateVariabilityMsMin = 21
+    summary.heartRateVariabilityMsMax = 67.6
     summary.respiratoryRate = 14.46
     summary.respiratoryRateMin = 12.1
     summary.respiratoryRateMax = 17
@@ -38,11 +43,16 @@ import Testing
         date: 2026-09-27
         vc_steps: 8412
         vc_exercise_minutes: 34
+        vc_active_energy_kcal: 512
+        vc_distance_km: 6.42
         vc_resting_hr_bpm: 58.5
         vc_walking_hr_avg: 92.5
         vc_hr_avg: 72
         vc_hr_min: 48
         vc_hr_max: 152
+        vc_hrv_ms: 42
+        vc_hrv_ms_min: 21
+        vc_hrv_ms_max: 68
         vc_respiratory_rate: 14.5
         vc_respiratory_rate_min: 12.1
         vc_respiratory_rate_max: 17.0
@@ -187,6 +197,45 @@ import Testing
     #expect(summary.periodStart)
     #expect(!summary.spotting)
     #expect(DailySummary(day: day("2026-10-12"), values: [:]).menstrualFlow == nil)
+  }
+
+  @Test func leavesOutEnergyDistanceAndHRVWhenThereAreNone() {
+    var summary = DailySummary(day: day("2026-09-27"))
+    summary.steps = 100
+    let note = text(summary)
+    #expect(!note.contains("vc_active_energy_kcal"))
+    #expect(!note.contains("vc_distance_km"))
+    #expect(!note.contains("vc_hrv_ms"))
+  }
+
+  @Test func writesATinyDistanceAsZeroRatherThanLeavingItOut() {
+    var summary = DailySummary(day: day("2026-09-27"))
+    summary.walkingRunningDistanceKm = 0.004
+    #expect(text(summary).contains("vc_distance_km: 0.00\n"))
+  }
+
+  @Test func writesOnlyTheHRVValuesTheDayHas() {
+    var summary = DailySummary(day: day("2026-09-27"))
+    summary.heartRateVariabilityMs = 40
+    summary.heartRateVariabilityMsMax = 70
+    let note = text(summary)
+    #expect(note.contains("vc_hrv_ms: 40\nvc_hrv_ms_max: 70\n"))
+    #expect(!note.contains("vc_hrv_ms_min"))
+  }
+
+  @Test func theSummaryTakesEnergyDistanceAndHRVFromTheStoredDailyValues() {
+    let summary = DailySummary(
+      day: day("2026-09-27"),
+      values: [
+        .activeEnergy: DailyValue(value: 511.6),
+        .walkingRunningDistance: DailyValue(value: 6.4249),
+        .heartRateVariability: DailyValue(value: 42.4, minimum: 21, maximum: 67.6),
+      ])
+    #expect(summary.activeEnergyKcal == 511.6)
+    #expect(summary.walkingRunningDistanceKm == 6.4249)
+    #expect(summary.heartRateVariabilityMs == 42.4)
+    #expect(summary.heartRateVariabilityMsMin == 21)
+    #expect(summary.heartRateVariabilityMsMax == 67.6)
   }
 
   @Test func truncatesExerciseMinutesAndPlacesThemAfterSteps() {

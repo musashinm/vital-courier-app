@@ -5,10 +5,11 @@ import VitalCourierCore
 @testable import VitalCourier
 
 @Suite @MainActor struct ObserverRegistrationTests {
-  @Test func heartRateWakesTheAppAtMostHourlyAndEveryOtherTypeImmediately() {
-    #expect(ObserverRegistration.backgroundDeliveryFrequency(for: .heartRate) == .hourly)
-    for type in HealthType.allCases where type != .heartRate {
-      #expect(ObserverRegistration.backgroundDeliveryFrequency(for: type) == .immediate)
+  @Test func heartRateActiveEnergyAndDistanceWakeTheAppAtMostHourlyAndEveryOtherTypeImmediately() {
+    let hourly: Set<HealthType> = [.heartRate, .activeEnergy, .walkingRunningDistance]
+    for type in HealthType.allCases {
+      let expected: HKUpdateFrequency = hourly.contains(type) ? .hourly : .immediate
+      #expect(ObserverRegistration.backgroundDeliveryFrequency(for: type) == expected)
     }
   }
 
@@ -17,15 +18,18 @@ import VitalCourierCore
       \.sampleType)
     let on = ObserverRegistration.descriptors(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).map(
       \.sampleType)
-    #expect(off.count == 10)
+    #expect(off.count == 13)
     #expect(off.contains(HKQuantityType(.appleExerciseTime)))
     #expect(off.contains(HKQuantityType(.walkingHeartRateAverage)))
     #expect(off.contains(HKQuantityType(.heartRate)))
     #expect(off.contains(HKQuantityType(.respiratoryRate)))
     #expect(off.contains(HKQuantityType(.bloodGlucose)))
     #expect(off.contains(HKQuantityType(.oxygenSaturation)))
+    #expect(off.contains(HKQuantityType(.activeEnergyBurned)))
+    #expect(off.contains(HKQuantityType(.distanceWalkingRunning)))
+    #expect(off.contains(HKQuantityType(.heartRateVariabilitySDNN)))
     #expect(!off.contains(HKCategoryType(.menstrualFlow)))
-    #expect(on.count == 12)
+    #expect(on.count == 15)
     #expect(on.contains(HKCategoryType(.menstrualFlow)))
     #expect(on.contains(HKCategoryType(.intermenstrualBleeding)))
   }

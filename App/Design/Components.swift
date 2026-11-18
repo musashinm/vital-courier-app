@@ -162,9 +162,12 @@ extension HealthType {
     switch self {
     case .steps: String(localized: "Steps")
     case .exerciseMinutes: String(localized: "Exercise minutes")
+    case .activeEnergy: String(localized: "Active energy")
+    case .walkingRunningDistance: String(localized: "Walking + running distance")
     case .restingHeartRate: String(localized: "Resting heart rate")
     case .walkingHeartRateAverage: String(localized: "Walking heart rate average")
     case .heartRate: String(localized: "Heart rate")
+    case .heartRateVariability: String(localized: "Heart rate variability")
     case .respiratoryRate: String(localized: "Respiratory rate")
     case .bloodGlucose: String(localized: "Blood glucose")
     case .bloodOxygen: String(localized: "Blood oxygen")
@@ -179,9 +182,12 @@ extension HealthType {
     switch self {
     case .steps: "figure.walk"
     case .exerciseMinutes: "figure.run"
+    case .activeEnergy: "flame.fill"
+    case .walkingRunningDistance: "figure.walk"
     case .restingHeartRate: "heart.fill"
     case .walkingHeartRateAverage: "heart.fill"
     case .heartRate: "heart.fill"
+    case .heartRateVariability: "heart.fill"
     case .respiratoryRate: "lungs.fill"
     case .bloodGlucose: "waveform.path.ecg.rectangle.fill"
     case .bloodOxygen: "lungs.fill"

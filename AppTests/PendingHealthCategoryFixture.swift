@@ -3,8 +3,8 @@
 
 let pendingIdentifiersByCategory: [HealthCategory: [String]] = [
   .activity: [
-    "activeEnergyBurned", "basalEnergyBurned", "distanceWalkingRunning", "flightsClimbed", "appleMoveTime",
-    "appleStandTime", "physicalEffort", "workoutEffortScore", "estimatedWorkoutEffortScore", "runningSpeed",
+    "basalEnergyBurned", "flightsClimbed", "appleMoveTime", "appleStandTime", "physicalEffort", "workoutEffortScore",
+    "estimatedWorkoutEffortScore", "runningSpeed",
     "runningPower", "distanceCycling", "cyclingSpeed", "cyclingPower", "cyclingCadence",
     "cyclingFunctionalThresholdPower", "distanceSwimming", "swimmingStrokeCount", "underwaterDepth",
     "distanceWheelchair", "pushCount", "distanceDownhillSnowSports", "distanceCrossCountrySkiing",
@@ -26,7 +26,7 @@ let pendingIdentifiersByCategory: [HealthCategory: [String]] = [
     "environmentalAudioExposureEvent", "headphoneAudioExposureEvent", "audiogram",
   ],
   .heart: [
-    "heartRateVariabilitySDNN", "heartRateVariabilityRMSSD", "heartRateRecoveryOneMinute", "atrialFibrillationBurden",
+    "heartRateVariabilityRMSSD", "heartRateRecoveryOneMinute", "atrialFibrillationBurden",
     "vo2Max", "peripheralPerfusionIndex", "bloodPressureSystolic", "bloodPressureDiastolic", "highHeartRateEvent",
     "lowHeartRateEvent", "irregularHeartRhythmEvent", "hypertensionEvent", "lowCardioFitnessEvent",
     "electrocardiogram", "heartbeatSeries",

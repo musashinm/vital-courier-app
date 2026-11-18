@@ -10,13 +10,17 @@ public enum HealthKitMappingError: Error, Equatable {
 
 /// Pure HealthKit ↔ core conversions. Nothing here touches `HKHealthStore`, so all of it is tested on the Mac.
 public enum HealthKitMapping {
+  // swiftlint:disable:next cyclomatic_complexity - one case per health type
   public static func sampleType(for type: HealthType) -> HKSampleType {
     switch type {
     case .steps: HKQuantityType(.stepCount)
     case .exerciseMinutes: HKQuantityType(.appleExerciseTime)
+    case .activeEnergy: HKQuantityType(.activeEnergyBurned)
+    case .walkingRunningDistance: HKQuantityType(.distanceWalkingRunning)
     case .restingHeartRate: HKQuantityType(.restingHeartRate)
     case .walkingHeartRateAverage: HKQuantityType(.walkingHeartRateAverage)
     case .heartRate: HKQuantityType(.heartRate)
+    case .heartRateVariability: HKQuantityType(.heartRateVariabilitySDNN)
     case .respiratoryRate: HKQuantityType(.respiratoryRate)
     case .bloodGlucose: HKQuantityType(.bloodGlucose)
     case .bloodOxygen: HKQuantityType(.oxygenSaturation)
@@ -41,7 +45,9 @@ public enum HealthKitMapping {
   public static func storedUnit(for type: HealthType) -> HKUnit? {
     switch type {
     case .steps: .count()
-    case .exerciseMinutes: .second()
+    case .exerciseMinutes, .heartRateVariability: .second()
+    case .activeEnergy: .joule()
+    case .walkingRunningDistance: .meter()
     case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate: .count().unitDivided(by: .second())
     case .bloodGlucose: .gram().unitDivided(by: .liter())
     case .bloodOxygen: .percent()
@@ -50,11 +56,14 @@ public enum HealthKitMapping {
     }
   }
 
-  /// Daily values (spec, Daily values): steps as a count, exercise in minutes, resting heart rate and walking heart rate average in beats per minute, heart rate in beats per minute (average, minimum and maximum), respiratory rate in breaths per minute (average, minimum and maximum), blood glucose in mg/dL (average, minimum and maximum), blood oxygen as a 0–1 fraction (average, minimum and maximum; the note scales it to percent).
+  /// Daily values (spec, Daily values): steps as a count, exercise in minutes, active energy in kilocalories (sum), walking and running distance in kilometres (sum), heart rate variability (SDNN) in milliseconds (average, minimum and maximum), resting heart rate and walking heart rate average in beats per minute, heart rate in beats per minute (average, minimum and maximum), respiratory rate in breaths per minute (average, minimum and maximum), blood glucose in mg/dL (average, minimum and maximum), blood oxygen as a 0–1 fraction (average, minimum and maximum; the note scales it to percent).
   public static func statisticUnit(for type: HealthType) -> HKUnit? {
     switch type {
     case .steps: .count()
     case .exerciseMinutes: .minute()
+    case .activeEnergy: .kilocalorie()
+    case .walkingRunningDistance: .meterUnit(with: .kilo)
+    case .heartRateVariability: .secondUnit(with: .milli)
     case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate: .count().unitDivided(by: .minute())
     case .bloodGlucose: .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci))
     case .bloodOxygen: .percent()
@@ -107,8 +116,9 @@ public enum HealthKitMapping {
     switch type {
     case .menstrualFlow: menstrualFlowValueName(rawValue: rawValue)
     case .spotting: categoryValueName(rawValue: rawValue, catalogType: .spotting)
-    case .steps, .exerciseMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate,
-      .bloodGlucose, .bloodOxygen, .sleep, .weight:
+    case .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingHeartRate,
+      .walkingHeartRateAverage, .heartRate, .heartRateVariability, .respiratoryRate, .bloodGlucose, .bloodOxygen,
+      .sleep, .weight:
       sleepValueName(rawValue: rawValue)
     }
   }

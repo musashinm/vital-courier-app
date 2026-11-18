@@ -1348,6 +1348,16 @@
         }
       }
     },
+    "Active energy" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Energia ativa"
+          }
+        }
+      }
+    },
     "Activity" : {
       "localizations" : {
         "pt-BR" : {
@@ -1916,6 +1926,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Frequência cardíaca"
+          }
+        }
+      }
+    },
+    "Heart rate variability" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Variabilidade da frequência cardíaca"
           }
         }
       }
@@ -3069,6 +3089,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aguardando para ler os dados de saúde de novo"
+          }
+        }
+      }
+    },
+    "Walking + running distance" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Distância (caminhada e corrida)"
           }
         }
       }
