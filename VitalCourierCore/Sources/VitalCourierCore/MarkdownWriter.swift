@@ -4,12 +4,20 @@ public struct DailySummary: Equatable, Sendable {
   public var day: DayKey
   public var steps: Double?
   public var exerciseMinutes: Double?
+  /// Kilocalories.
+  public var activeEnergyKcal: Double?
+  /// Kilometres.
+  public var walkingRunningDistanceKm: Double?
   public var restingHeartRateBPM: Double?
   public var walkingHeartRateAverageBPM: Double?
   /// Beats per minute: the day's average, lowest and highest reading.
   public var heartRateBPM: Double?
   public var heartRateBPMMin: Double?
   public var heartRateBPMMax: Double?
+  /// Milliseconds: the day's average, lowest and highest SDNN reading.
+  public var heartRateVariabilityMs: Double?
+  public var heartRateVariabilityMsMin: Double?
+  public var heartRateVariabilityMsMax: Double?
   /// Breaths per minute: the day's average, lowest and highest reading.
   public var respiratoryRate: Double?
   public var respiratoryRateMin: Double?
@@ -38,11 +46,16 @@ public struct DailySummary: Equatable, Sendable {
     self.day = day
     steps = values[.steps]?.value
     exerciseMinutes = values[.exerciseMinutes]?.value
+    activeEnergyKcal = values[.activeEnergy]?.value
+    walkingRunningDistanceKm = values[.walkingRunningDistance]?.value
     restingHeartRateBPM = values[.restingHeartRate]?.value
     walkingHeartRateAverageBPM = values[.walkingHeartRateAverage]?.value
     heartRateBPM = values[.heartRate]?.value
     heartRateBPMMin = values[.heartRate]?.minimum
     heartRateBPMMax = values[.heartRate]?.maximum
+    heartRateVariabilityMs = values[.heartRateVariability]?.value
+    heartRateVariabilityMsMin = values[.heartRateVariability]?.minimum
+    heartRateVariabilityMsMax = values[.heartRateVariability]?.maximum
     respiratoryRate = values[.respiratoryRate]?.value
     respiratoryRateMin = values[.respiratoryRate]?.minimum
     respiratoryRateMax = values[.respiratoryRate]?.maximum
@@ -95,11 +108,16 @@ public enum MarkdownWriter {
     "date",
     "vc_steps",
     "vc_exercise_minutes",
+    "vc_active_energy_kcal",
+    "vc_distance_km",
     "vc_resting_hr_bpm",
     "vc_walking_hr_avg",
     "vc_hr_avg",
     "vc_hr_min",
     "vc_hr_max",
+    "vc_hrv_ms",
+    "vc_hrv_ms_min",
+    "vc_hrv_ms_max",
     "vc_respiratory_rate",
     "vc_respiratory_rate_min",
     "vc_respiratory_rate_max",
@@ -127,11 +145,22 @@ public enum MarkdownWriter {
     if let minutes = summary.exerciseMinutes {
       lines.append("vc_exercise_minutes: \(Int(minutes.rounded(.towardZero)))")
     }
+    if let kilocalories = summary.activeEnergyKcal {
+      lines.append("vc_active_energy_kcal: \(noDecimals(kilocalories))")
+    }
+    if let kilometres = summary.walkingRunningDistanceKm { lines.append("vc_distance_km: \(twoDecimals(kilometres))") }
     if let bpm = summary.restingHeartRateBPM { lines.append("vc_resting_hr_bpm: \(oneDecimal(bpm))") }
     if let bpm = summary.walkingHeartRateAverageBPM { lines.append("vc_walking_hr_avg: \(oneDecimal(bpm))") }
     if let bpm = summary.heartRateBPM { lines.append("vc_hr_avg: \(noDecimals(bpm))") }
     if let bpm = summary.heartRateBPMMin { lines.append("vc_hr_min: \(noDecimals(bpm))") }
     if let bpm = summary.heartRateBPMMax { lines.append("vc_hr_max: \(noDecimals(bpm))") }
+    if let milliseconds = summary.heartRateVariabilityMs { lines.append("vc_hrv_ms: \(noDecimals(milliseconds))") }
+    if let milliseconds = summary.heartRateVariabilityMsMin {
+      lines.append("vc_hrv_ms_min: \(noDecimals(milliseconds))")
+    }
+    if let milliseconds = summary.heartRateVariabilityMsMax {
+      lines.append("vc_hrv_ms_max: \(noDecimals(milliseconds))")
+    }
     // Each written on its own: a missing minimum or maximum never hides the average (Respiratory Rate Spec, Edge cases).
     if let breaths = summary.respiratoryRate { lines.append("vc_respiratory_rate: \(oneDecimal(breaths))") }
     if let breaths = summary.respiratoryRateMin { lines.append("vc_respiratory_rate_min: \(oneDecimal(breaths))") }

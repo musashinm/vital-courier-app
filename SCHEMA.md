@@ -86,11 +86,16 @@ Keys, in file order:
 | `date` | `YYYY-MM-DD` | always |
 | `vc_steps` | steps | integer, truncated toward zero |
 | `vc_exercise_minutes` | minutes | integer, truncated toward zero |
+| `vc_active_energy_kcal` | kcal | whole number, rounded |
+| `vc_distance_km` | km, walking + running | two decimals |
 | `vc_resting_hr_bpm` | bpm | one decimal |
 | `vc_walking_hr_avg` | bpm | one decimal |
 | `vc_hr_avg` | bpm | whole number, rounded |
 | `vc_hr_min` | bpm | whole number, rounded |
 | `vc_hr_max` | bpm | whole number, rounded |
+| `vc_hrv_ms` | ms, SDNN | whole number, rounded |
+| `vc_hrv_ms_min` | ms, SDNN | whole number, rounded |
+| `vc_hrv_ms_max` | ms, SDNN | whole number, rounded |
 | `vc_respiratory_rate` | breaths/min | one decimal |
 | `vc_respiratory_rate_min` | breaths/min | one decimal |
 | `vc_respiratory_rate_max` | breaths/min | one decimal |
