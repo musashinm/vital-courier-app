@@ -91,6 +91,9 @@ Keys, in file order:
 | `vc_exercise_minutes` | minutes | integer, truncated toward zero |
 | `vc_active_energy_kcal` | kcal | whole number, rounded |
 | `vc_distance_km` | km, walking + running | two decimals |
+| `vc_resting_energy_kcal` | kcal | whole number, rounded |
+| `vc_flights_climbed` | flights | integer, truncated toward zero |
+| `vc_stand_minutes` | minutes | integer, truncated toward zero |
 | `vc_resting_hr_bpm` | bpm | one decimal |
 | `vc_walking_hr_avg` | bpm | one decimal |
 | `vc_hr_avg` | bpm | whole number, rounded |

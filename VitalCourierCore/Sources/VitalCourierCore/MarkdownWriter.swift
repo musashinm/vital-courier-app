@@ -8,6 +8,11 @@ public struct DailySummary: Equatable, Sendable {
   public var activeEnergyKcal: Double?
   /// Kilometres.
   public var walkingRunningDistanceKm: Double?
+  /// Kilocalories.
+  public var restingEnergyKcal: Double?
+  public var flightsClimbed: Double?
+  /// Minutes.
+  public var standMinutes: Double?
   public var restingHeartRateBPM: Double?
   public var walkingHeartRateAverageBPM: Double?
   /// Beats per minute: the day's average, lowest and highest reading.
@@ -48,6 +53,9 @@ public struct DailySummary: Equatable, Sendable {
     exerciseMinutes = values[.exerciseMinutes]?.value
     activeEnergyKcal = values[.activeEnergy]?.value
     walkingRunningDistanceKm = values[.walkingRunningDistance]?.value
+    restingEnergyKcal = values[.restingEnergy]?.value
+    flightsClimbed = values[.flightsClimbed]?.value
+    standMinutes = values[.standMinutes]?.value
     restingHeartRateBPM = values[.restingHeartRate]?.value
     walkingHeartRateAverageBPM = values[.walkingHeartRateAverage]?.value
     heartRateBPM = values[.heartRate]?.value
@@ -110,6 +118,9 @@ public enum MarkdownWriter {
     "vc_exercise_minutes",
     "vc_active_energy_kcal",
     "vc_distance_km",
+    "vc_resting_energy_kcal",
+    "vc_flights_climbed",
+    "vc_stand_minutes",
     "vc_resting_hr_bpm",
     "vc_walking_hr_avg",
     "vc_hr_avg",
@@ -149,6 +160,12 @@ public enum MarkdownWriter {
       lines.append("vc_active_energy_kcal: \(noDecimals(kilocalories))")
     }
     if let kilometres = summary.walkingRunningDistanceKm { lines.append("vc_distance_km: \(twoDecimals(kilometres))") }
+    if let kilocalories = summary.restingEnergyKcal {
+      lines.append("vc_resting_energy_kcal: \(noDecimals(kilocalories))")
+    }
+    // Truncated, not rounded, like steps: a half-climbed flight or a partial minute isn't counted.
+    if let flights = summary.flightsClimbed { lines.append("vc_flights_climbed: \(Int(flights.rounded(.towardZero)))") }
+    if let minutes = summary.standMinutes { lines.append("vc_stand_minutes: \(Int(minutes.rounded(.towardZero)))") }
     if let bpm = summary.restingHeartRateBPM { lines.append("vc_resting_hr_bpm: \(oneDecimal(bpm))") }
     if let bpm = summary.walkingHeartRateAverageBPM { lines.append("vc_walking_hr_avg: \(oneDecimal(bpm))") }
     if let bpm = summary.heartRateBPM { lines.append("vc_hr_avg: \(noDecimals(bpm))") }
