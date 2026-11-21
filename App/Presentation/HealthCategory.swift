@@ -48,7 +48,9 @@ extension HealthType {
   /// The category Apple Health's Browse tab presents the type in. Exhaustive, so a new type has to be placed to compile.
   var category: HealthCategory {
     switch self {
-    case .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance: .activity
+    case .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
+      .standMinutes:
+      .activity
     case .weight: .bodyMeasurements
     case .menstrualFlow, .spotting: .cycleTracking
     case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability: .heart

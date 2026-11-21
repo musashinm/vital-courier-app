@@ -8,6 +8,9 @@ import Testing
     #expect(HealthType.exerciseMinutes.statisticsAggregation == .sum)
     #expect(HealthType.activeEnergy.statisticsAggregation == .sum)
     #expect(HealthType.walkingRunningDistance.statisticsAggregation == .sum)
+    #expect(HealthType.restingEnergy.statisticsAggregation == .sum)
+    #expect(HealthType.flightsClimbed.statisticsAggregation == .sum)
+    #expect(HealthType.standMinutes.statisticsAggregation == .sum)
     #expect(HealthType.restingHeartRate.statisticsAggregation == .average)
     #expect(HealthType.walkingHeartRateAverage.statisticsAggregation == .average)
     #expect(HealthType.heartRate.statisticsAggregation == .averageMinMax)
@@ -26,11 +29,12 @@ import Testing
     #expect(HealthType.walkingHeartRateAverage.siUnit == "count/s")
   }
 
-  @Test func exactlyTheElevenStatisticsTypesUseTheStatisticsQuery() {
+  @Test func exactlyTheFourteenStatisticsTypesUseTheStatisticsQuery() {
     #expect(
       HealthType.allCases.filter(\.usesStatisticsQuery) == [
-        .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingHeartRate,
-        .walkingHeartRateAverage, .heartRate, .heartRateVariability, .respiratoryRate, .bloodGlucose, .bloodOxygen,
+        .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
+        .standMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
+        .respiratoryRate, .bloodGlucose, .bloodOxygen,
       ])
   }
 
@@ -42,6 +46,21 @@ import Testing
   @Test func activeEnergyIsStoredInJoules() {
     #expect(HealthType.activeEnergy.folderName == "active-energy")
     #expect(HealthType.activeEnergy.siUnit == "J")
+  }
+
+  @Test func restingEnergyIsStoredInJoules() {
+    #expect(HealthType.restingEnergy.folderName == "resting-energy")
+    #expect(HealthType.restingEnergy.siUnit == "J")
+  }
+
+  @Test func flightsClimbedIsStoredAsACount() {
+    #expect(HealthType.flightsClimbed.folderName == "flights-climbed")
+    #expect(HealthType.flightsClimbed.siUnit == "count")
+  }
+
+  @Test func standMinutesIsStoredInSeconds() {
+    #expect(HealthType.standMinutes.folderName == "stand-minutes")
+    #expect(HealthType.standMinutes.siUnit == "s")
   }
 
   @Test func walkingRunningDistanceIsStoredInMetres() {

@@ -3,7 +3,7 @@
 
 let pendingIdentifiersByCategory: [HealthCategory: [String]] = [
   .activity: [
-    "basalEnergyBurned", "flightsClimbed", "appleMoveTime", "appleStandTime", "physicalEffort", "workoutEffortScore",
+    "appleMoveTime", "physicalEffort", "workoutEffortScore",
     "estimatedWorkoutEffortScore", "runningSpeed",
     "runningPower", "distanceCycling", "cyclingSpeed", "cyclingPower", "cyclingCadence",
     "cyclingFunctionalThresholdPower", "distanceSwimming", "swimmingStrokeCount", "underwaterDepth",

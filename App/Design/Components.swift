@@ -164,6 +164,9 @@ extension HealthType {
     case .exerciseMinutes: String(localized: "Exercise minutes")
     case .activeEnergy: String(localized: "Active energy")
     case .walkingRunningDistance: String(localized: "Walking + running distance")
+    case .restingEnergy: String(localized: "Resting energy")
+    case .flightsClimbed: String(localized: "Flights climbed")
+    case .standMinutes: String(localized: "Stand minutes")
     case .restingHeartRate: String(localized: "Resting heart rate")
     case .walkingHeartRateAverage: String(localized: "Walking heart rate average")
     case .heartRate: String(localized: "Heart rate")
@@ -184,6 +187,9 @@ extension HealthType {
     case .exerciseMinutes: "figure.run"
     case .activeEnergy: "flame.fill"
     case .walkingRunningDistance: "figure.walk"
+    case .restingEnergy: "flame.fill"
+    case .flightsClimbed: "figure.stairs"
+    case .standMinutes: "figure.stand"
     case .restingHeartRate: "heart.fill"
     case .walkingHeartRateAverage: "heart.fill"
     case .heartRate: "heart.fill"

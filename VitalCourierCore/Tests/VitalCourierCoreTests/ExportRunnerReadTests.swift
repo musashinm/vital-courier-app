@@ -579,6 +579,54 @@ import Testing
     #expect(try store.dailyValues(day: day("2026-09-27")) == [.walkingRunningDistance: DailyValue(value: 6.4249)])
   }
 
+  @Test func aRestingEnergyDayStoresTheStatisticSumInKilocalories() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.queue(
+      HealthChanges(added: [
+        makeSample(
+          type: .restingEnergy, start: "2026-09-27T12:00:00Z", end: "2026-09-27T12:01:00Z", value: .quantity(1))
+      ]), for: .restingEnergy)
+    await health.setStatistic(1687.6, for: .restingEnergy, day: day("2026-09-27"))
+
+    _ = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake))
+    {}
+
+    #expect(try store.dailyValues(day: day("2026-09-27")) == [.restingEnergy: DailyValue(value: 1687.6)])
+  }
+
+  @Test func aFlightsDayStoresTheStatisticSumAsACount() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.queue(
+      HealthChanges(added: [
+        makeSample(
+          type: .flightsClimbed, start: "2026-09-27T12:00:00Z", end: "2026-09-27T12:01:00Z", value: .quantity(1))
+      ]), for: .flightsClimbed)
+    await health.setStatistic(7.9, for: .flightsClimbed, day: day("2026-09-27"))
+
+    _ = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake))
+    {}
+
+    #expect(try store.dailyValues(day: day("2026-09-27")) == [.flightsClimbed: DailyValue(value: 7.9)])
+  }
+
+  @Test func aStandDayStoresTheStatisticSumInMinutes() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.queue(
+      HealthChanges(added: [
+        makeSample(
+          type: .standMinutes, start: "2026-09-27T12:00:00Z", end: "2026-09-27T12:01:00Z", value: .quantity(1))
+      ]), for: .standMinutes)
+    await health.setStatistic(143.9, for: .standMinutes, day: day("2026-09-27"))
+
+    _ = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake))
+    {}
+
+    #expect(try store.dailyValues(day: day("2026-09-27")) == [.standMinutes: DailyValue(value: 143.9)])
+  }
+
   @Test func anHRVDayStoresTheAverageAndItsRange() async throws {
     let store = try LocalStore.inMemory()
     let health = FakeHealthSource()

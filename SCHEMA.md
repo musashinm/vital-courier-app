@@ -49,7 +49,7 @@ Only the formats you turned on are written. Turning one off deletes nothing.
 - A JSON or CSV sample goes in the month of its `start`, in that sample's zone.
 - Weight, menstrual flow and spotting count on the day of the sample's `start`, in that sample's zone.
 - Sleep belongs to the wake day: the day the last asleep sample of the night ends, in that sample's zone.
-- Eleven types come from HealthKit's daily statistics instead: steps, exercise minutes, active energy, walking + running distance, resting heart rate, walking heart rate average, heart rate, heart rate variability, respiratory rate, blood glucose and blood oxygen. They cover local midnight to midnight in the phone's zone at export time.
+- Fourteen types come from HealthKit's daily statistics instead: steps, exercise minutes, active energy, walking + running distance, resting energy, flights climbed, stand minutes, resting heart rate, walking heart rate average, heart rate, heart rate variability, respiratory rate, blood glucose and blood oxygen. They cover local midnight to midnight in the phone's zone at export time.
 
 ### Types
 
@@ -61,6 +61,9 @@ One row per type. The `type` column is the JSON `type` field, `folder` is the fo
 | `exerciseMinutes` | `exercise-minutes` | `s` |
 | `activeEnergy` | `active-energy` | `J` |
 | `walkingRunningDistance` | `walking-running-distance` | `m` |
+| `restingEnergy` | `resting-energy` | `J` |
+| `flightsClimbed` | `flights-climbed` | `count` |
+| `standMinutes` | `stand-minutes` | `s` |
 | `restingHeartRate` | `resting-heart-rate` | `count/s` |
 | `walkingHeartRateAverage` | `walking-heart-rate-average` | `count/s` |
 | `heartRate` | `heart-rate` | `count/s` |
@@ -118,7 +121,7 @@ Each minimum and maximum is written on its own. A missing minimum or maximum nev
 
 ### How each daily value is built
 
-- Steps, exercise minutes, active energy and walking + running distance are the day's sum. Resting and walking heart rate are the day's average. Heart rate, heart rate variability, respiratory rate and blood glucose are the average plus the minimum and maximum. Blood oxygen is the minimum and maximum only.
+- Steps, exercise minutes, active energy, walking + running distance, resting energy, flights climbed and stand minutes are the day's sum. Resting and walking heart rate are the day's average. Heart rate, heart rate variability, respiratory rate and blood glucose are the average plus the minimum and maximum. Blood oxygen is the minimum and maximum only.
 - Weight is the sample on that start day with the latest `end`.
 - Sleep counts only the `asleepUnspecified`, `asleepCore`, `asleepDeep` and `asleepREM` stages. Segments less than 4 hours apart form one night, and overlapping intervals are merged. Each source's longest night per wake day wins. Then one source is picked: the one chosen in the app's Settings if it has that night. If not, a night with an Apple Watch sample (the device name contains `Watch`). If not, the most asleep time, with ties going to the alphabetically first source.
 - `vc_menstrual_flow` is the heaviest flow that day, ranked `none` < `unspecified` < `light` < `medium` < `heavy`. A value outside that list, such as `unknown(<n>)`, ranks below `none`.
@@ -176,7 +179,9 @@ The JSON and CSV keep HealthKit's SI units. The note converts some of them.
 
 - Exercise: seconds (`s`) in JSON and CSV, minutes in the note.
 - Active energy: joules (`J`) in JSON and CSV, kilocalories in the note (a whole number).
+- Resting energy: joules (`J`) in JSON and CSV, kilocalories in the note (a whole number).
 - Walking + running distance: metres (`m`) in JSON and CSV, kilometres in the note (two decimals).
+- Stand minutes: seconds (`s`) in JSON and CSV, minutes in the note.
 - Heart rate variability: seconds (`s`) in JSON and CSV, milliseconds in the note (a whole number).
 - Resting heart rate, walking heart rate average, heart rate and respiratory rate: `count/s` in JSON and CSV, per minute in the note (multiply by 60).
 - Blood glucose: `g/L` in JSON and CSV, mg/dL in the note (multiply by 100).

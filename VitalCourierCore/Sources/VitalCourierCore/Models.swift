@@ -5,6 +5,9 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
   case exerciseMinutes
   case activeEnergy
   case walkingRunningDistance
+  case restingEnergy
+  case flightsClimbed
+  case standMinutes
   case restingHeartRate
   case walkingHeartRateAverage
   case heartRate
@@ -19,8 +22,9 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
 
   /// The types every install exports.
   public static let baseTypes: [HealthType] = [
-    .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingHeartRate, .walkingHeartRateAverage,
-    .heartRate, .heartRateVariability, .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight,
+    .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed, .standMinutes,
+    .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability, .respiratoryRate, .bloodGlucose,
+    .bloodOxygen, .sleep, .weight,
   ]
   /// Exported only while Cycle tracking is on (Cycle Tracking Spec).
   public static let cycleTypes: [HealthType] = [.menstrualFlow, .spotting]
@@ -42,6 +46,9 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
     case .exerciseMinutes: "exercise-minutes"
     case .activeEnergy: "active-energy"
     case .walkingRunningDistance: "walking-running-distance"
+    case .restingEnergy: "resting-energy"
+    case .flightsClimbed: "flights-climbed"
+    case .standMinutes: "stand-minutes"
     case .restingHeartRate: "resting-heart-rate"
     case .walkingHeartRateAverage: "walking-heart-rate-average"
     case .heartRate: "heart-rate"
@@ -59,9 +66,9 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
   /// SI unit written to the JSON `unit` field. Sample values are stored in this unit.
   public var siUnit: String {
     switch self {
-    case .steps: "count"
-    case .exerciseMinutes, .heartRateVariability: "s"
-    case .activeEnergy: "J"
+    case .steps, .flightsClimbed: "count"
+    case .exerciseMinutes, .standMinutes, .heartRateVariability: "s"
+    case .activeEnergy, .restingEnergy: "J"
     case .walkingRunningDistance: "m"
     case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate: "count/s"
     case .bloodGlucose: "g/L"
@@ -74,7 +81,9 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
   /// How the daily value is built from HealthKit's statistics query; nil for types that don't use it. One exhaustive switch, so a new type has to be classified to compile (Exercise Minutes Spec, Statistics query).
   public var statisticsAggregation: StatisticsAggregation? {
     switch self {
-    case .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance: .sum
+    case .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
+      .standMinutes:
+      .sum
     case .restingHeartRate, .walkingHeartRateAverage: .average
     case .heartRate, .heartRateVariability, .respiratoryRate, .bloodGlucose, .bloodOxygen: .averageMinMax
     case .sleep, .weight, .menstrualFlow, .spotting: nil
