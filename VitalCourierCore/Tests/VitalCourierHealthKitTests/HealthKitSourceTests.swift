@@ -62,6 +62,27 @@ import VitalCourierCore
     #expect(distance.minimum == nil)
     #expect(distance.maximum == nil)
 
+    let restingEnergy = HealthKitSource.chosenQuantities(
+      for: HealthType.restingEnergy.statisticsAggregation!, sum: sum, average: average, minimum: minimum,
+      maximum: maximum)
+    #expect(restingEnergy.value == sum)
+    #expect(restingEnergy.minimum == nil)
+    #expect(restingEnergy.maximum == nil)
+
+    let flights = HealthKitSource.chosenQuantities(
+      for: HealthType.flightsClimbed.statisticsAggregation!, sum: sum, average: average, minimum: minimum,
+      maximum: maximum)
+    #expect(flights.value == sum)
+    #expect(flights.minimum == nil)
+    #expect(flights.maximum == nil)
+
+    let stand = HealthKitSource.chosenQuantities(
+      for: HealthType.standMinutes.statisticsAggregation!, sum: sum, average: average, minimum: minimum,
+      maximum: maximum)
+    #expect(stand.value == sum)
+    #expect(stand.minimum == nil)
+    #expect(stand.maximum == nil)
+
     let variability = HealthKitSource.chosenQuantities(
       for: HealthType.heartRateVariability.statisticsAggregation!, sum: sum, average: average, minimum: minimum,
       maximum: maximum)

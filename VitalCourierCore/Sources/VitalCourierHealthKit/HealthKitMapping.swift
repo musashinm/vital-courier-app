@@ -17,6 +17,9 @@ public enum HealthKitMapping {
     case .exerciseMinutes: HKQuantityType(.appleExerciseTime)
     case .activeEnergy: HKQuantityType(.activeEnergyBurned)
     case .walkingRunningDistance: HKQuantityType(.distanceWalkingRunning)
+    case .restingEnergy: HKQuantityType(.basalEnergyBurned)
+    case .flightsClimbed: HKQuantityType(.flightsClimbed)
+    case .standMinutes: HKQuantityType(.appleStandTime)
     case .restingHeartRate: HKQuantityType(.restingHeartRate)
     case .walkingHeartRateAverage: HKQuantityType(.walkingHeartRateAverage)
     case .heartRate: HKQuantityType(.heartRate)
@@ -44,9 +47,9 @@ public enum HealthKitMapping {
   /// The SI unit samples are stored in (`HealthType.siUnit`). Categories have none.
   public static func storedUnit(for type: HealthType) -> HKUnit? {
     switch type {
-    case .steps: .count()
-    case .exerciseMinutes, .heartRateVariability: .second()
-    case .activeEnergy: .joule()
+    case .steps, .flightsClimbed: .count()
+    case .exerciseMinutes, .standMinutes, .heartRateVariability: .second()
+    case .activeEnergy, .restingEnergy: .joule()
     case .walkingRunningDistance: .meter()
     case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate: .count().unitDivided(by: .second())
     case .bloodGlucose: .gram().unitDivided(by: .liter())
@@ -56,12 +59,12 @@ public enum HealthKitMapping {
     }
   }
 
-  /// Daily values (spec, Daily values): steps as a count, exercise in minutes, active energy in kilocalories (sum), walking and running distance in kilometres (sum), heart rate variability (SDNN) in milliseconds (average, minimum and maximum), resting heart rate and walking heart rate average in beats per minute, heart rate in beats per minute (average, minimum and maximum), respiratory rate in breaths per minute (average, minimum and maximum), blood glucose in mg/dL (average, minimum and maximum), blood oxygen as a 0–1 fraction (average, minimum and maximum; the note scales it to percent).
+  /// Daily values (spec, Daily values): steps as a count, exercise in minutes, active energy in kilocalories (sum), walking and running distance in kilometres (sum), resting energy in kilocalories (sum), flights climbed as a count (sum), stand time in minutes (sum), heart rate variability (SDNN) in milliseconds (average, minimum and maximum), resting heart rate and walking heart rate average in beats per minute, heart rate in beats per minute (average, minimum and maximum), respiratory rate in breaths per minute (average, minimum and maximum), blood glucose in mg/dL (average, minimum and maximum), blood oxygen as a 0–1 fraction (average, minimum and maximum; the note scales it to percent).
   public static func statisticUnit(for type: HealthType) -> HKUnit? {
     switch type {
-    case .steps: .count()
-    case .exerciseMinutes: .minute()
-    case .activeEnergy: .kilocalorie()
+    case .steps, .flightsClimbed: .count()
+    case .exerciseMinutes, .standMinutes: .minute()
+    case .activeEnergy, .restingEnergy: .kilocalorie()
     case .walkingRunningDistance: .meterUnit(with: .kilo)
     case .heartRateVariability: .secondUnit(with: .milli)
     case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate: .count().unitDivided(by: .minute())
@@ -116,9 +119,9 @@ public enum HealthKitMapping {
     switch type {
     case .menstrualFlow: menstrualFlowValueName(rawValue: rawValue)
     case .spotting: categoryValueName(rawValue: rawValue, catalogType: .spotting)
-    case .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingHeartRate,
-      .walkingHeartRateAverage, .heartRate, .heartRateVariability, .respiratoryRate, .bloodGlucose, .bloodOxygen,
-      .sleep, .weight:
+    case .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
+      .standMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
+      .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight:
       sleepValueName(rawValue: rawValue)
     }
   }

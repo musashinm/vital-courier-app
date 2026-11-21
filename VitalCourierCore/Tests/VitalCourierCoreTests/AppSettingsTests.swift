@@ -96,6 +96,28 @@ import Testing
     #expect(settings.healthTypesAskedAbout == [.steps, .restingHeartRate, .sleep, .weight])
   }
 
+  @Test func aPersisted041AskedSetLeavesTheNewTypesUnobservedUntilRecorded() throws {
+    // A 0.4.1 install persisted the thirteen base types; the new ones stay unobserved until the sheet is answered (Resting Energy, Flights and Stand Spec, Edge cases).
+    let storage = InMemoryStorage()
+    let settings = AppSettings(storage: storage)
+    storage.set(
+      try JSONEncoder().encode([
+        "steps", "exerciseMinutes", "activeEnergy", "walkingRunningDistance", "restingHeartRate",
+        "walkingHeartRateAverage", "heartRate", "heartRateVariability", "respiratoryRate", "bloodGlucose",
+        "bloodOxygen", "sleep", "weight",
+      ]), forKey: AppSettings.Key.healthTypesAskedAbout)
+    let enabled = HealthType.enabledTypes(cycleTrackingEnabled: false)
+
+    let observedBefore = HealthType.observedTypes(enabled: enabled, askedAbout: settings.healthTypesAskedAbout)
+    #expect(!observedBefore.contains(.restingEnergy))
+    #expect(!observedBefore.contains(.flightsClimbed))
+    #expect(!observedBefore.contains(.standMinutes))
+    #expect(observedBefore.count == 13)
+
+    settings.recordHealthTypesAskedAbout([.restingEnergy, .flightsClimbed, .standMinutes])
+    #expect(HealthType.observedTypes(enabled: enabled, askedAbout: settings.healthTypesAskedAbout) == enabled)
+  }
+
   @Test func theFixedPreSettingListNeverGainsWalkingHeartRateAverage() {
     // Existing installs must see the Health sheet before the new type is observed (Walking Heart Rate Average Spec, Edge cases).
     #expect(!AppSettings.typesAskedAboutBeforeThisSetting.contains(.walkingHeartRateAverage))
@@ -112,6 +134,14 @@ import Testing
     #expect(!asked.contains(.activeEnergy))
     #expect(!asked.contains(.walkingRunningDistance))
     #expect(!asked.contains(.heartRateVariability))
+  }
+
+  @Test func theFixedPreSettingListNeverGainsRestingEnergyFlightsOrStand() {
+    // Existing installs must see the Health sheet before these types are observed (Resting Energy, Flights and Stand Spec, Edge cases).
+    let asked = AppSettings.typesAskedAboutBeforeThisSetting
+    #expect(!asked.contains(.restingEnergy))
+    #expect(!asked.contains(.flightsClimbed))
+    #expect(!asked.contains(.standMinutes))
   }
 
   @Test func concurrentRecordingsOfDifferentTypesAllSurvive() async {

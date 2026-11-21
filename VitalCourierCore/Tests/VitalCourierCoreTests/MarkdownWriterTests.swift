@@ -15,6 +15,9 @@ import Testing
     summary.exerciseMinutes = 34.9
     summary.activeEnergyKcal = 511.6
     summary.walkingRunningDistanceKm = 6.4249
+    summary.restingEnergyKcal = 1687.6
+    summary.flightsClimbed = 7.9
+    summary.standMinutes = 143.9
     summary.restingHeartRateBPM = 58.46
     summary.walkingHeartRateAverageBPM = 92.46
     summary.heartRateBPM = 72.4
@@ -45,6 +48,9 @@ import Testing
         vc_exercise_minutes: 34
         vc_active_energy_kcal: 512
         vc_distance_km: 6.42
+        vc_resting_energy_kcal: 1688
+        vc_flights_climbed: 7
+        vc_stand_minutes: 143
         vc_resting_hr_bpm: 58.5
         vc_walking_hr_avg: 92.5
         vc_hr_avg: 72
@@ -206,6 +212,34 @@ import Testing
     #expect(!note.contains("vc_active_energy_kcal"))
     #expect(!note.contains("vc_distance_km"))
     #expect(!note.contains("vc_hrv_ms"))
+  }
+
+  @Test func leavesOutRestingEnergyFlightsAndStandWhenThereAreNone() {
+    var summary = DailySummary(day: day("2026-09-27"))
+    summary.steps = 100
+    let note = text(summary)
+    #expect(!note.contains("vc_resting_energy_kcal"))
+    #expect(!note.contains("vc_flights_climbed"))
+    #expect(!note.contains("vc_stand_minutes"))
+  }
+
+  @Test func writesAZeroFlightsDayAsZero() {
+    var summary = DailySummary(day: day("2026-09-27"))
+    summary.flightsClimbed = 0
+    #expect(text(summary).contains("vc_flights_climbed: 0\n"))
+  }
+
+  @Test func theSummaryTakesRestingEnergyFlightsAndStandFromTheStoredDailyValues() {
+    let summary = DailySummary(
+      day: day("2026-09-27"),
+      values: [
+        .restingEnergy: DailyValue(value: 1687.6),
+        .flightsClimbed: DailyValue(value: 7.9),
+        .standMinutes: DailyValue(value: 143.9),
+      ])
+    #expect(summary.restingEnergyKcal == 1687.6)
+    #expect(summary.flightsClimbed == 7.9)
+    #expect(summary.standMinutes == 143.9)
   }
 
   @Test func writesATinyDistanceAsZeroRatherThanLeavingItOut() {

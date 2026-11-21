@@ -15,7 +15,7 @@ private func date(_ iso: String) -> Date {
     #expect(HealthKitMapping.sampleType(for: .restingHeartRate) == HKQuantityType(.restingHeartRate))
     #expect(HealthKitMapping.sampleType(for: .sleep) == HKCategoryType(.sleepAnalysis))
     #expect(HealthKitMapping.sampleType(for: .weight) == HKQuantityType(.bodyMass))
-    #expect(HealthKitMapping.readTypes.count == 13)
+    #expect(HealthKitMapping.readTypes.count == 16)
   }
 
   @Test func samplesAreStoredInSIUnits() throws {
@@ -111,8 +111,8 @@ private func date(_ iso: String) -> Date {
   @Test func cycleTypesMapToTheirHealthKitTypes() {
     #expect(HealthKitMapping.sampleType(for: .menstrualFlow) == HKCategoryType(.menstrualFlow))
     #expect(HealthKitMapping.sampleType(for: .spotting) == HKCategoryType(.intermenstrualBleeding))
-    #expect(HealthKitMapping.readTypes.count == 13)
-    #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 15)
+    #expect(HealthKitMapping.readTypes.count == 16)
+    #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 18)
     #expect(HealthKitMapping.storedUnit(for: .menstrualFlow) == nil)
     #expect(HealthKitMapping.statisticUnit(for: .spotting) == nil)
   }
@@ -180,6 +180,27 @@ private func date(_ iso: String) -> Date {
     #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.distanceWalkingRunning)))
   }
 
+  @Test func restingEnergyMapsToItsHealthKitType() {
+    #expect(HealthKitMapping.sampleType(for: .restingEnergy) == HKQuantityType(.basalEnergyBurned))
+    #expect(HealthKitMapping.storedUnit(for: .restingEnergy) == .joule())
+    #expect(HealthKitMapping.statisticUnit(for: .restingEnergy) == .kilocalorie())
+    #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.basalEnergyBurned)))
+  }
+
+  @Test func flightsClimbedMapsToItsHealthKitType() {
+    #expect(HealthKitMapping.sampleType(for: .flightsClimbed) == HKQuantityType(.flightsClimbed))
+    #expect(HealthKitMapping.storedUnit(for: .flightsClimbed) == .count())
+    #expect(HealthKitMapping.statisticUnit(for: .flightsClimbed) == .count())
+    #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.flightsClimbed)))
+  }
+
+  @Test func standMinutesMapsToItsHealthKitType() {
+    #expect(HealthKitMapping.sampleType(for: .standMinutes) == HKQuantityType(.appleStandTime))
+    #expect(HealthKitMapping.storedUnit(for: .standMinutes) == .second())
+    #expect(HealthKitMapping.statisticUnit(for: .standMinutes) == .minute())
+    #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.appleStandTime)))
+  }
+
   @Test func heartRateVariabilityMapsToItsHealthKitType() {
     #expect(HealthKitMapping.sampleType(for: .heartRateVariability) == HKQuantityType(.heartRateVariabilitySDNN))
     #expect(HealthKitMapping.storedUnit(for: .heartRateVariability) == .second())
@@ -195,6 +216,26 @@ private func date(_ iso: String) -> Date {
   @Test func aKilojouleEnergyQuantityIsStoredInJoules() throws {
     let twoKilojoules = HKQuantity(unit: .jouleUnit(with: .kilo), doubleValue: 2)
     #expect(try HealthKitMapping.storedValue(twoKilojoules, for: .activeEnergy) == 2000)
+  }
+
+  @Test func aKilocalorieRestingEnergyQuantityIsStoredInJoules() throws {
+    let oneKilocalorie = HKQuantity(unit: .kilocalorie(), doubleValue: 1)
+    #expect(try HealthKitMapping.storedValue(oneKilocalorie, for: .restingEnergy) == 4184)
+  }
+
+  @Test func aKilojouleRestingEnergyQuantityIsStoredInJoules() throws {
+    let twoKilojoules = HKQuantity(unit: .jouleUnit(with: .kilo), doubleValue: 2)
+    #expect(try HealthKitMapping.storedValue(twoKilojoules, for: .restingEnergy) == 2000)
+  }
+
+  @Test func aFlightsQuantityIsStoredAsACount() throws {
+    let threeFlights = HKQuantity(unit: .count(), doubleValue: 3)
+    #expect(try HealthKitMapping.storedValue(threeFlights, for: .flightsClimbed) == 3)
+  }
+
+  @Test func aMinuteStandQuantityIsStoredInSeconds() throws {
+    let oneMinute = HKQuantity(unit: .minute(), doubleValue: 1)
+    #expect(try HealthKitMapping.storedValue(oneMinute, for: .standMinutes) == 60)
   }
 
   @Test func aKilometreDistanceQuantityIsStoredInMetres() throws {

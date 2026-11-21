@@ -1820,6 +1820,16 @@
         }
       }
     },
+    "Flights climbed" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lances de escada"
+          }
+        }
+      }
+    },
     "Folder" : {
       "localizations" : {
         "pt-BR" : {
@@ -2527,6 +2537,16 @@
         }
       }
     },
+    "Resting energy" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Energia em repouso"
+          }
+        }
+      }
+    },
     "Resting heart rate" : {
       "localizations" : {
         "pt-BR" : {
@@ -2696,6 +2716,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sangramento"
+          }
+        }
+      }
+    },
+    "Stand minutes" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minutos em pé"
           }
         }
       }

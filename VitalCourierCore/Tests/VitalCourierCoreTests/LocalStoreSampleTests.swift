@@ -299,6 +299,30 @@ import Testing
     #expect(try dirtyDays(store, type: .walkingRunningDistance) == [day("2026-09-27"), day("2026-09-28")])
   }
 
+  @Test func addingARestingEnergySampleAcrossMidnightDirtiesBothDays() throws {
+    let store = try LocalStore.inMemory()
+    let sample = makeSample(type: .restingEnergy, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")
+    try store.applyChanges(HealthChanges(added: [sample]), for: .restingEnergy, fallbackTimeZone: saoPaulo)
+
+    #expect(try dirtyDays(store, type: .restingEnergy) == [day("2026-09-27"), day("2026-09-28")])
+  }
+
+  @Test func addingAFlightsSampleAcrossMidnightDirtiesBothDays() throws {
+    let store = try LocalStore.inMemory()
+    let sample = makeSample(type: .flightsClimbed, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")
+    try store.applyChanges(HealthChanges(added: [sample]), for: .flightsClimbed, fallbackTimeZone: saoPaulo)
+
+    #expect(try dirtyDays(store, type: .flightsClimbed) == [day("2026-09-27"), day("2026-09-28")])
+  }
+
+  @Test func addingAStandSampleAcrossMidnightDirtiesBothDays() throws {
+    let store = try LocalStore.inMemory()
+    let sample = makeSample(type: .standMinutes, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")
+    try store.applyChanges(HealthChanges(added: [sample]), for: .standMinutes, fallbackTimeZone: saoPaulo)
+
+    #expect(try dirtyDays(store, type: .standMinutes) == [day("2026-09-27"), day("2026-09-28")])
+  }
+
   @Test func addingAnExerciseSampleAcrossMidnightDirtiesBothDays() throws {
     let store = try LocalStore.inMemory()
     let sample = makeSample(type: .exerciseMinutes, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z")

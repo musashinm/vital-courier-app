@@ -10,6 +10,9 @@ import VitalCourierCore
     #expect(HealthType.exerciseMinutes.category == .activity)
     #expect(HealthType.activeEnergy.category == .activity)
     #expect(HealthType.walkingRunningDistance.category == .activity)
+    #expect(HealthType.restingEnergy.category == .activity)
+    #expect(HealthType.flightsClimbed.category == .activity)
+    #expect(HealthType.standMinutes.category == .activity)
     #expect(HealthType.heartRateVariability.category == .heart)
     #expect(HealthType.weight.category == .bodyMeasurements)
     #expect(HealthType.menstrualFlow.category == .cycleTracking)
@@ -49,10 +52,10 @@ import VitalCourierCore
 
   @Test func pendingFixtureMapsEveryIdentifierOnce() {
     let allIdentifiers = pendingIdentifiersByCategory.values.flatMap { $0 }
-    #expect(allIdentifiers.count == 179)
-    #expect(Set(allIdentifiers).count == 179)
+    #expect(allIdentifiers.count == 176)
+    #expect(Set(allIdentifiers).count == 176)
     let expectedCounts: [HealthCategory: Int] = [
-      .activity: 29, .bodyMeasurements: 8, .cycleTracking: 15, .hearing: 6, .heart: 14, .mentalWellbeing: 2,
+      .activity: 26, .bodyMeasurements: 8, .cycleTracking: 15, .hearing: 6, .heart: 14, .mentalWellbeing: 2,
       .mobility: 12, .nutrition: 39, .respiratory: 5, .sleep: 0, .symptoms: 39, .vitals: 1, .otherData: 9,
     ]
     for category in HealthCategory.allCases {
@@ -61,7 +64,8 @@ import VitalCourierCore
     let currentIdentifiers: Set<String> = [
       "stepCount", "appleExerciseTime", "bodyMass", "menstrualFlow", "intermenstrualBleeding", "restingHeartRate",
       "walkingHeartRateAverage", "heartRate", "respiratoryRate", "oxygenSaturation", "sleepAnalysis", "bloodGlucose",
-      "activeEnergyBurned", "distanceWalkingRunning", "heartRateVariabilitySDNN",
+      "activeEnergyBurned", "distanceWalkingRunning", "heartRateVariabilitySDNN", "basalEnergyBurned", "flightsClimbed",
+      "appleStandTime",
     ]
     #expect(Set(allIdentifiers).isDisjoint(with: currentIdentifiers))
   }

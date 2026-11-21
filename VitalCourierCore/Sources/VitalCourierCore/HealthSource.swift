@@ -30,6 +30,6 @@ public protocol HealthSource: Sendable {
   func samples(for type: HealthType, in interval: DateInterval) async throws -> [HealthSample]
   /// The earliest sample start across `types`; nil when there are none.
   func earliestSampleDate(types: [HealthType]) async throws -> Date?
-  /// Sum types (steps: count, exercise: minutes, active energy: kilocalories, walking + running distance: kilometres) use `cumulativeSum`; resting heart rate uses `discreteAverage` (beats per minute); heart rate, heart rate variability, respiratory rate, blood glucose and blood oxygen use the average, minimum and maximum (beats per minute, milliseconds, breaths per minute, mg/dL and a 0–1 fraction). Nil when there is no data.
+  /// Sum types (steps: count, exercise: minutes, active energy: kilocalories, walking + running distance: kilometres, resting energy: kilocalories, flights climbed: count, stand minutes: minutes) use `cumulativeSum`; resting heart rate uses `discreteAverage` (beats per minute); heart rate, heart rate variability, respiratory rate, blood glucose and blood oxygen use the average, minimum and maximum (beats per minute, milliseconds, breaths per minute, mg/dL and a 0–1 fraction). Nil when there is no data.
   func dailyStatistic(for type: HealthType, day: DayKey, timeZone: TimeZone) async throws -> DailyStatistic?
 }
