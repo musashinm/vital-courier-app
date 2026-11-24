@@ -38,6 +38,18 @@ The History screen lists every run with its trigger and result.
 
 Vital Courier makes no network connections of its own and sends Health data nowhere. It reads HealthKit, keeps a local copy in an SQLite database on the phone (excluded from backups), and writes files only to the folder you picked. If that folder is in iCloud Drive or another synced location, the system or that provider syncs the files, not the app. The only link out is the privacy policy link in Settings, which the system browser opens: [vitalcourier.app/privacy](https://vitalcourier.app/privacy).
 
+## Price
+
+Vital Courier is free, and everything it does today stays free:
+
+- JSON, Daily Markdown and CSV exports.
+- Every way an export runs: observer wake, app open, background refresh, the Export now shortcut and Rebuild all.
+- Every data type it exports, listed in the Types table in [SCHEMA.md](SCHEMA.md#types).
+
+There's no paid tier and none is planned. The tips in Settings are optional and one-time.
+
+Made by Kleber Kihara ([Musashi IT Solutions](https://musashi.tec.br/en/)).
+
 ## Requirements
 
 - iOS 18 or later.
