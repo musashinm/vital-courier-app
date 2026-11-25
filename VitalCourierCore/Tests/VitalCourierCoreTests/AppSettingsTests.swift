@@ -115,6 +115,30 @@ import Testing
     #expect(observedBefore.count == 13)
 
     settings.recordHealthTypesAskedAbout([.restingEnergy, .flightsClimbed, .standMinutes])
+    let knownIn042 = enabled.filter { ![HealthType.cardioFitness, .walkingSpeed, .wristTemperature].contains($0) }
+    #expect(HealthType.observedTypes(enabled: enabled, askedAbout: settings.healthTypesAskedAbout) == knownIn042)
+    #expect(knownIn042.count == 16)
+  }
+
+  @Test func aPersisted042AskedSetLeavesTheNewTypesUnobservedUntilRecorded() throws {
+    // A 0.4.2 install persisted the sixteen base types; the new ones stay unobserved until the sheet is answered (VO2 Max, Walking Speed and Wrist Temperature Spec, Edge cases).
+    let storage = InMemoryStorage()
+    let settings = AppSettings(storage: storage)
+    storage.set(
+      try JSONEncoder().encode([
+        "steps", "exerciseMinutes", "activeEnergy", "walkingRunningDistance", "restingEnergy", "flightsClimbed",
+        "standMinutes", "restingHeartRate", "walkingHeartRateAverage", "heartRate", "heartRateVariability",
+        "respiratoryRate", "bloodGlucose", "bloodOxygen", "sleep", "weight",
+      ]), forKey: AppSettings.Key.healthTypesAskedAbout)
+    let enabled = HealthType.enabledTypes(cycleTrackingEnabled: false)
+
+    let observedBefore = HealthType.observedTypes(enabled: enabled, askedAbout: settings.healthTypesAskedAbout)
+    #expect(!observedBefore.contains(.cardioFitness))
+    #expect(!observedBefore.contains(.walkingSpeed))
+    #expect(!observedBefore.contains(.wristTemperature))
+    #expect(observedBefore.count == 16)
+
+    settings.recordHealthTypesAskedAbout([.cardioFitness, .walkingSpeed, .wristTemperature])
     #expect(HealthType.observedTypes(enabled: enabled, askedAbout: settings.healthTypesAskedAbout) == enabled)
   }
 
@@ -142,6 +166,14 @@ import Testing
     #expect(!asked.contains(.restingEnergy))
     #expect(!asked.contains(.flightsClimbed))
     #expect(!asked.contains(.standMinutes))
+  }
+
+  @Test func theFixedPreSettingListNeverGainsCardioFitnessWalkingSpeedOrWristTemperature() {
+    // Existing installs must see the Health sheet before these types are observed (VO2 Max, Walking Speed and Wrist Temperature Spec, Edge cases).
+    let asked = AppSettings.typesAskedAboutBeforeThisSetting
+    #expect(!asked.contains(.cardioFitness))
+    #expect(!asked.contains(.walkingSpeed))
+    #expect(!asked.contains(.wristTemperature))
   }
 
   @Test func concurrentRecordingsOfDifferentTypesAllSurvive() async {

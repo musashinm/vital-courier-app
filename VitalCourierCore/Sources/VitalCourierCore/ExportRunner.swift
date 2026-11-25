@@ -230,8 +230,8 @@ public final class ExportRunner: Sendable {
   func dailyValue(for entry: DirtyEntry, zone: TimeZone, preferredSleepSource: String?) async throws -> DailyValue? {
     switch entry.type {
     case .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
-      .standMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
-      .respiratoryRate, .bloodGlucose, .bloodOxygen:
+      .standMinutes, .walkingSpeed, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
+      .cardioFitness, .respiratoryRate, .bloodGlucose, .bloodOxygen:
       return try await health.dailyStatistic(for: entry.type, day: entry.day, timeZone: zone).map {
         DailyValue(value: $0.value, minimum: $0.minimum, maximum: $0.maximum)
       }
@@ -239,6 +239,13 @@ public final class ExportRunner: Sendable {
       let latest = try store.samples(type: .weight, fromDay: entry.day, toDay: entry.day).max { $0.end < $1.end }
       guard let latest, case .quantity(let kilograms) = latest.value else { return nil }
       return DailyValue(value: kilograms)
+    case .wristTemperature:
+      // A night's sample counts on the day it ends, like sleep, so it may be stored on the day before (VO2 Max, Walking Speed and Wrist Temperature Spec, Day assignment).
+      let latest = try store.samples(type: .wristTemperature, fromDay: entry.day.adding(days: -1), toDay: entry.day)
+        .filter { DayAssigner.wakeDay(for: $0, fallback: zone) == entry.day }
+        .max { $0.end < $1.end }
+      guard let latest, case .quantity(let celsius) = latest.value else { return nil }
+      return DailyValue(value: celsius)
     case .sleep:
       // The day before through the day after, widened to whole nights: the night that wakes on this day may start the evening before, and a later segment may bridge into it.
       let samples = try store.sleepSamples(

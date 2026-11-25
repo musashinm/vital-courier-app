@@ -76,6 +76,39 @@ import Testing
       ])
   }
 
+  /// A wrist temperature night from 23:40 on the 26th to 07:10 on the 27th, Sao Paulo time, with its marks cleared.
+  func storeWithAClearedWristTemperatureNight() throws -> LocalStore {
+    let store = try LocalStore.inMemory()
+    try store.applyChanges(
+      HealthChanges(added: [
+        makeSample(
+          type: .wristTemperature, start: "2026-09-27T02:40:00Z", end: "2026-09-27T10:10:00Z", value: .quantity(35.42))
+      ]), for: .wristTemperature, fallbackTimeZone: saoPaulo)
+    for entry in try store.dirtyEntries() { try store.clearDirty(type: entry.type, day: entry.day) }
+    return store
+  }
+
+  @Test func markAllDirtyDirtiesTheWakeDayOfAWristTemperatureNight() throws {
+    // The stored day is the start day, so without the wake-day pass the 27th's note never gets the value (VO2 Max, Walking Speed and Wrist Temperature Spec, Day assignment).
+    let store = try storeWithAClearedWristTemperatureNight()
+
+    try store.markAllDirty(statisticsZone: saoPaulo)
+
+    #expect(
+      try store.dirtyEntries() == [
+        DirtyEntry(type: .wristTemperature, day: day("2026-09-26"), fresh: false),
+        DirtyEntry(type: .wristTemperature, day: day("2026-09-27"), fresh: false),
+      ])
+  }
+
+  @Test func markAllDirtySkipsWristTemperatureWakeDaysWhenItIsNotEnabled() throws {
+    let store = try storeWithAClearedWristTemperatureNight()
+
+    try store.markAllDirty(statisticsZone: saoPaulo, types: [.steps, .sleep])
+
+    #expect(try store.dirtyEntries().isEmpty)
+  }
+
   /// Stored steps samples on the 27th and a weight value on the 20th with no sample, all with their marks cleared.
   func storeWithClearedMarks() throws -> LocalStore {
     let store = try storeWithOneDirtyStepsDay()

@@ -8,23 +8,26 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
   case restingEnergy
   case flightsClimbed
   case standMinutes
+  case walkingSpeed
   case restingHeartRate
   case walkingHeartRateAverage
   case heartRate
   case heartRateVariability
+  case cardioFitness
   case respiratoryRate
   case bloodGlucose
   case bloodOxygen
   case sleep
   case weight
+  case wristTemperature
   case menstrualFlow
   case spotting
 
   /// The types every install exports.
   public static let baseTypes: [HealthType] = [
     .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed, .standMinutes,
-    .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability, .respiratoryRate, .bloodGlucose,
-    .bloodOxygen, .sleep, .weight,
+    .walkingSpeed, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability, .cardioFitness,
+    .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight, .wristTemperature,
   ]
   /// Exported only while Cycle tracking is on (Cycle Tracking Spec).
   public static let cycleTypes: [HealthType] = [.menstrualFlow, .spotting]
@@ -49,15 +52,18 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
     case .restingEnergy: "resting-energy"
     case .flightsClimbed: "flights-climbed"
     case .standMinutes: "stand-minutes"
+    case .walkingSpeed: "walking-speed"
     case .restingHeartRate: "resting-heart-rate"
     case .walkingHeartRateAverage: "walking-heart-rate-average"
     case .heartRate: "heart-rate"
     case .heartRateVariability: "heart-rate-variability"
+    case .cardioFitness: "cardio-fitness"
     case .respiratoryRate: "respiratory-rate"
     case .bloodGlucose: "blood-glucose"
     case .bloodOxygen: "blood-oxygen"
     case .sleep: "sleep"
     case .weight: "weight"
+    case .wristTemperature: "wrist-temperature"
     case .menstrualFlow: "menstrual-flow"
     case .spotting: "spotting"
     }
@@ -70,6 +76,9 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
     case .exerciseMinutes, .standMinutes, .heartRateVariability: "s"
     case .activeEnergy, .restingEnergy: "J"
     case .walkingRunningDistance: "m"
+    case .walkingSpeed: "m/s"
+    case .cardioFitness: "ml/(kg*min)"
+    case .wristTemperature: "degC"
     case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate: "count/s"
     case .bloodGlucose: "g/L"
     case .bloodOxygen: "%"
@@ -84,9 +93,9 @@ public enum HealthType: String, CaseIterable, Sendable, Codable {
     case .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
       .standMinutes:
       .sum
-    case .restingHeartRate, .walkingHeartRateAverage: .average
+    case .walkingSpeed, .restingHeartRate, .walkingHeartRateAverage, .cardioFitness: .average
     case .heartRate, .heartRateVariability, .respiratoryRate, .bloodGlucose, .bloodOxygen: .averageMinMax
-    case .sleep, .weight, .menstrualFlow, .spotting: nil
+    case .sleep, .weight, .wristTemperature, .menstrualFlow, .spotting: nil
     }
   }
 

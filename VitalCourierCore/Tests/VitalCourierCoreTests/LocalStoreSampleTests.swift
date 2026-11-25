@@ -30,6 +30,34 @@ import Testing
     #expect(try store.dirtyEntries().map(\.day) == [day("2026-09-26"), day("2026-09-27")])
   }
 
+  @Test func aWristTemperatureSampleMarksItsStartDayAndItsWakeDay() throws {
+    let store = try LocalStore.inMemory()
+    // 23:40 on the 26th to 07:10 on the 27th, Sao Paulo time.
+    let sample = makeSample(
+      type: .wristTemperature, start: "2026-09-27T02:40:00Z", end: "2026-09-27T10:10:00Z", value: .quantity(35.42))
+    try store.applyChanges(HealthChanges(added: [sample]), for: .wristTemperature, fallbackTimeZone: saoPaulo)
+
+    #expect(try store.dirtyEntries().map(\.day) == [day("2026-09-26"), day("2026-09-27")])
+  }
+
+  @Test func aCardioFitnessSampleMarksItsDay() throws {
+    let store = try LocalStore.inMemory()
+    let sample = makeSample(
+      type: .cardioFitness, start: "2026-09-27T12:00:00Z", end: "2026-09-27T12:30:00Z", value: .quantity(38.7))
+    try store.applyChanges(HealthChanges(added: [sample]), for: .cardioFitness, fallbackTimeZone: saoPaulo)
+
+    #expect(try dirtyDays(store, type: .cardioFitness) == [day("2026-09-27")])
+  }
+
+  @Test func addingAWalkingSpeedSampleAcrossMidnightDirtiesBothDays() throws {
+    let store = try LocalStore.inMemory()
+    let sample = makeSample(
+      type: .walkingSpeed, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z", value: .quantity(1.3))
+    try store.applyChanges(HealthChanges(added: [sample]), for: .walkingSpeed, fallbackTimeZone: saoPaulo)
+
+    #expect(try dirtyDays(store, type: .walkingSpeed) == [day("2026-09-27"), day("2026-09-28")])
+  }
+
   @Test func deletionRemovesTheRowAndMarksItsDayDirty() throws {
     let store = try LocalStore.inMemory()
     let sample = makeSample(start: "2026-09-27T12:00:00Z")

@@ -20,15 +20,18 @@ public enum HealthKitMapping {
     case .restingEnergy: HKQuantityType(.basalEnergyBurned)
     case .flightsClimbed: HKQuantityType(.flightsClimbed)
     case .standMinutes: HKQuantityType(.appleStandTime)
+    case .walkingSpeed: HKQuantityType(.walkingSpeed)
     case .restingHeartRate: HKQuantityType(.restingHeartRate)
     case .walkingHeartRateAverage: HKQuantityType(.walkingHeartRateAverage)
     case .heartRate: HKQuantityType(.heartRate)
     case .heartRateVariability: HKQuantityType(.heartRateVariabilitySDNN)
+    case .cardioFitness: HKQuantityType(.vo2Max)
     case .respiratoryRate: HKQuantityType(.respiratoryRate)
     case .bloodGlucose: HKQuantityType(.bloodGlucose)
     case .bloodOxygen: HKQuantityType(.oxygenSaturation)
     case .sleep: HKCategoryType(.sleepAnalysis)
     case .weight: HKQuantityType(.bodyMass)
+    case .wristTemperature: HKQuantityType(.appleSleepingWristTemperature)
     case .menstrualFlow: HKCategoryType(.menstrualFlow)
     case .spotting: HKCategoryType(.intermenstrualBleeding)
     }
@@ -51,6 +54,10 @@ public enum HealthKitMapping {
     case .exerciseMinutes, .standMinutes, .heartRateVariability: .second()
     case .activeEnergy, .restingEnergy: .joule()
     case .walkingRunningDistance: .meter()
+    case .walkingSpeed: .meter().unitDivided(by: .second())
+    case .cardioFitness:
+      .literUnit(with: .milli).unitDivided(by: .gramUnit(with: .kilo).unitMultiplied(by: .minute()))
+    case .wristTemperature: .degreeCelsius()
     case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate: .count().unitDivided(by: .second())
     case .bloodGlucose: .gram().unitDivided(by: .liter())
     case .bloodOxygen: .percent()
@@ -59,18 +66,21 @@ public enum HealthKitMapping {
     }
   }
 
-  /// Daily values (spec, Daily values): steps as a count, exercise in minutes, active energy in kilocalories (sum), walking and running distance in kilometres (sum), resting energy in kilocalories (sum), flights climbed as a count (sum), stand time in minutes (sum), heart rate variability (SDNN) in milliseconds (average, minimum and maximum), resting heart rate and walking heart rate average in beats per minute, heart rate in beats per minute (average, minimum and maximum), respiratory rate in breaths per minute (average, minimum and maximum), blood glucose in mg/dL (average, minimum and maximum), blood oxygen as a 0–1 fraction (average, minimum and maximum; the note scales it to percent).
+  /// Daily values (spec, Daily values): steps as a count, exercise in minutes, active energy in kilocalories (sum), walking and running distance in kilometres (sum), resting energy in kilocalories (sum), flights climbed as a count (sum), stand time in minutes (sum), walking speed in kilometres per hour (average), cardio fitness (VO2 max) in ml/(kg·min) (average), heart rate variability (SDNN) in milliseconds (average, minimum and maximum), resting heart rate and walking heart rate average in beats per minute, heart rate in beats per minute (average, minimum and maximum), respiratory rate in breaths per minute (average, minimum and maximum), blood glucose in mg/dL (average, minimum and maximum), blood oxygen as a 0–1 fraction (average, minimum and maximum; the note scales it to percent).
   public static func statisticUnit(for type: HealthType) -> HKUnit? {
     switch type {
     case .steps, .flightsClimbed: .count()
     case .exerciseMinutes, .standMinutes: .minute()
     case .activeEnergy, .restingEnergy: .kilocalorie()
     case .walkingRunningDistance: .meterUnit(with: .kilo)
+    case .walkingSpeed: .meterUnit(with: .kilo).unitDivided(by: .hour())
+    case .cardioFitness:
+      .literUnit(with: .milli).unitDivided(by: .gramUnit(with: .kilo).unitMultiplied(by: .minute()))
     case .heartRateVariability: .secondUnit(with: .milli)
     case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .respiratoryRate: .count().unitDivided(by: .minute())
     case .bloodGlucose: .gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci))
     case .bloodOxygen: .percent()
-    case .weight, .sleep, .menstrualFlow, .spotting: nil
+    case .weight, .wristTemperature, .sleep, .menstrualFlow, .spotting: nil
     }
   }
 
@@ -120,8 +130,8 @@ public enum HealthKitMapping {
     case .menstrualFlow: menstrualFlowValueName(rawValue: rawValue)
     case .spotting: categoryValueName(rawValue: rawValue, catalogType: .spotting)
     case .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
-      .standMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
-      .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight:
+      .standMinutes, .walkingSpeed, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
+      .cardioFitness, .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight, .wristTemperature:
       sleepValueName(rawValue: rawValue)
     }
   }

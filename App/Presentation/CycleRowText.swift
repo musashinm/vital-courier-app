@@ -15,8 +15,8 @@ enum CycleRowText {
       guard let day = snapshot?.latestSpottingDay else { return localization.string("No entries yet") }
       return formatter.capitalizedFirst(formatter.day(day, today: today))
     case .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
-      .standMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
-      .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight:
+      .standMinutes, .walkingSpeed, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
+      .cardioFitness, .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight, .wristTemperature:
       return ""
     }
   }

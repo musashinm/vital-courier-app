@@ -11,6 +11,8 @@ import Testing
     #expect(HealthType.restingEnergy.statisticsAggregation == .sum)
     #expect(HealthType.flightsClimbed.statisticsAggregation == .sum)
     #expect(HealthType.standMinutes.statisticsAggregation == .sum)
+    #expect(HealthType.walkingSpeed.statisticsAggregation == .average)
+    #expect(HealthType.cardioFitness.statisticsAggregation == .average)
     #expect(HealthType.restingHeartRate.statisticsAggregation == .average)
     #expect(HealthType.walkingHeartRateAverage.statisticsAggregation == .average)
     #expect(HealthType.heartRate.statisticsAggregation == .averageMinMax)
@@ -20,6 +22,7 @@ import Testing
     #expect(HealthType.bloodOxygen.statisticsAggregation == .averageMinMax)
     #expect(HealthType.sleep.statisticsAggregation == nil)
     #expect(HealthType.weight.statisticsAggregation == nil)
+    #expect(HealthType.wristTemperature.statisticsAggregation == nil)
     #expect(HealthType.menstrualFlow.statisticsAggregation == nil)
     #expect(HealthType.spotting.statisticsAggregation == nil)
   }
@@ -29,12 +32,12 @@ import Testing
     #expect(HealthType.walkingHeartRateAverage.siUnit == "count/s")
   }
 
-  @Test func exactlyTheFourteenStatisticsTypesUseTheStatisticsQuery() {
+  @Test func exactlyTheSixteenStatisticsTypesUseTheStatisticsQuery() {
     #expect(
       HealthType.allCases.filter(\.usesStatisticsQuery) == [
         .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
-        .standMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
-        .respiratoryRate, .bloodGlucose, .bloodOxygen,
+        .standMinutes, .walkingSpeed, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
+        .cardioFitness, .respiratoryRate, .bloodGlucose, .bloodOxygen,
       ])
   }
 
@@ -61,6 +64,22 @@ import Testing
   @Test func standMinutesIsStoredInSeconds() {
     #expect(HealthType.standMinutes.folderName == "stand-minutes")
     #expect(HealthType.standMinutes.siUnit == "s")
+  }
+
+  @Test func cardioFitnessIsStoredInMillilitresPerKilogramMinute() {
+    #expect(HealthType.cardioFitness.folderName == "cardio-fitness")
+    #expect(HealthType.cardioFitness.siUnit == "ml/(kg*min)")
+  }
+
+  @Test func walkingSpeedIsStoredInMetresPerSecond() {
+    #expect(HealthType.walkingSpeed.folderName == "walking-speed")
+    #expect(HealthType.walkingSpeed.siUnit == "m/s")
+  }
+
+  @Test func wristTemperatureIsStoredInCelsius() {
+    #expect(HealthType.wristTemperature.folderName == "wrist-temperature")
+    #expect(HealthType.wristTemperature.siUnit == "degC")
+    #expect(!HealthType.wristTemperature.usesStatisticsQuery)
   }
 
   @Test func walkingRunningDistanceIsStoredInMetres() {

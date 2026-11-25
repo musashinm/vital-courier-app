@@ -2,7 +2,7 @@ import Foundation
 import GRDB
 
 public struct DailyValue: Equatable, Sendable {
-  /// Steps: count. Exercise: minutes. Active energy: kilocalories. Walking + running distance: kilometres. Resting energy: kilocalories. Flights climbed: count. Stand minutes: minutes. Resting heart rate: beats per minute. Walking heart rate average: beats per minute. Heart rate: beats per minute (the day's average). Heart rate variability: milliseconds (the day's average). Respiratory rate: breaths per minute (the day's average). Blood glucose: mg/dL (the day's average). Blood oxygen: a 0–1 fraction (the day's average; the note writes only the minimum and maximum, ×100). Weight: kg. Sleep: asleep hours.
+  /// Steps: count. Exercise: minutes. Active energy: kilocalories. Walking + running distance: kilometres. Resting energy: kilocalories. Flights climbed: count. Stand minutes: minutes. Walking speed: km/h (the day's average). Resting heart rate: beats per minute. Walking heart rate average: beats per minute. Heart rate: beats per minute (the day's average). Heart rate variability: milliseconds (the day's average). Cardio fitness (VO2 max): ml/(kg·min) (the day's average). Respiratory rate: breaths per minute (the day's average). Blood glucose: mg/dL (the day's average). Blood oxygen: a 0–1 fraction (the day's average; the note writes only the minimum and maximum, ×100). Weight: kg. Wrist temperature: °C. Sleep: asleep hours.
   public var value: Double
   public var deepHours: Double?
   public var remHours: Double?
@@ -140,7 +140,7 @@ extension LocalStore {
     }
   }
 
-  /// "Rebuild all": every (type, day) of `types` that has stored samples becomes dirty and not fresh. `statisticsZone` is the zone the daily statistics are queried in. The runner passes the enabled types, so a switched-off type is never rebuilt.
+  /// "Rebuild all": every (type, day) of `types` that has stored samples becomes dirty and not fresh. Sleep and wrist temperature also get their wake days. `statisticsZone` is the zone the daily statistics are queried in. The runner passes the enabled types, so a switched-off type is never rebuilt.
   public func markAllDirty(statisticsZone: TimeZone, types: [HealthType] = HealthType.allCases) throws {
     let typeNames = types.map(\.rawValue)
     try write { db in
@@ -151,6 +151,9 @@ extension LocalStore {
           """, arguments: StatementArguments(typeNames))
       if types.contains(.sleep) {
         try Self.markEverySleepWakeDayDirty(db)
+      }
+      if types.contains(.wristTemperature) {
+        try Self.markEveryWristTemperatureWakeDayDirty(db)
       }
       try Self.markEveryOverlappedDayDirty(db, statisticsZone: statisticsZone, types: types)
     }
@@ -223,6 +226,16 @@ extension LocalStore {
     let seeds = Set(samples.map(\.uuid))
     let nights = SleepAggregator.affectedNights(in: samples, containing: seeds, fallback: TimeZone.gmt)
     try markDirty(db, type: HealthType.sleep.rawValue, days: nights.wakeDays)
+  }
+
+  /// Dirties the wake day of every stored wrist temperature sample. The stored-day marks of `markAllDirty` miss a night that starts the evening before (VO2 Max, Walking Speed and Wrist Temperature Spec, Day assignment).
+  static func markEveryWristTemperatureWakeDayDirty(_ db: Database) throws {
+    let samples = try Row.fetchAll(
+      db, sql: "SELECT * FROM sample WHERE type = ?", arguments: [HealthType.wristTemperature.rawValue]
+    ).map(Self.sample(from:))
+    // Every stored sample carries its own zone, so the fallback is never used.
+    let wakeDays = Set(samples.map { DayAssigner.wakeDay(for: $0, fallback: TimeZone.gmt) })
+    try markDirty(db, type: HealthType.wristTemperature.rawValue, days: wakeDays)
   }
 
   public func sleepSourcePreference() throws -> String? {
