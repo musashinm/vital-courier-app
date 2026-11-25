@@ -13,6 +13,8 @@ public struct DailySummary: Equatable, Sendable {
   public var flightsClimbed: Double?
   /// Minutes.
   public var standMinutes: Double?
+  /// Kilometres per hour: the day's average.
+  public var walkingSpeedKmh: Double?
   public var restingHeartRateBPM: Double?
   public var walkingHeartRateAverageBPM: Double?
   /// Beats per minute: the day's average, lowest and highest reading.
@@ -23,6 +25,8 @@ public struct DailySummary: Equatable, Sendable {
   public var heartRateVariabilityMs: Double?
   public var heartRateVariabilityMsMin: Double?
   public var heartRateVariabilityMsMax: Double?
+  /// ml/(kg·min): the day's average.
+  public var vo2Max: Double?
   /// Breaths per minute: the day's average, lowest and highest reading.
   public var respiratoryRate: Double?
   public var respiratoryRateMin: Double?
@@ -39,6 +43,8 @@ public struct DailySummary: Equatable, Sendable {
   public var sleepREMHours: Double?
   public var sleepSource: String?
   public var weightKg: Double?
+  /// °C, absolute (the Health app shows it against a baseline HealthKit doesn't expose).
+  public var wristTemperatureCelsius: Double?
   public var menstrualFlow: String?
   public var periodStart = false
   public var spotting = false
@@ -56,6 +62,7 @@ public struct DailySummary: Equatable, Sendable {
     restingEnergyKcal = values[.restingEnergy]?.value
     flightsClimbed = values[.flightsClimbed]?.value
     standMinutes = values[.standMinutes]?.value
+    walkingSpeedKmh = values[.walkingSpeed]?.value
     restingHeartRateBPM = values[.restingHeartRate]?.value
     walkingHeartRateAverageBPM = values[.walkingHeartRateAverage]?.value
     heartRateBPM = values[.heartRate]?.value
@@ -64,6 +71,7 @@ public struct DailySummary: Equatable, Sendable {
     heartRateVariabilityMs = values[.heartRateVariability]?.value
     heartRateVariabilityMsMin = values[.heartRateVariability]?.minimum
     heartRateVariabilityMsMax = values[.heartRateVariability]?.maximum
+    vo2Max = values[.cardioFitness]?.value
     respiratoryRate = values[.respiratoryRate]?.value
     respiratoryRateMin = values[.respiratoryRate]?.minimum
     respiratoryRateMax = values[.respiratoryRate]?.maximum
@@ -78,6 +86,7 @@ public struct DailySummary: Equatable, Sendable {
     sleepREMHours = values[.sleep]?.remHours
     sleepSource = values[.sleep]?.source
     weightKg = values[.weight]?.value
+    wristTemperatureCelsius = values[.wristTemperature]?.value
     menstrualFlow = cycle?.flow
     periodStart = cycle?.periodStart ?? false
     spotting = cycle?.spotting ?? false
@@ -121,6 +130,7 @@ public enum MarkdownWriter {
     "vc_resting_energy_kcal",
     "vc_flights_climbed",
     "vc_stand_minutes",
+    "vc_walking_speed_kmh",
     "vc_resting_hr_bpm",
     "vc_walking_hr_avg",
     "vc_hr_avg",
@@ -129,6 +139,7 @@ public enum MarkdownWriter {
     "vc_hrv_ms",
     "vc_hrv_ms_min",
     "vc_hrv_ms_max",
+    "vc_vo2_max",
     "vc_respiratory_rate",
     "vc_respiratory_rate_min",
     "vc_respiratory_rate_max",
@@ -142,6 +153,7 @@ public enum MarkdownWriter {
     "vc_sleep_rem_hours",
     "vc_sleep_source",
     "vc_weight_kg",
+    "vc_wrist_temp_c",
     "vc_menstrual_flow",
     "vc_period_start",
     "vc_spotting",
@@ -166,6 +178,7 @@ public enum MarkdownWriter {
     // Truncated, not rounded, like steps: a half-climbed flight or a partial minute isn't counted.
     if let flights = summary.flightsClimbed { lines.append("vc_flights_climbed: \(Int(flights.rounded(.towardZero)))") }
     if let minutes = summary.standMinutes { lines.append("vc_stand_minutes: \(Int(minutes.rounded(.towardZero)))") }
+    if let speed = summary.walkingSpeedKmh { lines.append("vc_walking_speed_kmh: \(oneDecimal(speed))") }
     if let bpm = summary.restingHeartRateBPM { lines.append("vc_resting_hr_bpm: \(oneDecimal(bpm))") }
     if let bpm = summary.walkingHeartRateAverageBPM { lines.append("vc_walking_hr_avg: \(oneDecimal(bpm))") }
     if let bpm = summary.heartRateBPM { lines.append("vc_hr_avg: \(noDecimals(bpm))") }
@@ -178,6 +191,7 @@ public enum MarkdownWriter {
     if let milliseconds = summary.heartRateVariabilityMsMax {
       lines.append("vc_hrv_ms_max: \(noDecimals(milliseconds))")
     }
+    if let vo2Max = summary.vo2Max { lines.append("vc_vo2_max: \(oneDecimal(vo2Max))") }
     // Each written on its own: a missing minimum or maximum never hides the average (Respiratory Rate Spec, Edge cases).
     if let breaths = summary.respiratoryRate { lines.append("vc_respiratory_rate: \(oneDecimal(breaths))") }
     if let breaths = summary.respiratoryRateMin { lines.append("vc_respiratory_rate_min: \(oneDecimal(breaths))") }
@@ -193,6 +207,7 @@ public enum MarkdownWriter {
     if let hours = summary.sleepREMHours { lines.append("vc_sleep_rem_hours: \(twoDecimals(hours))") }
     if let source = summary.sleepSource { lines.append("vc_sleep_source: \(quoted(source))") }
     if let kilograms = summary.weightKg { lines.append("vc_weight_kg: \(oneDecimal(kilograms))") }
+    if let celsius = summary.wristTemperatureCelsius { lines.append("vc_wrist_temp_c: \(twoDecimals(celsius))") }
     // Flags are written only when true (Cycle Tracking Spec, Output).
     if let flow = summary.menstrualFlow { lines.append("vc_menstrual_flow: \(flow)") }
     if summary.periodStart { lines.append("vc_period_start: true") }

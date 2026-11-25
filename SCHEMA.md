@@ -97,6 +97,7 @@ Keys, in file order:
 | `vc_resting_energy_kcal` | kcal | whole number, rounded |
 | `vc_flights_climbed` | flights | integer, truncated toward zero |
 | `vc_stand_minutes` | minutes | integer, truncated toward zero |
+| `vc_walking_speed_kmh` | km/h | one decimal |
 | `vc_resting_hr_bpm` | bpm | one decimal |
 | `vc_walking_hr_avg` | bpm | one decimal |
 | `vc_hr_avg` | bpm | whole number, rounded |
@@ -105,6 +106,7 @@ Keys, in file order:
 | `vc_hrv_ms` | ms, SDNN | whole number, rounded |
 | `vc_hrv_ms_min` | ms, SDNN | whole number, rounded |
 | `vc_hrv_ms_max` | ms, SDNN | whole number, rounded |
+| `vc_vo2_max` | ml/(kg·min), cardio fitness | one decimal |
 | `vc_respiratory_rate` | breaths/min | one decimal |
 | `vc_respiratory_rate_min` | breaths/min | one decimal |
 | `vc_respiratory_rate_max` | breaths/min | one decimal |
@@ -118,6 +120,7 @@ Keys, in file order:
 | `vc_sleep_rem_hours` | hours | two decimals |
 | `vc_sleep_source` | text | double-quoted YAML string, control characters escaped |
 | `vc_weight_kg` | kg | one decimal |
+| `vc_wrist_temp_c` | °C, sleeping wrist temperature, absolute | two decimals |
 | `vc_menstrual_flow` | category | the day's heaviest flow, see below |
 | `vc_period_start` | flag | `true`, only when true |
 | `vc_spotting` | flag | `true`, only when true |
