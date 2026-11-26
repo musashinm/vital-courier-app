@@ -51,9 +51,10 @@ extension HealthType {
     case .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
       .standMinutes:
       .activity
-    case .weight: .bodyMeasurements
+    case .weight, .wristTemperature: .bodyMeasurements
+    case .walkingSpeed: .mobility
     case .menstrualFlow, .spotting: .cycleTracking
-    case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability: .heart
+    case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability, .cardioFitness: .heart
     case .respiratoryRate, .bloodOxygen: .respiratory
     case .sleep: .sleep
     case .bloodGlucose: .vitals

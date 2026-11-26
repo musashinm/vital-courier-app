@@ -48,8 +48,8 @@ Only the formats you turned on are written. Turning one off deletes nothing.
 - A sample's zone is the one in its HealthKit metadata (`HKMetadataKeyTimeZone`) when that is present and valid. Otherwise it's the phone's zone at the moment the app first indexes the sample, and that stays frozen.
 - A JSON or CSV sample goes in the month of its `start`, in that sample's zone.
 - Weight, menstrual flow and spotting count on the day of the sample's `start`, in that sample's zone.
-- Sleep belongs to the wake day: the day the last asleep sample of the night ends, in that sample's zone.
-- Fourteen types come from HealthKit's daily statistics instead: steps, exercise minutes, active energy, walking + running distance, resting energy, flights climbed, stand minutes, resting heart rate, walking heart rate average, heart rate, heart rate variability, respiratory rate, blood glucose and blood oxygen. They cover local midnight to midnight in the phone's zone at export time.
+- Sleep and wrist temperature belong to the wake day: for sleep, the day the last asleep sample of the night ends; for wrist temperature, the day its sample ends; both in that sample's zone.
+- Sixteen types come from HealthKit's daily statistics instead: steps, exercise minutes, active energy, walking + running distance, resting energy, flights climbed, stand minutes, walking speed, resting heart rate, walking heart rate average, heart rate, heart rate variability, cardio fitness (VO2 max), respiratory rate, blood glucose and blood oxygen. They cover local midnight to midnight in the phone's zone at export time.
 
 ### Types
 
@@ -64,15 +64,18 @@ One row per type. The `type` column is the JSON `type` field, `folder` is the fo
 | `restingEnergy` | `resting-energy` | `J` |
 | `flightsClimbed` | `flights-climbed` | `count` |
 | `standMinutes` | `stand-minutes` | `s` |
+| `walkingSpeed` | `walking-speed` | `m/s` |
 | `restingHeartRate` | `resting-heart-rate` | `count/s` |
 | `walkingHeartRateAverage` | `walking-heart-rate-average` | `count/s` |
 | `heartRate` | `heart-rate` | `count/s` |
 | `heartRateVariability` | `heart-rate-variability` | `s` |
+| `cardioFitness` | `cardio-fitness` | `ml/(kg*min)` |
 | `respiratoryRate` | `respiratory-rate` | `count/s` |
 | `bloodGlucose` | `blood-glucose` | `g/L` |
 | `bloodOxygen` | `blood-oxygen` | `%` (HealthKit's percent unit, a 0 to 1 fraction) |
 | `sleep` | `sleep` | `category` |
 | `weight` | `weight` | `kg` |
+| `wristTemperature` | `wrist-temperature` | `degC` |
 | `menstrualFlow` | `menstrual-flow` | `category` |
 | `spotting` | `spotting` | `category` |
 
@@ -94,6 +97,7 @@ Keys, in file order:
 | `vc_resting_energy_kcal` | kcal | whole number, rounded |
 | `vc_flights_climbed` | flights | integer, truncated toward zero |
 | `vc_stand_minutes` | minutes | integer, truncated toward zero |
+| `vc_walking_speed_kmh` | km/h | one decimal |
 | `vc_resting_hr_bpm` | bpm | one decimal |
 | `vc_walking_hr_avg` | bpm | one decimal |
 | `vc_hr_avg` | bpm | whole number, rounded |
@@ -102,6 +106,7 @@ Keys, in file order:
 | `vc_hrv_ms` | ms, SDNN | whole number, rounded |
 | `vc_hrv_ms_min` | ms, SDNN | whole number, rounded |
 | `vc_hrv_ms_max` | ms, SDNN | whole number, rounded |
+| `vc_vo2_max` | ml/(kg·min), cardio fitness | one decimal |
 | `vc_respiratory_rate` | breaths/min | one decimal |
 | `vc_respiratory_rate_min` | breaths/min | one decimal |
 | `vc_respiratory_rate_max` | breaths/min | one decimal |
@@ -115,6 +120,7 @@ Keys, in file order:
 | `vc_sleep_rem_hours` | hours | two decimals |
 | `vc_sleep_source` | text | double-quoted YAML string, control characters escaped |
 | `vc_weight_kg` | kg | one decimal |
+| `vc_wrist_temp_c` | °C, sleeping wrist temperature, absolute | two decimals |
 | `vc_menstrual_flow` | category | the day's heaviest flow, see below |
 | `vc_period_start` | flag | `true`, only when true |
 | `vc_spotting` | flag | `true`, only when true |
@@ -124,8 +130,9 @@ Each minimum and maximum is written on its own. A missing minimum or maximum nev
 
 ### How each daily value is built
 
-- Steps, exercise minutes, active energy, walking + running distance, resting energy, flights climbed and stand minutes are the day's sum. Resting and walking heart rate are the day's average. Heart rate, heart rate variability, respiratory rate and blood glucose are the average plus the minimum and maximum. Blood oxygen is the minimum and maximum only.
+- Steps, exercise minutes, active energy, walking + running distance, resting energy, flights climbed and stand minutes are the day's sum. Resting and walking heart rate, walking speed and cardio fitness are the day's average. Heart rate, heart rate variability, respiratory rate and blood glucose are the average plus the minimum and maximum. Blood oxygen is the minimum and maximum only.
 - Weight is the sample on that start day with the latest `end`.
+- Wrist temperature is the sample whose wake day it is (the day its `end` falls on, in that sample's zone) with the latest `end`.
 - Sleep counts only the `asleepUnspecified`, `asleepCore`, `asleepDeep` and `asleepREM` stages. Segments less than 4 hours apart form one night, and overlapping intervals are merged. Each source's longest night per wake day wins. Then one source is picked: the one chosen in the app's Settings if it has that night. If not, a night with an Apple Watch sample (the device name contains `Watch`). If not, the most asleep time, with ties going to the alphabetically first source.
 - `vc_menstrual_flow` is the heaviest flow that day, ranked `none` < `unspecified` < `light` < `medium` < `heavy`. A value outside that list, such as `unknown(<n>)`, ranks below `none`.
 - `vc_period_start` is `true` when any flow sample that day has `HKMenstrualCycleStart` equal to `1` or `true`.
@@ -184,6 +191,7 @@ The JSON and CSV keep HealthKit's SI units. The note converts some of them.
 - Active energy: joules (`J`) in JSON and CSV, kilocalories in the note (a whole number).
 - Resting energy: joules (`J`) in JSON and CSV, kilocalories in the note (a whole number).
 - Walking + running distance: metres (`m`) in JSON and CSV, kilometres in the note (two decimals).
+- Walking speed: metres per second (`m/s`) in JSON and CSV, km/h in the note (one decimal; multiply by 3.6).
 - Stand minutes: seconds (`s`) in JSON and CSV, minutes in the note.
 - Heart rate variability: seconds (`s`) in JSON and CSV, milliseconds in the note (a whole number).
 - Resting heart rate, walking heart rate average, heart rate and respiratory rate: `count/s` in JSON and CSV, per minute in the note (multiply by 60).

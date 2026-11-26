@@ -167,15 +167,18 @@ extension HealthType {
     case .restingEnergy: String(localized: "Resting energy")
     case .flightsClimbed: String(localized: "Flights climbed")
     case .standMinutes: String(localized: "Stand minutes")
+    case .walkingSpeed: String(localized: "Walking speed")
     case .restingHeartRate: String(localized: "Resting heart rate")
     case .walkingHeartRateAverage: String(localized: "Walking heart rate average")
     case .heartRate: String(localized: "Heart rate")
     case .heartRateVariability: String(localized: "Heart rate variability")
+    case .cardioFitness: String(localized: "Cardio fitness")
     case .respiratoryRate: String(localized: "Respiratory rate")
     case .bloodGlucose: String(localized: "Blood glucose")
     case .bloodOxygen: String(localized: "Blood oxygen")
     case .sleep: String(localized: "Sleep")
     case .weight: String(localized: "Weight")
+    case .wristTemperature: String(localized: "Wrist temperature")
     case .menstrualFlow: String(localized: "Menstrual flow")
     case .spotting: String(localized: "Spotting")
     }
@@ -190,15 +193,18 @@ extension HealthType {
     case .restingEnergy: "flame.fill"
     case .flightsClimbed: "figure.stairs"
     case .standMinutes: "figure.stand"
+    case .walkingSpeed: "figure.walk.motion"
     case .restingHeartRate: "heart.fill"
     case .walkingHeartRateAverage: "heart.fill"
     case .heartRate: "heart.fill"
     case .heartRateVariability: "heart.fill"
+    case .cardioFitness: "heart.fill"
     case .respiratoryRate: "lungs.fill"
     case .bloodGlucose: "waveform.path.ecg.rectangle.fill"
     case .bloodOxygen: "lungs.fill"
     case .sleep: "bed.double.fill"
     case .weight: "scalemass.fill"
+    case .wristTemperature: "thermometer.medium"
     case .menstrualFlow: "drop.fill"
     case .spotting: "drop"
     }

@@ -14,6 +14,9 @@ import VitalCourierCore
     #expect(HealthType.flightsClimbed.category == .activity)
     #expect(HealthType.standMinutes.category == .activity)
     #expect(HealthType.heartRateVariability.category == .heart)
+    #expect(HealthType.cardioFitness.category == .heart)
+    #expect(HealthType.walkingSpeed.category == .mobility)
+    #expect(HealthType.wristTemperature.category == .bodyMeasurements)
     #expect(HealthType.weight.category == .bodyMeasurements)
     #expect(HealthType.menstrualFlow.category == .cycleTracking)
     #expect(HealthType.spotting.category == .cycleTracking)
@@ -52,11 +55,11 @@ import VitalCourierCore
 
   @Test func pendingFixtureMapsEveryIdentifierOnce() {
     let allIdentifiers = pendingIdentifiersByCategory.values.flatMap { $0 }
-    #expect(allIdentifiers.count == 176)
-    #expect(Set(allIdentifiers).count == 176)
+    #expect(allIdentifiers.count == 173)
+    #expect(Set(allIdentifiers).count == 173)
     let expectedCounts: [HealthCategory: Int] = [
-      .activity: 26, .bodyMeasurements: 8, .cycleTracking: 15, .hearing: 6, .heart: 14, .mentalWellbeing: 2,
-      .mobility: 12, .nutrition: 39, .respiratory: 5, .sleep: 0, .symptoms: 39, .vitals: 1, .otherData: 9,
+      .activity: 26, .bodyMeasurements: 7, .cycleTracking: 15, .hearing: 6, .heart: 13, .mentalWellbeing: 2,
+      .mobility: 11, .nutrition: 39, .respiratory: 5, .sleep: 0, .symptoms: 39, .vitals: 1, .otherData: 9,
     ]
     for category in HealthCategory.allCases {
       #expect(pendingIdentifiersByCategory[category]?.count == expectedCounts[category], "\(category)")
@@ -65,7 +68,7 @@ import VitalCourierCore
       "stepCount", "appleExerciseTime", "bodyMass", "menstrualFlow", "intermenstrualBleeding", "restingHeartRate",
       "walkingHeartRateAverage", "heartRate", "respiratoryRate", "oxygenSaturation", "sleepAnalysis", "bloodGlucose",
       "activeEnergyBurned", "distanceWalkingRunning", "heartRateVariabilitySDNN", "basalEnergyBurned", "flightsClimbed",
-      "appleStandTime",
+      "appleStandTime", "vo2Max", "walkingSpeed", "appleSleepingWristTemperature",
     ]
     #expect(Set(allIdentifiers).isDisjoint(with: currentIdentifiers))
   }
@@ -84,10 +87,10 @@ import VitalCourierCore
       pendingIdentifiersByCategory.first { $0.value.contains(identifier) }?.key
     }
     #expect(category(of: "bloodPressureSystolic") == .heart)
-    #expect(category(of: "vo2Max") == .heart)
+    #expect(HealthType.cardioFitness.category == .heart)
     #expect(category(of: "underwaterDepth") == .activity)
     #expect(category(of: "appleSleepingBreathingDisturbances") == .respiratory)
-    #expect(category(of: "appleSleepingWristTemperature") == .bodyMeasurements)
+    #expect(HealthType.wristTemperature.category == .bodyMeasurements)
     #expect(category(of: "numberOfTimesFallen") == .otherData)
     #expect(category(of: "bodyTemperature") == .vitals)
   }

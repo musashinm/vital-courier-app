@@ -325,7 +325,7 @@ public final class LocalStore: Sendable {
     return days
   }
 
-  /// Marks the stored day of a sample dirty and, for sleep, its wake day too. For the types whose daily value comes from HealthKit's statistics query (`HealthType.usesStatisticsQuery`), which splits a sample across every day it overlaps, it marks every day the sample overlaps in its stored zone and in the query zone (`fallbackTimeZone`). Does nothing for an unknown UUID.
+  /// Marks the stored day of a sample dirty and, for sleep and wrist temperature, its wake day too. For the types whose daily value comes from HealthKit's statistics query (`HealthType.usesStatisticsQuery`), which splits a sample across every day it overlaps, it marks every day the sample overlaps in its stored zone and in the query zone (`fallbackTimeZone`). Does nothing for an unknown UUID.
   static func markTouched(_ db: Database, uuid: UUID, fallbackTimeZone: TimeZone) throws {
     guard
       let row = try Row.fetchOne(
@@ -337,7 +337,7 @@ public final class LocalStore: Sendable {
     let typeRaw: String = row["type"]
     let storedDay: String = row["day"]
     try markDirty(db, type: typeRaw, day: storedDay)
-    if typeRaw == HealthType.sleep.rawValue {
+    if typeRaw == HealthType.sleep.rawValue || typeRaw == HealthType.wristTemperature.rawValue {
       let zoneIdentifier: String = row["zone"]
       let endTime: Double = row["endTime"]
       let zone = TimeZone(identifier: zoneIdentifier) ?? fallbackTimeZone

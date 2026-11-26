@@ -1468,6 +1468,16 @@
         }
       }
     },
+    "Cardio fitness" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condicionamento cardiorrespiratório"
+          }
+        }
+      }
+    },
     "Check again" : {
       "shouldTranslate" : false
     },
@@ -3143,6 +3153,16 @@
         }
       }
     },
+    "Walking speed" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Velocidade de caminhada"
+          }
+        }
+      }
+    },
     "Weight" : {
       "localizations" : {
         "pt-BR" : {
@@ -3159,6 +3179,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "O que acontece agora"
+          }
+        }
+      }
+    },
+    "Wrist temperature" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temperatura do pulso"
           }
         }
       }

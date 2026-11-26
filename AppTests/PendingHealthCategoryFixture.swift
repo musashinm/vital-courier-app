@@ -13,7 +13,7 @@ let pendingIdentifiersByCategory: [HealthCategory: [String]] = [
   ],
   .bodyMeasurements: [
     "height", "bodyMassIndex", "leanBodyMass", "bodyFatPercentage", "waistCircumference", "hipCircumference",
-    "electrodermalActivity", "appleSleepingWristTemperature",
+    "electrodermalActivity",
   ],
   .cycleTracking: [
     "basalBodyTemperature", "infrequentMenstrualCycles", "irregularMenstrualCycles",
@@ -27,7 +27,7 @@ let pendingIdentifiersByCategory: [HealthCategory: [String]] = [
   ],
   .heart: [
     "heartRateVariabilityRMSSD", "heartRateRecoveryOneMinute", "atrialFibrillationBurden",
-    "vo2Max", "peripheralPerfusionIndex", "bloodPressureSystolic", "bloodPressureDiastolic", "highHeartRateEvent",
+    "peripheralPerfusionIndex", "bloodPressureSystolic", "bloodPressureDiastolic", "highHeartRateEvent",
     "lowHeartRateEvent", "irregularHeartRhythmEvent", "hypertensionEvent", "lowCardioFitnessEvent",
     "electrocardiogram", "heartbeatSeries",
   ],
@@ -35,7 +35,7 @@ let pendingIdentifiersByCategory: [HealthCategory: [String]] = [
     "mindfulSession", "stateOfMind",
   ],
   .mobility: [
-    "appleWalkingSteadiness", "sixMinuteWalkTestDistance", "walkingSpeed", "walkingStepLength",
+    "appleWalkingSteadiness", "sixMinuteWalkTestDistance", "walkingStepLength",
     "walkingAsymmetryPercentage", "walkingDoubleSupportPercentage", "stairAscentSpeed", "stairDescentSpeed",
     "runningStrideLength", "runningGroundContactTime", "runningVerticalOscillation", "appleWalkingSteadinessEvent",
   ],

@@ -18,6 +18,7 @@ import Testing
     summary.restingEnergyKcal = 1687.6
     summary.flightsClimbed = 7.9
     summary.standMinutes = 143.9
+    summary.walkingSpeedKmh = 4.64
     summary.restingHeartRateBPM = 58.46
     summary.walkingHeartRateAverageBPM = 92.46
     summary.heartRateBPM = 72.4
@@ -26,6 +27,7 @@ import Testing
     summary.heartRateVariabilityMs = 42.4
     summary.heartRateVariabilityMsMin = 21
     summary.heartRateVariabilityMsMax = 67.6
+    summary.vo2Max = 38.66
     summary.respiratoryRate = 14.46
     summary.respiratoryRateMin = 12.1
     summary.respiratoryRateMax = 17
@@ -39,6 +41,7 @@ import Testing
     summary.sleepREMHours = 1.556
     summary.sleepSource = "Kleber's Apple Watch"
     summary.weightKg = 72.44
+    summary.wristTemperatureCelsius = 35.416
 
     #expect(
       text(summary) == """
@@ -51,6 +54,7 @@ import Testing
         vc_resting_energy_kcal: 1688
         vc_flights_climbed: 7
         vc_stand_minutes: 143
+        vc_walking_speed_kmh: 4.6
         vc_resting_hr_bpm: 58.5
         vc_walking_hr_avg: 92.5
         vc_hr_avg: 72
@@ -59,6 +63,7 @@ import Testing
         vc_hrv_ms: 42
         vc_hrv_ms_min: 21
         vc_hrv_ms_max: 68
+        vc_vo2_max: 38.7
         vc_respiratory_rate: 14.5
         vc_respiratory_rate_min: 12.1
         vc_respiratory_rate_max: 17.0
@@ -72,6 +77,7 @@ import Testing
         vc_sleep_rem_hours: 1.56
         vc_sleep_source: "Kleber's Apple Watch"
         vc_weight_kg: 72.4
+        vc_wrist_temp_c: 35.42
         vc_schema: 1
         ---
 
@@ -221,6 +227,34 @@ import Testing
     #expect(!note.contains("vc_resting_energy_kcal"))
     #expect(!note.contains("vc_flights_climbed"))
     #expect(!note.contains("vc_stand_minutes"))
+  }
+
+  @Test func leavesOutVO2MaxWalkingSpeedAndWristTemperatureWhenThereAreNone() {
+    var summary = DailySummary(day: day("2026-09-27"))
+    summary.steps = 100
+    let note = text(summary)
+    #expect(!note.contains("vc_walking_speed_kmh"))
+    #expect(!note.contains("vc_vo2_max"))
+    #expect(!note.contains("vc_wrist_temp_c"))
+  }
+
+  @Test func writesAWristTemperatureWithTwoDecimals() {
+    var summary = DailySummary(day: day("2026-09-27"))
+    summary.wristTemperatureCelsius = 35.4
+    #expect(text(summary).contains("vc_wrist_temp_c: 35.40\n"))
+  }
+
+  @Test func theSummaryTakesVO2MaxWalkingSpeedAndWristTemperatureFromTheStoredDailyValues() {
+    let summary = DailySummary(
+      day: day("2026-09-27"),
+      values: [
+        .walkingSpeed: DailyValue(value: 4.64),
+        .cardioFitness: DailyValue(value: 38.66),
+        .wristTemperature: DailyValue(value: 35.416),
+      ])
+    #expect(summary.walkingSpeedKmh == 4.64)
+    #expect(summary.vo2Max == 38.66)
+    #expect(summary.wristTemperatureCelsius == 35.416)
   }
 
   @Test func writesAZeroFlightsDayAsZero() {

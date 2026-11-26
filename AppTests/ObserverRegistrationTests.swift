@@ -18,7 +18,7 @@ import VitalCourierCore
       \.sampleType)
     let on = ObserverRegistration.descriptors(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).map(
       \.sampleType)
-    #expect(off.count == 16)
+    #expect(off.count == 19)
     #expect(off.contains(HKQuantityType(.appleExerciseTime)))
     #expect(off.contains(HKQuantityType(.walkingHeartRateAverage)))
     #expect(off.contains(HKQuantityType(.heartRate)))
@@ -31,8 +31,11 @@ import VitalCourierCore
     #expect(off.contains(HKQuantityType(.basalEnergyBurned)))
     #expect(off.contains(HKQuantityType(.flightsClimbed)))
     #expect(off.contains(HKQuantityType(.appleStandTime)))
+    #expect(off.contains(HKQuantityType(.vo2Max)))
+    #expect(off.contains(HKQuantityType(.walkingSpeed)))
+    #expect(off.contains(HKQuantityType(.appleSleepingWristTemperature)))
     #expect(!off.contains(HKCategoryType(.menstrualFlow)))
-    #expect(on.count == 18)
+    #expect(on.count == 21)
     #expect(on.contains(HKCategoryType(.menstrualFlow)))
     #expect(on.contains(HKCategoryType(.intermenstrualBleeding)))
   }

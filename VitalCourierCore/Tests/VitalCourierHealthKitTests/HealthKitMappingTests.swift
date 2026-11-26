@@ -15,7 +15,7 @@ private func date(_ iso: String) -> Date {
     #expect(HealthKitMapping.sampleType(for: .restingHeartRate) == HKQuantityType(.restingHeartRate))
     #expect(HealthKitMapping.sampleType(for: .sleep) == HKCategoryType(.sleepAnalysis))
     #expect(HealthKitMapping.sampleType(for: .weight) == HKQuantityType(.bodyMass))
-    #expect(HealthKitMapping.readTypes.count == 16)
+    #expect(HealthKitMapping.readTypes.count == 19)
   }
 
   @Test func samplesAreStoredInSIUnits() throws {
@@ -111,8 +111,8 @@ private func date(_ iso: String) -> Date {
   @Test func cycleTypesMapToTheirHealthKitTypes() {
     #expect(HealthKitMapping.sampleType(for: .menstrualFlow) == HKCategoryType(.menstrualFlow))
     #expect(HealthKitMapping.sampleType(for: .spotting) == HKCategoryType(.intermenstrualBleeding))
-    #expect(HealthKitMapping.readTypes.count == 16)
-    #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 18)
+    #expect(HealthKitMapping.readTypes.count == 19)
+    #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 21)
     #expect(HealthKitMapping.storedUnit(for: .menstrualFlow) == nil)
     #expect(HealthKitMapping.statisticUnit(for: .spotting) == nil)
   }
@@ -201,6 +201,30 @@ private func date(_ iso: String) -> Date {
     #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.appleStandTime)))
   }
 
+  @Test func cardioFitnessMapsToItsHealthKitType() {
+    let millilitresPerKilogramMinute = HKUnit.literUnit(with: .milli)
+      .unitDivided(by: HKUnit.gramUnit(with: .kilo).unitMultiplied(by: .minute()))
+    #expect(HealthKitMapping.sampleType(for: .cardioFitness) == HKQuantityType(.vo2Max))
+    #expect(HealthKitMapping.storedUnit(for: .cardioFitness) == millilitresPerKilogramMinute)
+    #expect(HealthKitMapping.statisticUnit(for: .cardioFitness) == millilitresPerKilogramMinute)
+    #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.vo2Max)))
+  }
+
+  @Test func walkingSpeedMapsToItsHealthKitType() {
+    #expect(HealthKitMapping.sampleType(for: .walkingSpeed) == HKQuantityType(.walkingSpeed))
+    #expect(HealthKitMapping.storedUnit(for: .walkingSpeed) == HKUnit.meter().unitDivided(by: .second()))
+    #expect(
+      HealthKitMapping.statisticUnit(for: .walkingSpeed) == HKUnit.meterUnit(with: .kilo).unitDivided(by: .hour()))
+    #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.walkingSpeed)))
+  }
+
+  @Test func wristTemperatureMapsToItsHealthKitType() {
+    #expect(HealthKitMapping.sampleType(for: .wristTemperature) == HKQuantityType(.appleSleepingWristTemperature))
+    #expect(HealthKitMapping.storedUnit(for: .wristTemperature) == .degreeCelsius())
+    #expect(HealthKitMapping.statisticUnit(for: .wristTemperature) == nil)
+    #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.appleSleepingWristTemperature)))
+  }
+
   @Test func heartRateVariabilityMapsToItsHealthKitType() {
     #expect(HealthKitMapping.sampleType(for: .heartRateVariability) == HKQuantityType(.heartRateVariabilitySDNN))
     #expect(HealthKitMapping.storedUnit(for: .heartRateVariability) == .second())
@@ -236,6 +260,26 @@ private func date(_ iso: String) -> Date {
   @Test func aMinuteStandQuantityIsStoredInSeconds() throws {
     let oneMinute = HKQuantity(unit: .minute(), doubleValue: 1)
     #expect(try HealthKitMapping.storedValue(oneMinute, for: .standMinutes) == 60)
+  }
+
+  @Test func aVO2MaxQuantityIsStoredAsIs() throws {
+    let unit = HKUnit.literUnit(with: .milli).unitDivided(
+      by: HKUnit.gramUnit(with: .kilo).unitMultiplied(by: .minute()))
+    let vo2Max = HKQuantity(unit: unit, doubleValue: 38.7)
+    #expect(try HealthKitMapping.storedValue(vo2Max, for: .cardioFitness) == 38.7)
+  }
+
+  @Test func oneMetrePerSecondReadsAsThreePointSixKilometresPerHour() throws {
+    let oneMetrePerSecond = HKQuantity(unit: HKUnit.meter().unitDivided(by: .second()), doubleValue: 1)
+    #expect(try HealthKitMapping.storedValue(oneMetrePerSecond, for: .walkingSpeed) == 1)
+    let kilometresPerHour = try #require(HealthKitMapping.statisticUnit(for: .walkingSpeed))
+    #expect(abs(oneMetrePerSecond.doubleValue(for: kilometresPerHour) - 3.6) < 1e-9)
+  }
+
+  @Test func aFahrenheitWristTemperatureIsStoredInCelsius() throws {
+    let fahrenheit = HKQuantity(unit: .degreeFahrenheit(), doubleValue: 95)
+    let stored = try HealthKitMapping.storedValue(fahrenheit, for: .wristTemperature)
+    #expect(abs(stored - 35) < 1e-9)
   }
 
   @Test func aKilometreDistanceQuantityIsStoredInMetres() throws {

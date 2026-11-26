@@ -42,6 +42,22 @@ import VitalCourierCore
     #expect(HealthType.heartRateVariability.symbolName == "heart.fill")
   }
 
+  @Test func cardioFitnessSharesTheHeartSymbol() {
+    #expect(HealthType.cardioFitness.displayName == String(localized: "Cardio fitness"))
+    #expect(HealthType.cardioFitness.symbolName == "heart.fill")
+    #expect(HealthType.cardioFitness.symbolName == HealthType.restingHeartRate.symbolName)
+  }
+
+  @Test func walkingSpeedHasItsOwnHomeRowNameAndSymbol() {
+    #expect(HealthType.walkingSpeed.displayName == String(localized: "Walking speed"))
+    #expect(HealthType.walkingSpeed.symbolName == "figure.walk.motion")
+  }
+
+  @Test func wristTemperatureHasItsOwnHomeRowNameAndSymbol() {
+    #expect(HealthType.wristTemperature.displayName == String(localized: "Wrist temperature"))
+    #expect(HealthType.wristTemperature.symbolName == "thermometer.medium")
+  }
+
   @Test func respiratoryRateHasItsOwnHomeRowNameAndSymbol() {
     #expect(HealthType.respiratoryRate.displayName == String(localized: "Respiratory rate"))
     #expect(HealthType.respiratoryRate.symbolName == "lungs.fill")
@@ -71,10 +87,10 @@ import VitalCourierCore
   }
 
   @Test func everyOtherTypeHasItsOwnHomeRowSymbol() {
-    // The heart types share heart.fill, walking + running distance shares steps' figure.walk, resting energy shares active energy's flame.fill and blood oxygen shares respiratory rate's lungs.fill, as in Apple's Health app; nothing else may.
+    // The heart types and cardio fitness share heart.fill, walking + running distance shares steps' figure.walk, resting energy shares active energy's flame.fill and blood oxygen shares respiratory rate's lungs.fill, as in Apple's Health app; nothing else may.
     let typesWithTheirOwnSymbol = HealthType.allCases.filter {
       $0 != .walkingHeartRateAverage && $0 != .heartRate && $0 != .bloodOxygen && $0 != .walkingRunningDistance
-        && $0 != .heartRateVariability && $0 != .restingEnergy
+        && $0 != .heartRateVariability && $0 != .restingEnergy && $0 != .cardioFitness
     }
     #expect(Set(typesWithTheirOwnSymbol.map(\.symbolName)).count == typesWithTheirOwnSymbol.count)
   }

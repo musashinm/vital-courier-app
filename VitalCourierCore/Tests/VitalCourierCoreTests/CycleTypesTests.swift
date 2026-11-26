@@ -8,14 +8,15 @@ import Testing
     #expect(
       HealthType.enabledTypes(cycleTrackingEnabled: false) == [
         .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
-        .standMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
-        .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight,
+        .standMinutes, .walkingSpeed, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
+        .cardioFitness, .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight, .wristTemperature,
       ])
     #expect(
       HealthType.enabledTypes(cycleTrackingEnabled: true) == [
         .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
-        .standMinutes, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
-        .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight, .menstrualFlow, .spotting,
+        .standMinutes, .walkingSpeed, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
+        .cardioFitness, .respiratoryRate, .bloodGlucose, .bloodOxygen, .sleep, .weight, .wristTemperature,
+        .menstrualFlow, .spotting,
       ])
     #expect(HealthType.baseTypes + HealthType.cycleTypes == HealthType.allCases)
   }
