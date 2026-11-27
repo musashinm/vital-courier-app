@@ -115,7 +115,12 @@ import Testing
     #expect(observedBefore.count == 13)
 
     settings.recordHealthTypesAskedAbout([.restingEnergy, .flightsClimbed, .standMinutes])
-    let knownIn042 = enabled.filter { ![HealthType.cardioFitness, .walkingSpeed, .wristTemperature].contains($0) }
+    let knownIn042 = enabled.filter {
+      ![
+        HealthType.cardioFitness, .walkingSpeed, .wristTemperature, .walkingStepLength, .walkingAsymmetry,
+        .doubleSupportTime,
+      ].contains($0)
+    }
     #expect(HealthType.observedTypes(enabled: enabled, askedAbout: settings.healthTypesAskedAbout) == knownIn042)
     #expect(knownIn042.count == 16)
   }
@@ -139,6 +144,33 @@ import Testing
     #expect(observedBefore.count == 16)
 
     settings.recordHealthTypesAskedAbout([.cardioFitness, .walkingSpeed, .wristTemperature])
+    let knownIn043 = enabled.filter {
+      ![HealthType.walkingStepLength, .walkingAsymmetry, .doubleSupportTime].contains($0)
+    }
+    #expect(HealthType.observedTypes(enabled: enabled, askedAbout: settings.healthTypesAskedAbout) == knownIn043)
+    #expect(knownIn043.count == 19)
+  }
+
+  @Test func aPersisted043AskedSetLeavesTheNewTypesUnobservedUntilRecorded() throws {
+    // A 0.4.3 install persisted the nineteen base types; the new ones stay unobserved until the sheet is answered (Walking Step Length, Asymmetry and Double Support Spec, Edge cases).
+    let storage = InMemoryStorage()
+    let settings = AppSettings(storage: storage)
+    storage.set(
+      try JSONEncoder().encode([
+        "steps", "exerciseMinutes", "activeEnergy", "walkingRunningDistance", "restingEnergy", "flightsClimbed",
+        "standMinutes", "walkingSpeed", "restingHeartRate", "walkingHeartRateAverage", "heartRate",
+        "heartRateVariability", "cardioFitness", "respiratoryRate", "bloodGlucose", "bloodOxygen", "sleep", "weight",
+        "wristTemperature",
+      ]), forKey: AppSettings.Key.healthTypesAskedAbout)
+    let enabled = HealthType.enabledTypes(cycleTrackingEnabled: false)
+
+    let observedBefore = HealthType.observedTypes(enabled: enabled, askedAbout: settings.healthTypesAskedAbout)
+    #expect(!observedBefore.contains(.walkingStepLength))
+    #expect(!observedBefore.contains(.walkingAsymmetry))
+    #expect(!observedBefore.contains(.doubleSupportTime))
+    #expect(observedBefore.count == 19)
+
+    settings.recordHealthTypesAskedAbout([.walkingStepLength, .walkingAsymmetry, .doubleSupportTime])
     #expect(HealthType.observedTypes(enabled: enabled, askedAbout: settings.healthTypesAskedAbout) == enabled)
   }
 
@@ -174,6 +206,14 @@ import Testing
     #expect(!asked.contains(.cardioFitness))
     #expect(!asked.contains(.walkingSpeed))
     #expect(!asked.contains(.wristTemperature))
+  }
+
+  @Test func theFixedPreSettingListNeverGainsStepLengthAsymmetryOrDoubleSupport() {
+    // Existing installs must see the Health sheet before these types are observed (Walking Step Length, Asymmetry and Double Support Spec, Edge cases).
+    let asked = AppSettings.typesAskedAboutBeforeThisSetting
+    #expect(!asked.contains(.walkingStepLength))
+    #expect(!asked.contains(.walkingAsymmetry))
+    #expect(!asked.contains(.doubleSupportTime))
   }
 
   @Test func concurrentRecordingsOfDifferentTypesAllSurvive() async {

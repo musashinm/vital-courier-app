@@ -16,6 +16,9 @@ import VitalCourierCore
     #expect(HealthType.heartRateVariability.category == .heart)
     #expect(HealthType.cardioFitness.category == .heart)
     #expect(HealthType.walkingSpeed.category == .mobility)
+    #expect(HealthType.walkingStepLength.category == .mobility)
+    #expect(HealthType.walkingAsymmetry.category == .mobility)
+    #expect(HealthType.doubleSupportTime.category == .mobility)
     #expect(HealthType.wristTemperature.category == .bodyMeasurements)
     #expect(HealthType.weight.category == .bodyMeasurements)
     #expect(HealthType.menstrualFlow.category == .cycleTracking)
@@ -55,11 +58,11 @@ import VitalCourierCore
 
   @Test func pendingFixtureMapsEveryIdentifierOnce() {
     let allIdentifiers = pendingIdentifiersByCategory.values.flatMap { $0 }
-    #expect(allIdentifiers.count == 173)
-    #expect(Set(allIdentifiers).count == 173)
+    #expect(allIdentifiers.count == 170)
+    #expect(Set(allIdentifiers).count == 170)
     let expectedCounts: [HealthCategory: Int] = [
       .activity: 26, .bodyMeasurements: 7, .cycleTracking: 15, .hearing: 6, .heart: 13, .mentalWellbeing: 2,
-      .mobility: 11, .nutrition: 39, .respiratory: 5, .sleep: 0, .symptoms: 39, .vitals: 1, .otherData: 9,
+      .mobility: 8, .nutrition: 39, .respiratory: 5, .sleep: 0, .symptoms: 39, .vitals: 1, .otherData: 9,
     ]
     for category in HealthCategory.allCases {
       #expect(pendingIdentifiersByCategory[category]?.count == expectedCounts[category], "\(category)")
@@ -69,6 +72,7 @@ import VitalCourierCore
       "walkingHeartRateAverage", "heartRate", "respiratoryRate", "oxygenSaturation", "sleepAnalysis", "bloodGlucose",
       "activeEnergyBurned", "distanceWalkingRunning", "heartRateVariabilitySDNN", "basalEnergyBurned", "flightsClimbed",
       "appleStandTime", "vo2Max", "walkingSpeed", "appleSleepingWristTemperature",
+      "walkingStepLength", "walkingAsymmetryPercentage", "walkingDoubleSupportPercentage",
     ]
     #expect(Set(allIdentifiers).isDisjoint(with: currentIdentifiers))
   }

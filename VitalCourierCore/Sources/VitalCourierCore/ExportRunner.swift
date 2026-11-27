@@ -230,8 +230,9 @@ public final class ExportRunner: Sendable {
   func dailyValue(for entry: DirtyEntry, zone: TimeZone, preferredSleepSource: String?) async throws -> DailyValue? {
     switch entry.type {
     case .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
-      .standMinutes, .walkingSpeed, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
-      .cardioFitness, .respiratoryRate, .bloodGlucose, .bloodOxygen:
+      .standMinutes, .walkingSpeed, .walkingStepLength, .walkingAsymmetry, .doubleSupportTime, .restingHeartRate,
+      .walkingHeartRateAverage, .heartRate, .heartRateVariability, .cardioFitness, .respiratoryRate, .bloodGlucose,
+      .bloodOxygen:
       return try await health.dailyStatistic(for: entry.type, day: entry.day, timeZone: zone).map {
         DailyValue(value: $0.value, minimum: $0.minimum, maximum: $0.maximum)
       }

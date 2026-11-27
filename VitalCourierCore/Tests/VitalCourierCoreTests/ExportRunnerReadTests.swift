@@ -693,6 +693,54 @@ import Testing
     #expect(try store.dailyValues(day: day("2026-09-27")) == [.walkingSpeed: DailyValue(value: 4.64)])
   }
 
+  @Test func aWalkingStepLengthDayStoresTheStatisticAverageInCentimetres() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.queue(
+      HealthChanges(added: [
+        makeSample(
+          type: .walkingStepLength, start: "2026-09-27T12:00:00Z", end: "2026-09-27T12:01:00Z", value: .quantity(0.72))
+      ]), for: .walkingStepLength)
+    await health.setStatistic(72.4, for: .walkingStepLength, day: day("2026-09-27"))
+
+    _ = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake))
+    {}
+
+    #expect(try store.dailyValues(day: day("2026-09-27")) == [.walkingStepLength: DailyValue(value: 72.4)])
+  }
+
+  @Test func aWalkingAsymmetryDayStoresTheStatisticAverageAsAFraction() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.queue(
+      HealthChanges(added: [
+        makeSample(
+          type: .walkingAsymmetry, start: "2026-09-27T12:00:00Z", end: "2026-09-27T12:01:00Z", value: .quantity(0.02))
+      ]), for: .walkingAsymmetry)
+    await health.setStatistic(0.0184, for: .walkingAsymmetry, day: day("2026-09-27"))
+
+    _ = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake))
+    {}
+
+    #expect(try store.dailyValues(day: day("2026-09-27")) == [.walkingAsymmetry: DailyValue(value: 0.0184)])
+  }
+
+  @Test func aDoubleSupportTimeDayStoresTheStatisticAverageAsAFraction() async throws {
+    let store = try LocalStore.inMemory()
+    let health = FakeHealthSource()
+    await health.queue(
+      HealthChanges(added: [
+        makeSample(
+          type: .doubleSupportTime, start: "2026-09-27T12:00:00Z", end: "2026-09-27T12:01:00Z", value: .quantity(0.28))
+      ]), for: .doubleSupportTime)
+    await health.setStatistic(0.2843, for: .doubleSupportTime, day: day("2026-09-27"))
+
+    _ = await makeRunner(store: store, health: health).run(trigger: .observerWake, options: .forTrigger(.observerWake))
+    {}
+
+    #expect(try store.dailyValues(day: day("2026-09-27")) == [.doubleSupportTime: DailyValue(value: 0.2843)])
+  }
+
   @Test func anHRVDayStoresTheAverageAndItsRange() async throws {
     let store = try LocalStore.inMemory()
     let health = FakeHealthSource()

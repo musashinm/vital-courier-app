@@ -52,7 +52,7 @@ extension HealthType {
       .standMinutes:
       .activity
     case .weight, .wristTemperature: .bodyMeasurements
-    case .walkingSpeed: .mobility
+    case .walkingSpeed, .walkingStepLength, .walkingAsymmetry, .doubleSupportTime: .mobility
     case .menstrualFlow, .spotting: .cycleTracking
     case .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability, .cardioFitness: .heart
     case .respiratoryRate, .bloodOxygen: .respiratory

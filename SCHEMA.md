@@ -49,7 +49,7 @@ Only the formats you turned on are written. Turning one off deletes nothing.
 - A JSON or CSV sample goes in the month of its `start`, in that sample's zone.
 - Weight, menstrual flow and spotting count on the day of the sample's `start`, in that sample's zone.
 - Sleep and wrist temperature belong to the wake day: for sleep, the day the last asleep sample of the night ends; for wrist temperature, the day its sample ends; both in that sample's zone.
-- Sixteen types come from HealthKit's daily statistics instead: steps, exercise minutes, active energy, walking + running distance, resting energy, flights climbed, stand minutes, walking speed, resting heart rate, walking heart rate average, heart rate, heart rate variability, cardio fitness (VO2 max), respiratory rate, blood glucose and blood oxygen. They cover local midnight to midnight in the phone's zone at export time.
+- Nineteen types come from HealthKit's daily statistics instead: steps, exercise minutes, active energy, walking + running distance, resting energy, flights climbed, stand minutes, walking speed, walking step length, walking asymmetry, double support time, resting heart rate, walking heart rate average, heart rate, heart rate variability, cardio fitness (VO2 max), respiratory rate, blood glucose and blood oxygen. They cover local midnight to midnight in the phone's zone at export time.
 
 ### Types
 
@@ -65,6 +65,9 @@ One row per type. The `type` column is the JSON `type` field, `folder` is the fo
 | `flightsClimbed` | `flights-climbed` | `count` |
 | `standMinutes` | `stand-minutes` | `s` |
 | `walkingSpeed` | `walking-speed` | `m/s` |
+| `walkingStepLength` | `walking-step-length` | `m` |
+| `walkingAsymmetry` | `walking-asymmetry` | `%` (HealthKit's percent unit, a 0 to 1 fraction) |
+| `doubleSupportTime` | `double-support-time` | `%` (HealthKit's percent unit, a 0 to 1 fraction) |
 | `restingHeartRate` | `resting-heart-rate` | `count/s` |
 | `walkingHeartRateAverage` | `walking-heart-rate-average` | `count/s` |
 | `heartRate` | `heart-rate` | `count/s` |

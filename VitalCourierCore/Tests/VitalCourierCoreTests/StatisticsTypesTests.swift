@@ -12,6 +12,9 @@ import Testing
     #expect(HealthType.flightsClimbed.statisticsAggregation == .sum)
     #expect(HealthType.standMinutes.statisticsAggregation == .sum)
     #expect(HealthType.walkingSpeed.statisticsAggregation == .average)
+    #expect(HealthType.walkingStepLength.statisticsAggregation == .average)
+    #expect(HealthType.walkingAsymmetry.statisticsAggregation == .average)
+    #expect(HealthType.doubleSupportTime.statisticsAggregation == .average)
     #expect(HealthType.cardioFitness.statisticsAggregation == .average)
     #expect(HealthType.restingHeartRate.statisticsAggregation == .average)
     #expect(HealthType.walkingHeartRateAverage.statisticsAggregation == .average)
@@ -32,12 +35,13 @@ import Testing
     #expect(HealthType.walkingHeartRateAverage.siUnit == "count/s")
   }
 
-  @Test func exactlyTheSixteenStatisticsTypesUseTheStatisticsQuery() {
+  @Test func exactlyTheNineteenStatisticsTypesUseTheStatisticsQuery() {
     #expect(
       HealthType.allCases.filter(\.usesStatisticsQuery) == [
         .steps, .exerciseMinutes, .activeEnergy, .walkingRunningDistance, .restingEnergy, .flightsClimbed,
-        .standMinutes, .walkingSpeed, .restingHeartRate, .walkingHeartRateAverage, .heartRate, .heartRateVariability,
-        .cardioFitness, .respiratoryRate, .bloodGlucose, .bloodOxygen,
+        .standMinutes, .walkingSpeed, .walkingStepLength, .walkingAsymmetry, .doubleSupportTime, .restingHeartRate,
+        .walkingHeartRateAverage, .heartRate, .heartRateVariability, .cardioFitness, .respiratoryRate, .bloodGlucose,
+        .bloodOxygen,
       ])
   }
 
@@ -74,6 +78,21 @@ import Testing
   @Test func walkingSpeedIsStoredInMetresPerSecond() {
     #expect(HealthType.walkingSpeed.folderName == "walking-speed")
     #expect(HealthType.walkingSpeed.siUnit == "m/s")
+  }
+
+  @Test func walkingStepLengthIsStoredInMetres() {
+    #expect(HealthType.walkingStepLength.folderName == "walking-step-length")
+    #expect(HealthType.walkingStepLength.siUnit == "m")
+  }
+
+  @Test func walkingAsymmetryIsStoredAsAFraction() {
+    #expect(HealthType.walkingAsymmetry.folderName == "walking-asymmetry")
+    #expect(HealthType.walkingAsymmetry.siUnit == "%")
+  }
+
+  @Test func doubleSupportTimeIsStoredAsAFraction() {
+    #expect(HealthType.doubleSupportTime.folderName == "double-support-time")
+    #expect(HealthType.doubleSupportTime.siUnit == "%")
   }
 
   @Test func wristTemperatureIsStoredInCelsius() {

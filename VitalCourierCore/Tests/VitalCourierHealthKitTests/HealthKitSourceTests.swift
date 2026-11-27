@@ -111,6 +111,27 @@ import VitalCourierCore
     #expect(walkingSpeed.minimum == nil)
     #expect(walkingSpeed.maximum == nil)
 
+    let walkingStepLength = HealthKitSource.chosenQuantities(
+      for: HealthType.walkingStepLength.statisticsAggregation!, sum: sum, average: average, minimum: minimum,
+      maximum: maximum)
+    #expect(walkingStepLength.value == average)
+    #expect(walkingStepLength.minimum == nil)
+    #expect(walkingStepLength.maximum == nil)
+
+    let walkingAsymmetry = HealthKitSource.chosenQuantities(
+      for: HealthType.walkingAsymmetry.statisticsAggregation!, sum: sum, average: average, minimum: minimum,
+      maximum: maximum)
+    #expect(walkingAsymmetry.value == average)
+    #expect(walkingAsymmetry.minimum == nil)
+    #expect(walkingAsymmetry.maximum == nil)
+
+    let doubleSupportTime = HealthKitSource.chosenQuantities(
+      for: HealthType.doubleSupportTime.statisticsAggregation!, sum: sum, average: average, minimum: minimum,
+      maximum: maximum)
+    #expect(doubleSupportTime.value == average)
+    #expect(doubleSupportTime.minimum == nil)
+    #expect(doubleSupportTime.maximum == nil)
+
     let walkingHeartRate = HealthKitSource.chosenQuantities(
       for: HealthType.walkingHeartRateAverage.statisticsAggregation!, sum: sum, average: average, minimum: minimum,
       maximum: maximum)

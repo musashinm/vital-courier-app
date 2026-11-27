@@ -35,8 +35,7 @@ let pendingIdentifiersByCategory: [HealthCategory: [String]] = [
     "mindfulSession", "stateOfMind",
   ],
   .mobility: [
-    "appleWalkingSteadiness", "sixMinuteWalkTestDistance", "walkingStepLength",
-    "walkingAsymmetryPercentage", "walkingDoubleSupportPercentage", "stairAscentSpeed", "stairDescentSpeed",
+    "appleWalkingSteadiness", "sixMinuteWalkTestDistance", "stairAscentSpeed", "stairDescentSpeed",
     "runningStrideLength", "runningGroundContactTime", "runningVerticalOscillation", "appleWalkingSteadinessEvent",
   ],
   .nutrition: [
