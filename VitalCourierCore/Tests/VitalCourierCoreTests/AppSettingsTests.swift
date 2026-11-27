@@ -171,7 +171,11 @@ import Testing
     #expect(observedBefore.count == 19)
 
     settings.recordHealthTypesAskedAbout([.walkingStepLength, .walkingAsymmetry, .doubleSupportTime])
-    #expect(HealthType.observedTypes(enabled: enabled, askedAbout: settings.healthTypesAskedAbout) == enabled)
+    let observedAfter = HealthType.observedTypes(enabled: enabled, askedAbout: settings.healthTypesAskedAbout)
+    #expect(
+      Set(observedAfter).subtracting(observedBefore) == [.walkingStepLength, .walkingAsymmetry, .doubleSupportTime])
+    #expect(observedAfter.count == 22)
+    #expect(observedAfter == enabled)
   }
 
   @Test func theFixedPreSettingListNeverGainsWalkingHeartRateAverage() {

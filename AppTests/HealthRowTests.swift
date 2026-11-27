@@ -90,6 +90,13 @@ import VitalCourierCore
     #expect(HealthType.walkingStepLength.displayName == String(localized: "Walking step length"))
     #expect(HealthType.walkingAsymmetry.displayName == String(localized: "Walking asymmetry"))
     #expect(HealthType.doubleSupportTime.displayName == String(localized: "Double support time"))
+    let brazilian = Locale(identifier: "pt_BR")
+    #expect(
+      String(localized: LocalizedStringResource("Walking step length", locale: brazilian)) == "Comprimento do passo")
+    #expect(
+      String(localized: LocalizedStringResource("Walking asymmetry", locale: brazilian)) == "Assimetria ao caminhar")
+    #expect(
+      String(localized: LocalizedStringResource("Double support time", locale: brazilian)) == "Tempo de apoio duplo")
     for type in [HealthType.walkingStepLength, .walkingAsymmetry, .doubleSupportTime] {
       #expect(type.symbolName == "figure.walk.motion")
       #expect(type.symbolName == HealthType.walkingSpeed.symbolName)
