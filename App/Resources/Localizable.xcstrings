@@ -1727,6 +1727,16 @@
     "Diagnostics" : {
       "shouldTranslate" : false
     },
+    "Double support time" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempo de apoio duplo"
+          }
+        }
+      }
+    },
     "Edits inside that subfolder can be replaced when health data changes." : {
       "localizations" : {
         "pt-BR" : {
@@ -3143,6 +3153,16 @@
         }
       }
     },
+    "Walking asymmetry" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assimetria ao caminhar"
+          }
+        }
+      }
+    },
     "Walking heart rate average" : {
       "localizations" : {
         "pt-BR" : {
@@ -3159,6 +3179,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Velocidade de caminhada"
+          }
+        }
+      }
+    },
+    "Walking step length" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprimento do passo"
           }
         }
       }

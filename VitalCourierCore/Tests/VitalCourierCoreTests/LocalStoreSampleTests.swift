@@ -58,6 +58,15 @@ import Testing
     #expect(try dirtyDays(store, type: .walkingSpeed) == [day("2026-09-27"), day("2026-09-28")])
   }
 
+  @Test func addingAStepLengthSampleAcrossMidnightDirtiesBothDays() throws {
+    let store = try LocalStore.inMemory()
+    let sample = makeSample(
+      type: .walkingStepLength, start: "2026-09-28T02:30:00Z", end: "2026-09-28T03:30:00Z", value: .quantity(0.72))
+    try store.applyChanges(HealthChanges(added: [sample]), for: .walkingStepLength, fallbackTimeZone: saoPaulo)
+
+    #expect(try dirtyDays(store, type: .walkingStepLength) == [day("2026-09-27"), day("2026-09-28")])
+  }
+
   @Test func deletionRemovesTheRowAndMarksItsDayDirty() throws {
     let store = try LocalStore.inMemory()
     let sample = makeSample(start: "2026-09-27T12:00:00Z")

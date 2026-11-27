@@ -49,7 +49,7 @@ Only the formats you turned on are written. Turning one off deletes nothing.
 - A JSON or CSV sample goes in the month of its `start`, in that sample's zone.
 - Weight, menstrual flow and spotting count on the day of the sample's `start`, in that sample's zone.
 - Sleep and wrist temperature belong to the wake day: for sleep, the day the last asleep sample of the night ends; for wrist temperature, the day its sample ends; both in that sample's zone.
-- Sixteen types come from HealthKit's daily statistics instead: steps, exercise minutes, active energy, walking + running distance, resting energy, flights climbed, stand minutes, walking speed, resting heart rate, walking heart rate average, heart rate, heart rate variability, cardio fitness (VO2 max), respiratory rate, blood glucose and blood oxygen. They cover local midnight to midnight in the phone's zone at export time.
+- Nineteen types come from HealthKit's daily statistics instead: steps, exercise minutes, active energy, walking + running distance, resting energy, flights climbed, stand minutes, walking speed, walking step length, walking asymmetry, double support time, resting heart rate, walking heart rate average, heart rate, heart rate variability, cardio fitness (VO2 max), respiratory rate, blood glucose and blood oxygen. They cover local midnight to midnight in the phone's zone at export time.
 
 ### Types
 
@@ -65,6 +65,9 @@ One row per type. The `type` column is the JSON `type` field, `folder` is the fo
 | `flightsClimbed` | `flights-climbed` | `count` |
 | `standMinutes` | `stand-minutes` | `s` |
 | `walkingSpeed` | `walking-speed` | `m/s` |
+| `walkingStepLength` | `walking-step-length` | `m` |
+| `walkingAsymmetry` | `walking-asymmetry` | `%` (HealthKit's percent unit, a 0 to 1 fraction) |
+| `doubleSupportTime` | `double-support-time` | `%` (HealthKit's percent unit, a 0 to 1 fraction) |
 | `restingHeartRate` | `resting-heart-rate` | `count/s` |
 | `walkingHeartRateAverage` | `walking-heart-rate-average` | `count/s` |
 | `heartRate` | `heart-rate` | `count/s` |
@@ -98,6 +101,9 @@ Keys, in file order:
 | `vc_flights_climbed` | flights | integer, truncated toward zero |
 | `vc_stand_minutes` | minutes | integer, truncated toward zero |
 | `vc_walking_speed_kmh` | km/h | one decimal |
+| `vc_step_length_cm` | cm, walking step length | whole number, rounded |
+| `vc_walking_asymmetry_pct` | percent, walking asymmetry | one decimal |
+| `vc_double_support_pct` | percent, double support time | one decimal |
 | `vc_resting_hr_bpm` | bpm | one decimal |
 | `vc_walking_hr_avg` | bpm | one decimal |
 | `vc_hr_avg` | bpm | whole number, rounded |
@@ -130,7 +136,7 @@ Each minimum and maximum is written on its own. A missing minimum or maximum nev
 
 ### How each daily value is built
 
-- Steps, exercise minutes, active energy, walking + running distance, resting energy, flights climbed and stand minutes are the day's sum. Resting and walking heart rate, walking speed and cardio fitness are the day's average. Heart rate, heart rate variability, respiratory rate and blood glucose are the average plus the minimum and maximum. Blood oxygen is the minimum and maximum only.
+- Steps, exercise minutes, active energy, walking + running distance, resting energy, flights climbed and stand minutes are the day's sum. Resting and walking heart rate, walking speed, walking step length, walking asymmetry, double support time and cardio fitness are the day's average. Heart rate, heart rate variability, respiratory rate and blood glucose are the average plus the minimum and maximum. Blood oxygen is the minimum and maximum only.
 - Weight is the sample on that start day with the latest `end`.
 - Wrist temperature is the sample whose wake day it is (the day its `end` falls on, in that sample's zone) with the latest `end`.
 - Sleep counts only the `asleepUnspecified`, `asleepCore`, `asleepDeep` and `asleepREM` stages. Segments less than 4 hours apart form one night, and overlapping intervals are merged. Each source's longest night per wake day wins. Then one source is picked: the one chosen in the app's Settings if it has that night. If not, a night with an Apple Watch sample (the device name contains `Watch`). If not, the most asleep time, with ties going to the alphabetically first source.
@@ -192,6 +198,8 @@ The JSON and CSV keep HealthKit's SI units. The note converts some of them.
 - Resting energy: joules (`J`) in JSON and CSV, kilocalories in the note (a whole number).
 - Walking + running distance: metres (`m`) in JSON and CSV, kilometres in the note (two decimals).
 - Walking speed: metres per second (`m/s`) in JSON and CSV, km/h in the note (one decimal; multiply by 3.6).
+- Walking step length: metres (`m`) in JSON and CSV, centimetres in the note (a whole number; multiply by 100).
+- Walking asymmetry and double support time: a 0 to 1 fraction in JSON and CSV, percent in the note (one decimal; 0.284 in the JSON is 28.4 in the note).
 - Stand minutes: seconds (`s`) in JSON and CSV, minutes in the note.
 - Heart rate variability: seconds (`s`) in JSON and CSV, milliseconds in the note (a whole number).
 - Resting heart rate, walking heart rate average, heart rate and respiratory rate: `count/s` in JSON and CSV, per minute in the note (multiply by 60).

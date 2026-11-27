@@ -74,8 +74,9 @@ enum ObserverRegistration {
   static func backgroundDeliveryFrequency(for type: HealthType) -> HKUpdateFrequency {
     switch type {
     case .heartRate, .activeEnergy, .walkingRunningDistance, .restingEnergy: .hourly
-    case .steps, .exerciseMinutes, .flightsClimbed, .standMinutes, .walkingSpeed, .restingHeartRate,
-      .walkingHeartRateAverage, .heartRateVariability, .cardioFitness, .respiratoryRate, .bloodGlucose, .bloodOxygen,
+    case .steps, .exerciseMinutes, .flightsClimbed, .standMinutes, .walkingSpeed, .walkingStepLength,
+      .walkingAsymmetry, .doubleSupportTime, .restingHeartRate, .walkingHeartRateAverage, .heartRateVariability,
+      .cardioFitness, .respiratoryRate, .bloodGlucose, .bloodOxygen,
       .sleep, .weight, .wristTemperature, .menstrualFlow, .spotting:
       .immediate
     }

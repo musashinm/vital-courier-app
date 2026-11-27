@@ -15,7 +15,7 @@ private func date(_ iso: String) -> Date {
     #expect(HealthKitMapping.sampleType(for: .restingHeartRate) == HKQuantityType(.restingHeartRate))
     #expect(HealthKitMapping.sampleType(for: .sleep) == HKCategoryType(.sleepAnalysis))
     #expect(HealthKitMapping.sampleType(for: .weight) == HKQuantityType(.bodyMass))
-    #expect(HealthKitMapping.readTypes.count == 19)
+    #expect(HealthKitMapping.readTypes.count == 22)
   }
 
   @Test func samplesAreStoredInSIUnits() throws {
@@ -111,8 +111,8 @@ private func date(_ iso: String) -> Date {
   @Test func cycleTypesMapToTheirHealthKitTypes() {
     #expect(HealthKitMapping.sampleType(for: .menstrualFlow) == HKCategoryType(.menstrualFlow))
     #expect(HealthKitMapping.sampleType(for: .spotting) == HKCategoryType(.intermenstrualBleeding))
-    #expect(HealthKitMapping.readTypes.count == 19)
-    #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 21)
+    #expect(HealthKitMapping.readTypes.count == 22)
+    #expect(HealthKitMapping.readTypes(for: HealthType.enabledTypes(cycleTrackingEnabled: true)).count == 24)
     #expect(HealthKitMapping.storedUnit(for: .menstrualFlow) == nil)
     #expect(HealthKitMapping.statisticUnit(for: .spotting) == nil)
   }
@@ -218,6 +218,27 @@ private func date(_ iso: String) -> Date {
     #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.walkingSpeed)))
   }
 
+  @Test func walkingStepLengthMapsToItsHealthKitType() {
+    #expect(HealthKitMapping.sampleType(for: .walkingStepLength) == HKQuantityType(.walkingStepLength))
+    #expect(HealthKitMapping.storedUnit(for: .walkingStepLength) == .meter())
+    #expect(HealthKitMapping.statisticUnit(for: .walkingStepLength) == .meterUnit(with: .centi))
+    #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.walkingStepLength)))
+  }
+
+  @Test func walkingAsymmetryMapsToItsHealthKitType() {
+    #expect(HealthKitMapping.sampleType(for: .walkingAsymmetry) == HKQuantityType(.walkingAsymmetryPercentage))
+    #expect(HealthKitMapping.storedUnit(for: .walkingAsymmetry) == .percent())
+    #expect(HealthKitMapping.statisticUnit(for: .walkingAsymmetry) == .percent())
+    #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.walkingAsymmetryPercentage)))
+  }
+
+  @Test func doubleSupportTimeMapsToItsHealthKitType() {
+    #expect(HealthKitMapping.sampleType(for: .doubleSupportTime) == HKQuantityType(.walkingDoubleSupportPercentage))
+    #expect(HealthKitMapping.storedUnit(for: .doubleSupportTime) == .percent())
+    #expect(HealthKitMapping.statisticUnit(for: .doubleSupportTime) == .percent())
+    #expect(HealthKitMapping.readTypes.contains(HKQuantityType(.walkingDoubleSupportPercentage)))
+  }
+
   @Test func wristTemperatureMapsToItsHealthKitType() {
     #expect(HealthKitMapping.sampleType(for: .wristTemperature) == HKQuantityType(.appleSleepingWristTemperature))
     #expect(HealthKitMapping.storedUnit(for: .wristTemperature) == .degreeCelsius())
@@ -274,6 +295,19 @@ private func date(_ iso: String) -> Date {
     #expect(try HealthKitMapping.storedValue(oneMetrePerSecond, for: .walkingSpeed) == 1)
     let kilometresPerHour = try #require(HealthKitMapping.statisticUnit(for: .walkingSpeed))
     #expect(abs(oneMetrePerSecond.doubleValue(for: kilometresPerHour) - 3.6) < 1e-9)
+  }
+
+  @Test func oneMetreStepLengthReadsAsOneHundredCentimetres() throws {
+    let oneMetre = HKQuantity(unit: .meter(), doubleValue: 1)
+    #expect(try HealthKitMapping.storedValue(oneMetre, for: .walkingStepLength) == 1)
+    let centimetres = try #require(HealthKitMapping.statisticUnit(for: .walkingStepLength))
+    #expect(abs(oneMetre.doubleValue(for: centimetres) - 100) < 1e-9)
+  }
+
+  @Test func aFootStepLengthIsStoredInMetres() throws {
+    let foot = HKQuantity(unit: .foot(), doubleValue: 1)
+    let stored = try HealthKitMapping.storedValue(foot, for: .walkingStepLength)
+    #expect(abs(stored - 0.3048) < 1e-9)
   }
 
   @Test func aFahrenheitWristTemperatureIsStoredInCelsius() throws {
@@ -340,6 +374,14 @@ private func date(_ iso: String) -> Date {
     let ninetySevenPercent = HKQuantity(unit: .percent(), doubleValue: 0.97)
     #expect(try HealthKitMapping.storedValue(ninetySevenPercent, for: .bloodOxygen) == 0.97)
     #expect(HKUnit.percent().unitString == HealthType.bloodOxygen.siUnit)
+  }
+
+  @Test func walkingAsymmetryAndDoubleSupportQuantitiesAreStoredAsFractions() throws {
+    let percentage = HKQuantity(unit: .percent(), doubleValue: 0.284)
+    #expect(try HealthKitMapping.storedValue(percentage, for: .walkingAsymmetry) == 0.284)
+    #expect(try HealthKitMapping.storedValue(percentage, for: .doubleSupportTime) == 0.284)
+    #expect(HKUnit.percent().unitString == HealthType.walkingAsymmetry.siUnit)
+    #expect(HKUnit.percent().unitString == HealthType.doubleSupportTime.siUnit)
   }
 
   @Test func flowValuesBecomeTheirNames() {

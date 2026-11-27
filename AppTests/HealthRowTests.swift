@@ -86,11 +86,29 @@ import VitalCourierCore
     #expect(HealthType.heartRate.symbolName == HealthType.restingHeartRate.symbolName)
   }
 
+  @Test func mobilityTypesShareTheWalkingSpeedSymbol() {
+    #expect(HealthType.walkingStepLength.displayName == String(localized: "Walking step length"))
+    #expect(HealthType.walkingAsymmetry.displayName == String(localized: "Walking asymmetry"))
+    #expect(HealthType.doubleSupportTime.displayName == String(localized: "Double support time"))
+    let brazilian = Locale(identifier: "pt_BR")
+    #expect(
+      String(localized: LocalizedStringResource("Walking step length", locale: brazilian)) == "Comprimento do passo")
+    #expect(
+      String(localized: LocalizedStringResource("Walking asymmetry", locale: brazilian)) == "Assimetria ao caminhar")
+    #expect(
+      String(localized: LocalizedStringResource("Double support time", locale: brazilian)) == "Tempo de apoio duplo")
+    for type in [HealthType.walkingStepLength, .walkingAsymmetry, .doubleSupportTime] {
+      #expect(type.symbolName == "figure.walk.motion")
+      #expect(type.symbolName == HealthType.walkingSpeed.symbolName)
+    }
+  }
+
   @Test func everyOtherTypeHasItsOwnHomeRowSymbol() {
-    // The heart types and cardio fitness share heart.fill, walking + running distance shares steps' figure.walk, resting energy shares active energy's flame.fill and blood oxygen shares respiratory rate's lungs.fill, as in Apple's Health app; nothing else may.
+    // The heart types and cardio fitness share heart.fill, walking + running distance shares steps' figure.walk, resting energy shares active energy's flame.fill, blood oxygen shares respiratory rate's lungs.fill and the mobility types share walking speed's figure.walk.motion, as in Apple's Health app; nothing else may.
     let typesWithTheirOwnSymbol = HealthType.allCases.filter {
       $0 != .walkingHeartRateAverage && $0 != .heartRate && $0 != .bloodOxygen && $0 != .walkingRunningDistance
-        && $0 != .heartRateVariability && $0 != .restingEnergy && $0 != .cardioFitness
+        && $0 != .heartRateVariability && $0 != .restingEnergy && $0 != .cardioFitness && $0 != .walkingStepLength
+        && $0 != .walkingAsymmetry && $0 != .doubleSupportTime
     }
     #expect(Set(typesWithTheirOwnSymbol.map(\.symbolName)).count == typesWithTheirOwnSymbol.count)
   }

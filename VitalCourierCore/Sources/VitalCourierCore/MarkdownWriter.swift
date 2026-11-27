@@ -15,6 +15,12 @@ public struct DailySummary: Equatable, Sendable {
   public var standMinutes: Double?
   /// Kilometres per hour: the day's average.
   public var walkingSpeedKmh: Double?
+  /// Centimetres: the day's average.
+  public var walkingStepLengthCm: Double?
+  /// Percent (0–100): the day's average.
+  public var walkingAsymmetryPercent: Double?
+  /// Percent (0–100): the day's average.
+  public var doubleSupportPercent: Double?
   public var restingHeartRateBPM: Double?
   public var walkingHeartRateAverageBPM: Double?
   /// Beats per minute: the day's average, lowest and highest reading.
@@ -63,6 +69,10 @@ public struct DailySummary: Equatable, Sendable {
     flightsClimbed = values[.flightsClimbed]?.value
     standMinutes = values[.standMinutes]?.value
     walkingSpeedKmh = values[.walkingSpeed]?.value
+    walkingStepLengthCm = values[.walkingStepLength]?.value
+    // The stored values are HealthKit's 0–1 fractions; the note reads in percent.
+    walkingAsymmetryPercent = values[.walkingAsymmetry].map { $0.value * 100 }
+    doubleSupportPercent = values[.doubleSupportTime].map { $0.value * 100 }
     restingHeartRateBPM = values[.restingHeartRate]?.value
     walkingHeartRateAverageBPM = values[.walkingHeartRateAverage]?.value
     heartRateBPM = values[.heartRate]?.value
@@ -131,6 +141,9 @@ public enum MarkdownWriter {
     "vc_flights_climbed",
     "vc_stand_minutes",
     "vc_walking_speed_kmh",
+    "vc_step_length_cm",
+    "vc_walking_asymmetry_pct",
+    "vc_double_support_pct",
     "vc_resting_hr_bpm",
     "vc_walking_hr_avg",
     "vc_hr_avg",
@@ -179,6 +192,7 @@ public enum MarkdownWriter {
     if let flights = summary.flightsClimbed { lines.append("vc_flights_climbed: \(Int(flights.rounded(.towardZero)))") }
     if let minutes = summary.standMinutes { lines.append("vc_stand_minutes: \(Int(minutes.rounded(.towardZero)))") }
     if let speed = summary.walkingSpeedKmh { lines.append("vc_walking_speed_kmh: \(oneDecimal(speed))") }
+    appendMobilityLines(for: summary, to: &lines)
     if let bpm = summary.restingHeartRateBPM { lines.append("vc_resting_hr_bpm: \(oneDecimal(bpm))") }
     if let bpm = summary.walkingHeartRateAverageBPM { lines.append("vc_walking_hr_avg: \(oneDecimal(bpm))") }
     if let bpm = summary.heartRateBPM { lines.append("vc_hr_avg: \(noDecimals(bpm))") }
@@ -215,6 +229,15 @@ public enum MarkdownWriter {
     lines.append("vc_schema: \(ExportSchema.version)")
     lines.append("---")
     return Data((lines.joined(separator: "\n") + "\n").utf8)
+  }
+
+  /// Step length, walking asymmetry and double support time, right after walking speed. Kept out of `note(for:)` so its body stays within SwiftLint's length limit (Walking Step Length, Asymmetry and Double Support Spec, Code touch points).
+  private static func appendMobilityLines(for summary: DailySummary, to lines: inout [String]) {
+    if let centimetres = summary.walkingStepLengthCm { lines.append("vc_step_length_cm: \(noDecimals(centimetres))") }
+    if let percent = summary.walkingAsymmetryPercent {
+      lines.append("vc_walking_asymmetry_pct: \(oneDecimal(percent))")
+    }
+    if let percent = summary.doubleSupportPercent { lines.append("vc_double_support_pct: \(oneDecimal(percent))") }
   }
 
   /// Fixed locale so the decimal separator is always `.`, whatever the device language.

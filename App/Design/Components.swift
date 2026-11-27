@@ -168,6 +168,9 @@ extension HealthType {
     case .flightsClimbed: String(localized: "Flights climbed")
     case .standMinutes: String(localized: "Stand minutes")
     case .walkingSpeed: String(localized: "Walking speed")
+    case .walkingStepLength: String(localized: "Walking step length")
+    case .walkingAsymmetry: String(localized: "Walking asymmetry")
+    case .doubleSupportTime: String(localized: "Double support time")
     case .restingHeartRate: String(localized: "Resting heart rate")
     case .walkingHeartRateAverage: String(localized: "Walking heart rate average")
     case .heartRate: String(localized: "Heart rate")
@@ -194,6 +197,9 @@ extension HealthType {
     case .flightsClimbed: "figure.stairs"
     case .standMinutes: "figure.stand"
     case .walkingSpeed: "figure.walk.motion"
+    case .walkingStepLength: "figure.walk.motion"
+    case .walkingAsymmetry: "figure.walk.motion"
+    case .doubleSupportTime: "figure.walk.motion"
     case .restingHeartRate: "heart.fill"
     case .walkingHeartRateAverage: "heart.fill"
     case .heartRate: "heart.fill"
