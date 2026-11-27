@@ -19,6 +19,9 @@ import Testing
     summary.flightsClimbed = 7.9
     summary.standMinutes = 143.9
     summary.walkingSpeedKmh = 4.64
+    summary.walkingStepLengthCm = 72.4
+    summary.walkingAsymmetryPercent = 1.84
+    summary.doubleSupportPercent = 28.43
     summary.restingHeartRateBPM = 58.46
     summary.walkingHeartRateAverageBPM = 92.46
     summary.heartRateBPM = 72.4
@@ -55,6 +58,9 @@ import Testing
         vc_flights_climbed: 7
         vc_stand_minutes: 143
         vc_walking_speed_kmh: 4.6
+        vc_step_length_cm: 72
+        vc_walking_asymmetry_pct: 1.8
+        vc_double_support_pct: 28.4
         vc_resting_hr_bpm: 58.5
         vc_walking_hr_avg: 92.5
         vc_hr_avg: 72
@@ -236,6 +242,38 @@ import Testing
     #expect(!note.contains("vc_walking_speed_kmh"))
     #expect(!note.contains("vc_vo2_max"))
     #expect(!note.contains("vc_wrist_temp_c"))
+  }
+
+  @Test func leavesOutStepLengthAsymmetryAndDoubleSupportWhenThereAreNone() {
+    var summary = DailySummary(day: day("2026-09-27"))
+    summary.steps = 100
+    let note = text(summary)
+    #expect(!note.contains("vc_step_length_cm"))
+    #expect(!note.contains("vc_walking_asymmetry_pct"))
+    #expect(!note.contains("vc_double_support_pct"))
+  }
+
+  @Test func writesAZeroWalkingAsymmetryAsZero() {
+    // 0 is a value on a healthy gait; only a day without samples has no key (Walking Step Length, Asymmetry and Double Support Spec, Output).
+    let summary = DailySummary(day: day("2026-09-27"), values: [.walkingAsymmetry: DailyValue(value: 0)])
+    #expect(text(summary).contains("vc_walking_asymmetry_pct: 0.0\n"))
+  }
+
+  @Test func theSummaryTakesStepLengthAsymmetryAndDoubleSupportFromTheStoredDailyValues() throws {
+    let summary = DailySummary(
+      day: day("2026-09-27"),
+      values: [
+        .walkingStepLength: DailyValue(value: 72.4),
+        .walkingAsymmetry: DailyValue(value: 0.0184),
+        .doubleSupportTime: DailyValue(value: 0.2843),
+      ])
+    #expect(summary.walkingStepLengthCm == 72.4)
+    #expect(abs(try #require(summary.walkingAsymmetryPercent) - 1.84) < 1e-9)
+    #expect(abs(try #require(summary.doubleSupportPercent) - 28.43) < 1e-9)
+    let note = text(summary)
+    #expect(note.contains("vc_step_length_cm: 72\n"))
+    #expect(note.contains("vc_walking_asymmetry_pct: 1.8\n"))
+    #expect(note.contains("vc_double_support_pct: 28.4\n"))
   }
 
   @Test func writesAWristTemperatureWithTwoDecimals() {
