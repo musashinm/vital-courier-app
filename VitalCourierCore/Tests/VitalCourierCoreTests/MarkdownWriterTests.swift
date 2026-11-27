@@ -245,8 +245,7 @@ import Testing
   }
 
   @Test func leavesOutStepLengthAsymmetryAndDoubleSupportWhenThereAreNone() {
-    var summary = DailySummary(day: day("2026-09-27"))
-    summary.steps = 100
+    let summary = DailySummary(day: day("2026-09-27"), values: [.steps: DailyValue(value: 100)])
     let note = text(summary)
     #expect(!note.contains("vc_step_length_cm"))
     #expect(!note.contains("vc_walking_asymmetry_pct"))
@@ -274,6 +273,20 @@ import Testing
     #expect(note.contains("vc_step_length_cm: 72\n"))
     #expect(note.contains("vc_walking_asymmetry_pct: 1.8\n"))
     #expect(note.contains("vc_double_support_pct: 28.4\n"))
+  }
+
+  @Test func roundsStepLengthAsymmetryAndDoubleSupportUpInsteadOfTruncating() {
+    let summary = DailySummary(
+      day: day("2026-09-27"),
+      values: [
+        .walkingStepLength: DailyValue(value: 72.6),
+        .walkingAsymmetry: DailyValue(value: 0.0186),
+        .doubleSupportTime: DailyValue(value: 0.2846),
+      ])
+    let note = text(summary)
+    #expect(note.contains("vc_step_length_cm: 73\n"))
+    #expect(note.contains("vc_walking_asymmetry_pct: 1.9\n"))
+    #expect(note.contains("vc_double_support_pct: 28.5\n"))
   }
 
   @Test func writesAWristTemperatureWithTwoDecimals() {
